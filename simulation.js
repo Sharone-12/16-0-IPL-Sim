@@ -846,7 +846,7 @@ function resultCardHtml(o) {
     </div>
     <div class="rc-foot">
       <span>Think you can beat this?</span>
-      <span class="rc-brand">16-0.app</span>
+      <span class="rc-brand">16-0game.vercel.app</span>
     </div>`;
 }
 
@@ -876,7 +876,7 @@ function showResultCard(outcome, container) {
     });
   };
 
-  const tweetText = `I went ${outcome.wins}-${outcome.losses} with my drafted IPL XI on 16-0.app! ${outcome.stage} Can you beat it?`;
+  const tweetText = `I went ${outcome.wins}-${outcome.losses} with my drafted IPL XI on 16-0game.vercel.app! ${outcome.stage} Can you beat it?`;
   container.querySelector('[data-act="x"]').onclick = () =>
     window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(tweetText)}`, "_blank");
 }

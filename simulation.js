@@ -1116,11 +1116,11 @@ function buildInnings(battingTeam, bowlingTeam, options = {}) {
   const totalAdv = battingTeam.strength.total - bowlingTeam.strength.total;
   const pressure = options.knockout ? randomBetween(-14, 14) : randomBetween(-18, 18);
   const pitch = options.pitch || { runs: 0, wickets: 0, srBonus: 0 };
-  let projected = 165 + batAdv * 2.0 + totalAdv * 1.4 + pressure + pitch.runs;
+  let projected = 172 + batAdv * 2.4 + totalAdv * 1.6 + pressure + pitch.runs;
   if (options.target) {
     projected = Math.min(projected, options.target + randomBetween(-16, 10));
   }
-  const runs = clamp(Math.round(projected), 140, 230);
+  const runs = clamp(Math.round(projected), 148, 230);
   const wickets = clamp(Math.round(randomBetween(3, 8) - batAdv / 18 + pitch.wickets), 2, 10);
   const balls = wickets >= 10 ? Math.round(randomBetween(103, 120)) : 120;
   const batting = distributeBatting(battingTeam, bowlingTeam, runs, wickets, balls, options.knockout, pitch.srBonus);
@@ -1157,26 +1157,38 @@ function distributeBatting(team, opponent, runs, wickets, balls, isKnockout = fa
     .reduce((s, p) => s + (p.bowl || p.ovr), 0) / 4;
 
   const weights = activePlayers.map((p, i) => {
-    // Base: pure batting rating vs opposition bowling quality.
+    // Base: batting rating penalized by position vs opposition bowling matchup.
     const rat = penalizedBat(p, i);
     const matchup = Math.max(5, rat - oppBowlAvg * 0.35);
 
-    // Openers face the powerplay — small factual advantage (not a cliff).
-    const powerplayEdge = i < 2 ? 1.12 : 1.0;
+    // Steeper positional decay so top order dominates — rating still drives it.
+    const posBonus = Math.pow(0.62, i);
 
-    // Noise: on any given day anyone can fire or fail.
-    const noise = isKnockout ? randomBetween(0.4, 2.2) : randomBetween(0.55, 1.6);
+    // Wider noise = hero potential on any given day.
+    const noise = isKnockout ? randomBetween(0.3, 2.5) : randomBetween(0.4, 2.0);
 
     // Off day: ~25% chance, including stars.
     const flop = Math.random() < 0.25 ? randomBetween(0.05, 0.18) : 1;
 
-    return Math.max(0.5, matchup * powerplayEdge * noise * flop);
+    return Math.max(0.5, matchup * posBonus * noise * flop);
   });
 
   const rawRuns = splitByWeights(runs, weights);
 
-  // Cap any single batter at 100 — realistic T20 century is rare, redistribute excess.
-  const INNINGS_CAP = 100;
+  // Hero guarantee: if no top-3 batter reached 35 in a 160+ total, boost the best one.
+  const top3Max = Math.max(...rawRuns.slice(0, Math.min(3, rawRuns.length)));
+  if (runs >= 160 && top3Max < 35) {
+    const bestIdx = weights.slice(0, 3).indexOf(Math.max(...weights.slice(0, 3)));
+    const boost = 40 - rawRuns[bestIdx];
+    rawRuns[bestIdx] += boost;
+    const deductFrom = [3, 4, 5].filter((j) => j < rawRuns.length && rawRuns[j] > 5);
+    deductFrom.forEach((j) => {
+      rawRuns[j] = Math.max(3, rawRuns[j] - Math.floor(boost / deductFrom.length));
+    });
+  }
+
+  // Cap any single batter at 110 — T20 centuries are rare, redistribute excess.
+  const INNINGS_CAP = 110;
   rawRuns.forEach((r, i) => {
     if (r > INNINGS_CAP) {
       const excess = r - INNINGS_CAP;

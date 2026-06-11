@@ -607,7 +607,6 @@ function showTableScreen() {
     }
     elimInfo.innerHTML = `
       <p class="season-end-msg">You finished ${ordinal(rank)}. Top 4 qualify.</p>
-      ${awardsHtml()}
       <a class="primary-btn wide elim-back-btn" href="draft.html">Back to Draft</a>
     `;
 

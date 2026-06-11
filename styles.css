@@ -684,7 +684,7 @@ h1 {
   header {
     width: calc(100% - 2rem);
     padding-inline: 0;
-    top: max(1.5rem, env(safe-area-inset-top));
+    top: max(9vh, calc(env(safe-area-inset-top) + 5rem));
   }
 
   h1 {

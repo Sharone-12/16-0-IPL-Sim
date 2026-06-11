@@ -678,8 +678,10 @@ function renderXI() {
   const ovrDisplay = document.getElementById("xiOvrDisplay");
   if (picked > 0 && config.showRatings !== "off") {
     const avg = Math.round(picks.reduce((a, p) => a + ovrOf(p), 0) / picked);
-    const bat = Math.round(picks.reduce((a, p) => a + (p.bat || p.ovr), 0) / picked);
-    const bowl = Math.round(picks.reduce((a, p) => a + (p.bowl || p.ovr), 0) / picked);
+    const topBat = [...picks].sort((a, b) => (b.bat || b.ovr) - (a.bat || a.ovr)).slice(0, Math.min(6, picked));
+    const topBowl = [...picks].sort((a, b) => (b.bowl || b.ovr) - (a.bowl || a.ovr)).slice(0, Math.min(5, picked));
+    const bat = Math.round(topBat.reduce((a, p) => a + (p.bat || p.ovr), 0) / topBat.length);
+    const bowl = Math.round(topBowl.reduce((a, p) => a + (p.bowl || p.ovr), 0) / topBowl.length);
 
     const batVal = document.getElementById("xiBatVal");
     const bowlVal = document.getElementById("xiBowlVal");

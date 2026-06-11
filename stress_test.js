@@ -23,7 +23,6 @@ const GROUPS = {
   B: ["MI", "KKR", "SRH", "RR", USER_ID],
 };
 const MAX_OVERSEAS = 4;
-const MAX_ELITE = 3; // at most 3 players rated 90+ in an XI
 const ERA_FROM = 2008;
 const ERA_TO = 2026;
 
@@ -178,11 +177,9 @@ function simulateDraft(chooser) {
   const spinState = { tier1Hits: 0, tier2Hits: 0, spinNumber: 0 };
   const inXi = (name) => xi.some((p) => p && p.name === name);
   const overseasCount = () => xi.filter((p) => p && p.isOverseas).length;
-  const eliteCount = () => xi.filter((p) => p && p.ovrRaw >= 90).length;
   const canDraft = (p) => {
     if (inXi(p.name)) return false;
     if (p.isOverseas && overseasCount() >= MAX_OVERSEAS) return false;
-    if (p.ovrRaw >= 90 && eliteCount() >= MAX_ELITE) return false;
     return eligibleSlots(p).some((i) => xi[i] === null);
   };
 

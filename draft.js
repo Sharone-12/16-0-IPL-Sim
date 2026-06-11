@@ -201,17 +201,11 @@ function overseasCount() {
 }
 
 const MAX_OVERSEAS = 4;
-const MAX_ELITE = 3; // at most 3 players rated 90+ in an XI
-
-function eliteCount() {
-  return xi.filter((p) => p && ovrOf(p) >= 90).length;
-}
 
 // Can this player be drafted into the current XI right now?
 function canDraft(p) {
   if (inXi(p.name)) return false;
   if (p.isOverseas && overseasCount() >= MAX_OVERSEAS) return false;
-  if (ovrOf(p) >= 90 && eliteCount() >= MAX_ELITE) return false;
   return eligibleSlots(p).some((i) => xi[i] === null);
 }
 
@@ -651,10 +645,6 @@ function draftPlayer(p) {
   }
   if (p.isOverseas && overseasCount() >= MAX_OVERSEAS) {
     showToast(`Max ${MAX_OVERSEAS} overseas players in an XI`, "error");
-    return;
-  }
-  if (ovrOf(p) >= 90 && eliteCount() >= MAX_ELITE) {
-    showToast(`Max ${MAX_ELITE} elite (90+ OVR) players in an XI`, "error");
     return;
   }
 

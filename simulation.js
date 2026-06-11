@@ -188,6 +188,7 @@ function initSeason() {
     makeTeam(USER_ID, USER_NAME, state.userXi),
     ...state.opponents,
   ];
+  applyCatchupBuff(state.teams);
   state.teams.forEach((team) => {
     state.standings[team.id] = {
       team,
@@ -321,14 +322,7 @@ function makeTeam(id, name, squad) {
       ? [...squad].sort((a, b) => (a.slot ?? 99) - (b.slot ?? 99)).slice(0, 11)
       : selectBalancedXI(squad);
   const strength = teamStrength(players);
-  // Floor AI strength so a thin franchise squad can't post a 0-14 season and
-  // hand out free wins. The user's XI is left uncapped — the strength readout
-  // must keep showing an honestly weak drafted department.
-  if (id !== USER_ID) {
-    strength.batting = Math.max(strength.batting, 72);
-    strength.bowling = Math.max(strength.bowling, 70);
-    strength.total = Math.max(strength.total, 71);
-  }
+  // Catch-up buff applied later in initSeason (rank-based, dynamic) — no floor here.
   return {
     id,
     name,
@@ -336,6 +330,24 @@ function makeTeam(id, name, squad) {
     players,
     strength,
   };
+}
+
+// Dynamic catch-up: rank AI teams by total strength and close part of the gap to
+// the strongest team. Bottom 4 close ~45%, mid-table close ~25%. Scales with the
+// actual squad gap (no hardcoded floor) and never touches the user's XI.
+function applyCatchupBuff(teams) {
+  const sorted = [...teams].sort((a, b) => b.strength.total - a.strength.total);
+  const top = sorted[0].strength.total;
+  sorted.forEach((team, rank) => {
+    if (team.id === USER_ID) return;
+    const gap = top - team.strength.total;
+    const buffFactor = rank >= 6 ? 0.45 : rank >= 4 ? 0.25 : 0;
+    if (buffFactor === 0) return;
+    const buff = gap * buffFactor;
+    team.strength.batting += buff * 0.5;
+    team.strength.bowling += buff * 0.5;
+    team.strength.total += buff;
+  });
 }
 
 // Build a position-balanced XI: 2 openers, 4 middle order, 1 finisher/WK,

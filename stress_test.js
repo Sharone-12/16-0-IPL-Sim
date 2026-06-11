@@ -23,6 +23,7 @@ const GROUPS = {
   B: ["MI", "KKR", "SRH", "RR", USER_ID],
 };
 const MAX_OVERSEAS = 4;
+const MAX_ELITE = 3; // at most 3 players rated 90+ in an XI
 const ERA_FROM = 2008;
 const ERA_TO = 2026;
 
@@ -177,9 +178,11 @@ function simulateDraft(chooser) {
   const spinState = { tier1Hits: 0, tier2Hits: 0, spinNumber: 0 };
   const inXi = (name) => xi.some((p) => p && p.name === name);
   const overseasCount = () => xi.filter((p) => p && p.isOverseas).length;
+  const eliteCount = () => xi.filter((p) => p && p.ovrRaw >= 90).length;
   const canDraft = (p) => {
     if (inXi(p.name)) return false;
     if (p.isOverseas && overseasCount() >= MAX_OVERSEAS) return false;
+    if (p.ovrRaw >= 90 && eliteCount() >= MAX_ELITE) return false;
     return eligibleSlots(p).some((i) => xi[i] === null);
   };
 
@@ -271,11 +274,6 @@ function makeTeam(id, squad) {
       ? [...squad].slice(0, 11)
       : selectBalancedXI(squad);
   const strength = teamStrength(players);
-  if (id !== USER_ID) {
-    strength.batting = Math.max(strength.batting, 72);
-    strength.bowling = Math.max(strength.bowling, 70);
-    strength.total = Math.max(strength.total, 71);
-  }
   return { id, name: id, short: id, players, strength };
 }
 function buildOpponentTeams() {
@@ -456,9 +454,25 @@ function buildGroupFixtures(teams) {
 }
 
 // ======================= SEASON =======================
+function applyCatchupBuff(teams) {
+  const sorted = [...teams].sort((a, b) => b.strength.total - a.strength.total);
+  const top = sorted[0].strength.total;
+  sorted.forEach((team, rank) => {
+    if (team.id === USER_ID) return;
+    const gap = top - team.strength.total;
+    const buffFactor = rank >= 6 ? 0.45 : rank >= 4 ? 0.25 : 0;
+    if (buffFactor === 0) return;
+    const buff = gap * buffFactor;
+    team.strength.batting += buff * 0.5;
+    team.strength.bowling += buff * 0.5;
+    team.strength.total += buff;
+  });
+}
+
 function runSeason(userXi) {
   const userTeam = makeTeam(USER_ID, userXi);
   const teams = [userTeam, ...buildOpponentTeams()];
+  applyCatchupBuff(teams);
   const standings = {};
   teams.forEach((t) => (standings[t.id] = {
     team: t, p: 0, w: 0, l: 0, pts: 0,

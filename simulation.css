@@ -1424,22 +1424,23 @@ tr.is-user td:first-child {
     padding: 0.65rem 0.75rem;
   }
 
-  /* Hide P and NRR columns on mobile */
-  .table-panel table th:nth-child(2),
-  .table-panel table td:nth-child(2),
-  .table-panel table th:nth-child(5),
-  .table-panel table td:nth-child(5) {
-    display: none;
-  }
-
   table th,
   table td {
-    padding: 0.38rem 0.45rem;
-    font-size: 0.72rem;
+    padding: 0.38rem 0.28rem;
+    font-size: 0.66rem;
   }
 
   table th {
-    font-size: 0.58rem;
+    font-size: 0.54rem;
+  }
+
+  /* Keep the team name column from eating the row — let stat cols breathe */
+  table th:first-child,
+  table td:first-child {
+    max-width: 6.5rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   /* Advance button: full width, sticky bottom */

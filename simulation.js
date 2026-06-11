@@ -1161,8 +1161,8 @@ function distributeBatting(team, opponent, runs, wickets, balls, isKnockout = fa
     const rat = penalizedBat(p, i);
     const matchup = Math.max(5, rat - oppBowlAvg * 0.35);
 
-    // Steeper positional decay so top order dominates — rating still drives it.
-    const posBonus = Math.pow(0.62, i);
+    // Positional decay: opener gets ~28% share, middle order meaningful but less.
+    const posBonus = Math.pow(0.75, i);
 
     // Wider noise = hero potential on any given day.
     const noise = isKnockout ? randomBetween(0.3, 2.5) : randomBetween(0.4, 2.0);
@@ -1187,8 +1187,8 @@ function distributeBatting(team, opponent, runs, wickets, balls, isKnockout = fa
     });
   }
 
-  // Cap any single batter at 110 — T20 centuries are rare, redistribute excess.
-  const INNINGS_CAP = 110;
+  // Cap any single batter at 90 — keeps per-match contribution realistic.
+  const INNINGS_CAP = 90;
   rawRuns.forEach((r, i) => {
     if (r > INNINGS_CAP) {
       const excess = r - INNINGS_CAP;

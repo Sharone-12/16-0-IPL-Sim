@@ -234,14 +234,15 @@ function chemistryScore(players) {
   }, 0);
   return Math.max(55, 92 - pen);
 }
-function teamStrength(players) {
+function teamStrength(players, isUser = false) {
   const topSix = players.slice(0, 6);
   const bowlers = [...players].sort((a, b) => b.bowl - a.bowl).slice(0, 5);
   const batting = weightedAverage(topSix.map((p) => p.bat || p.ovr), [1.25, 1.18, 1.1, 1, 0.92, 0.85]);
   const bowling = weightedAverage(bowlers.map((p) => p.bowl || p.ovr), [1.22, 1.12, 1.04, 0.96, 0.88]);
   const depth = average(players.slice(6).map((p) => p.ovr));
   const chemistry = chemistryScore(players);
-  const total = batting * 0.46 + bowling * 0.42 + depth * 0.08 + chemistry * 0.04;
+  let total = batting * 0.46 + bowling * 0.42 + depth * 0.08 + chemistry * 0.04;
+  if (isUser) total *= 0.975;
   return { batting, bowling, depth, chemistry, total };
 }
 function selectBalancedXI(squad) {
@@ -270,7 +271,7 @@ function makeTeam(id, squad) {
     id === USER_ID
       ? [...squad].slice(0, 11)
       : selectBalancedXI(squad);
-  const strength = teamStrength(players);
+  const strength = teamStrength(players, id === USER_ID);
   return { id, name: id, short: id, players, strength };
 }
 function buildOpponentTeams() {

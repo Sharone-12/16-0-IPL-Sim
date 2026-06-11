@@ -321,7 +321,7 @@ function makeTeam(id, name, squad) {
     id === USER_ID
       ? [...squad].sort((a, b) => (a.slot ?? 99) - (b.slot ?? 99)).slice(0, 11)
       : selectBalancedXI(squad);
-  const strength = teamStrength(players);
+  const strength = teamStrength(players, id === USER_ID);
   // Catch-up buff applied later in initSeason (rank-based, dynamic) — no floor here.
   return {
     id,
@@ -375,7 +375,7 @@ function selectBalancedXI(squad) {
   return result.slice(0, 11);
 }
 
-function teamStrength(players) {
+function teamStrength(players, isUser = false) {
   const topSix = players.slice(0, 6);
   const bowlers = [...players]
     .sort((a, b) => b.bowl - a.bowl)
@@ -384,7 +384,10 @@ function teamStrength(players) {
   const bowling = weightedAverage(bowlers.map((p) => p.bowl || p.ovr), [1.22, 1.12, 1.04, 0.96, 0.88]);
   const depth = average(players.slice(6).map((p) => p.ovr));
   const chemistry = chemistryScore(players);
-  const total = batting * 0.46 + bowling * 0.42 + depth * 0.08 + chemistry * 0.04;
+  let total = batting * 0.46 + bowling * 0.42 + depth * 0.08 + chemistry * 0.04;
+  // User XI reality check — a drafted all-time XI faces modern AI opposition.
+  // Slight era penalty keeps the title a genuine challenge.
+  if (isUser) total *= 0.975;
   return { batting, bowling, depth, chemistry, total };
 }
 

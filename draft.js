@@ -529,13 +529,55 @@ async function doSpin() {
   reelSeason.classList.remove("spent");
   updateSpinMeta("Spinning…");
 
+  const wkFilled = xi.slice(0, 7).some((p) => p && p.isWk);
+
+  // After pick 8 with no WK yet — warn
+  if (picked === 8 && !wkFilled && diff.enforceWk) {
+    showToast("No wicketkeeper yet — pick one soon or you can't finish", "error");
+  }
+
+  // After pick 9 with no WK — force spin pool to squads that have a draftable WK
+  if (picked >= 9 && !wkFilled && diff.enforceWk) {
+    const from = config.eraFrom;
+    const to = config.eraTo;
+    let wkPool = spinPool.filter((e) => {
+      if (+e.season < from || +e.season > to) return false;
+      const squad = byTeamSeason.get(`${e.fr}|${e.season}`) || [];
+      return squad.some((p) => p.isWk);
+    });
+    if (!wkPool.length) {
+      showToast("Relaxing era filter to find a wicketkeeper", "error");
+      wkPool = spinPool.filter((e) => {
+        const squad = byTeamSeason.get(`${e.fr}|${e.season}`) || [];
+        return squad.some((p) => p.isWk);
+      });
+    }
+    const wkEntry = wkPool[Math.floor(Math.random() * wkPool.length)];
+    const clubPool = franchises.map((fr) => fullNames[fr]);
+    const seasonPool = seasonsByFranchise[wkEntry.fr];
+    await Promise.all([
+      rollReel(reelClub, clubPool, fullNames[wkEntry.fr], 2200),
+      rollReel(reelSeason, seasonPool, wkEntry.season, 2900),
+    ]);
+    currentTeam = { fr: wkEntry.fr, season: wkEntry.season };
+    pendingSquad = (byTeamSeason.get(`${wkEntry.fr}|${wkEntry.season}`) || [])
+      .slice()
+      .sort((a, b) => ovrOf(b) - ovrOf(a));
+    renderSquad();
+    spinning = false;
+    spinBtn.disabled = false;
+    updateControls();
+    updateSpinMeta();
+    return;
+  }
+
   const target = pickTeam();
-  const clubPool = franchises.map((fr) => fullNames[fr]);
-  const seasonPool = seasonsByFranchise[target.fr];
+  const clubPool2 = franchises.map((fr) => fullNames[fr]);
+  const seasonPool2 = seasonsByFranchise[target.fr];
 
   await Promise.all([
-    rollReel(reelClub, clubPool, fullNames[target.fr], 2200),
-    rollReel(reelSeason, seasonPool, target.season, 2900),
+    rollReel(reelClub, clubPool2, fullNames[target.fr], 2200),
+    rollReel(reelSeason, seasonPool2, target.season, 2900),
   ]);
 
   currentTeam = target;

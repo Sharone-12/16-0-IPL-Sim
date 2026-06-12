@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>16-0 — Verifiable Result</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Anton&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="simulation.css" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="supabase_config.js"></script>
+  <style>
+    body {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      min-height: 100svh;
+      background: var(--color-bg, #0a0a0a);
+      color: var(--color-text, #ffffff);
+      margin: 0;
+      padding: var(--space-lg, 24px);
+      box-sizing: border-box;
+      overflow-y: auto;
+    }
+
+    .verification-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: var(--space-md, 16px);
+      width: 100%;
+      max-width: 420px;
+    }
+
+    .verification-header {
+      text-align: center;
+      margin-bottom: var(--space-xs, 8px);
+    }
+
+    .verification-header h1 {
+      font-family: "Anton", Impact, sans-serif;
+      font-size: 1.8rem;
+      margin: 0 0 var(--space-xxs, 4px) 0;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+
+    .verification-header p {
+      font-size: 0.8rem;
+      color: var(--color-text-muted, #7a7a7a);
+      margin: 0;
+    }
+
+    .verification-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--space-xxs, 4px);
+      background: rgba(95, 206, 126, 0.1);
+      color: var(--color-brand-green, #5fce7e);
+      padding: 6px 12px;
+      border-radius: 999px;
+      font-size: 0.72rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      border: 1px solid rgba(95, 206, 126, 0.2);
+    }
+
+    .play-btn {
+      width: 100%;
+      height: var(--btn-height, 44px);
+      border-radius: var(--btn-radius, 8px);
+      font-family: Arial, Helvetica, sans-serif;
+      font-size: var(--btn-font-size, 0.68rem);
+      font-weight: 700;
+      letter-spacing: var(--btn-letter-spacing, 0.08em);
+      text-transform: uppercase;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--color-brand-green, #5fce7e);
+      color: #000000;
+      border: none;
+      cursor: pointer;
+      text-decoration: none;
+      transition: background-color 180ms ease, transform 180ms ease;
+    }
+
+    .play-btn:hover {
+      background: #4ebd6d;
+    }
+
+    .play-btn:active {
+      transform: translateY(1px);
+    }
+
+    .error-msg {
+      text-align: center;
+      padding: var(--space-lg, 24px);
+      border: 1px dashed rgba(255, 255, 255, 0.15);
+      border-radius: var(--btn-radius, 8px);
+      background: var(--color-card-bg, #0f0f0f);
+      width: 100%;
+      box-sizing: border-box;
+    }
+
+    .error-msg h2 {
+      font-family: "Anton", Impact, sans-serif;
+      font-size: 1.4rem;
+      margin: 0 0 var(--space-xs, 8px) 0;
+      color: #ff4a4a;
+    }
+
+    .error-msg p {
+      font-size: 0.8rem;
+      color: var(--color-text-muted, #7a7a7a);
+      margin: 0 0 var(--space-md, 16px) 0;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .play-btn {
+        transition: none !important;
+        transform: none !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="verification-container" id="container">
+    <header class="verification-header">
+      <h1>16-0 Verifiable Score</h1>
+      <div class="verification-badge">
+        <svg width="12" height="12" viewBox="0 0 12 12" fill="none" style="flex-shrink:0;">
+          <path d="M10 3L4.5 8.5L2 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        Verified by Supabase
+      </div>
+    </header>
+
+    <div id="cardSlot" style="width: 100%;">
+      <p style="text-align: center; color: var(--color-text-muted, #7a7a7a);">Loading score details...</p>
+    </div>
+
+    <a href="draft.html" class="play-btn">Can you go unbeaten? Play 16-0 ➔</a>
+  </div>
+
+  <script src="r.js"></script>
+</body>
+</html>

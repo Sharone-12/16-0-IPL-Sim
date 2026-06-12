@@ -623,11 +623,6 @@ function showTableScreen() {
       <p class="season-end-msg">You finished ${ordinal(rank)}. Top 4 qualify.</p>
     `;
 
-    // Right panel: result card only
-    els.seasonEnd.innerHTML = `<div class="result-slot" id="seasonResultSlot"></div>`;
-    showResultCard(buildOutcome("ELIMINATED — LEAGUE"), els.seasonEnd.querySelector("#seasonResultSlot"));
-    document.body.classList.add("is-endgame");
-
     if (!state.isRestoring) {
       saveCompletedSeasonState({
         outcomeType: "league",
@@ -639,8 +634,15 @@ function showTableScreen() {
         roundIndex: state.roundIndex,
         leagueResultsHtml: els.leagueResults.innerHTML,
       });
-      submitToLeaderboard("Group Stage");
+      window.lastInsertedLeaderboardPromise = submitToLeaderboard("Group Stage");
+    } else {
+      window.lastInsertedLeaderboardPromise = null;
     }
+
+    // Right panel: result card only
+    els.seasonEnd.innerHTML = `<div class="result-slot" id="seasonResultSlot"></div>`;
+    showResultCard(buildOutcome("ELIMINATED — LEAGUE"), els.seasonEnd.querySelector("#seasonResultSlot"));
+    document.body.classList.add("is-endgame");
   }
 }
 
@@ -876,18 +878,13 @@ function showResultCard(outcome, container) {
   container.innerHTML = `
     <div class="result-card">${resultCardHtml(outcome)}</div>
     <div class="result-actions">
-      <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.5rem; margin-top: 1rem;">
-        <button class="primary-btn ghost" style="width: 100%; border-radius: 0.5rem; justify-content: center; padding: 0; font-size: 0.85rem; height: 2.8rem; color: #25D366; border-color: rgba(37, 211, 102, 0.4);" type="button" data-act="wa">WhatsApp</button>
-        <button class="primary-btn ghost" style="width: 100%; border-radius: 0.5rem; justify-content: center; padding: 0; height: 2.8rem;" type="button" data-act="x">${X_LOGO}</button>
-        <button class="primary-btn ghost" style="width: 100%; border-radius: 0.5rem; justify-content: center; padding: 0; font-size: 0.85rem; height: 2.8rem;" type="button" data-act="copy">Copy</button>
-      </div>
-      <div style="display: flex; gap: 0.5rem; margin-top: 0.5rem;">
-        <button class="primary-btn ghost" style="flex: 1; width: 100%; border-radius: 0.5rem; justify-content: center; height: 2.8rem; padding: 0;" type="button" data-act="download">⬇ Save image</button>
-        <a class="primary-btn ghost" style="flex: 1; width: 100%; border-radius: 0.5rem; justify-content: center; display: flex; align-items: center; height: 2.8rem; padding: 0;" href="leaderboard.html">Leaderboard</a>
-      </div>
-      <div style="margin-top: 0.5rem;">
-        <button class="primary-btn" style="width: 100%; border-radius: 0.5rem; justify-content: center; height: 2.8rem; padding: 0; background: #fff; color: #000;" type="button" data-act="again">Close / Play Again</button>
-      </div>
+      <button class="primary-btn ghost btn-wa" type="button" data-act="wa">WhatsApp</button>
+      <button class="primary-btn ghost btn-x" type="button" data-act="x">${X_LOGO}</button>
+      <button class="primary-btn ghost btn-copy" type="button" data-act="copy">Copy</button>
+      <button class="primary-btn ghost btn-download" type="button" data-act="download">⬇ Save Image</button>
+      <a class="primary-btn ghost btn-leaderboard" href="leaderboard.html">Leaderboard</a>
+      <button class="primary-btn ghost btn-share-link" type="button" data-act="share-link">🔗 Share Verified Link</button>
+      <button class="primary-btn btn-again" type="button" data-act="again">Close / Play Again</button>
     </div>`;
 
   const card = container.querySelector(".result-card");
@@ -904,6 +901,51 @@ function showResultCard(outcome, container) {
   container.querySelector('[data-act="copy"]').onclick = () => {
     navigator.clipboard.writeText(shareText).catch(() => {});
     showToast("Copied to clipboard!");
+  };
+
+  const shareLinkBtn = container.querySelector('[data-act="share-link"]');
+  shareLinkBtn.onclick = async () => {
+    const originalText = shareLinkBtn.textContent;
+    shareLinkBtn.textContent = "Verifying Score...";
+    shareLinkBtn.disabled = true;
+
+    let id = window.restoredLeaderboardId || null;
+
+    if (!id && window.lastInsertedLeaderboardPromise) {
+      try {
+        id = await window.lastInsertedLeaderboardPromise;
+      } catch (err) {
+        console.error("Failed to retrieve leaderboard ID:", err);
+      }
+    }
+
+    if (id) {
+      const shareUrl = `${window.location.origin}/r/${id}`;
+      navigator.clipboard.writeText(shareUrl)
+        .then(() => {
+          shareLinkBtn.textContent = "Copied Verified Link! 🔗";
+          showToast("Copied verified link to clipboard!");
+          setTimeout(() => {
+            shareLinkBtn.textContent = originalText;
+            shareLinkBtn.disabled = false;
+          }, 3000);
+        })
+        .catch(() => {
+          shareLinkBtn.textContent = "Copy Failed";
+          setTimeout(() => {
+            shareLinkBtn.textContent = originalText;
+            shareLinkBtn.disabled = false;
+          }, 2000);
+        });
+    } else {
+      shareLinkBtn.textContent = "Verification Failed";
+      showToast("Could not verify score. Copied text share instead.");
+      navigator.clipboard.writeText(shareText).catch(() => {});
+      setTimeout(() => {
+        shareLinkBtn.textContent = originalText;
+        shareLinkBtn.disabled = false;
+      }, 3000);
+    }
   };
 
   const dlBtn = container.querySelector('[data-act="download"]');
@@ -1092,7 +1134,6 @@ function endPlayoffs(text, outcome) {
 
   const cardStage = outcome === "champion" ? "CHAMPIONS"
     : outcome === "runnerup" ? "RUNNERS-UP" : "ELIMINATED";
-  showResultCard(buildOutcome(cardStage), els.resultSlot);
 
   if (!state.isRestoring) {
     saveCompletedSeasonState({
@@ -1112,8 +1153,12 @@ function endPlayoffs(text, outcome) {
       motmHtml: els.motm.innerHTML,
       playoffLeadersHtml: els.playoffLeaders.innerHTML,
     });
-    submitToLeaderboard("Champion");
+    window.lastInsertedLeaderboardPromise = submitToLeaderboard("Champion");
+  } else {
+    window.lastInsertedLeaderboardPromise = null;
   }
+
+  showResultCard(buildOutcome(cardStage), els.resultSlot);
 }
 
 // User XI lost a knockout (Eliminator, Q2, or Final) — show a dedicated
@@ -1142,8 +1187,6 @@ function showUserEliminated(stageLabel) {
   document.getElementById("tryAgainBtn").addEventListener("click", goToDraftFresh);
   wireViewScorecard("viewScorecardInline");
 
-  showResultCard(buildOutcome(`ELIMINATED — ${stageLabel.toUpperCase()}`), els.resultSlot);
-
   if (!state.isRestoring) {
     saveCompletedSeasonState({
       outcomeType: "eliminated",
@@ -1161,8 +1204,12 @@ function showUserEliminated(stageLabel) {
       motmHtml: els.motm.innerHTML,
       playoffLeadersHtml: els.playoffLeaders.innerHTML,
     });
-    submitToLeaderboard(stageLabel === "Final" ? "Runner Up" : stageLabel);
+    window.lastInsertedLeaderboardPromise = submitToLeaderboard(stageLabel === "Final" ? "Runner Up" : stageLabel);
+  } else {
+    window.lastInsertedLeaderboardPromise = null;
   }
+
+  showResultCard(buildOutcome(`ELIMINATED — ${stageLabel.toUpperCase()}`), els.resultSlot);
 }
 
 function goToDraftFresh() {
@@ -1176,14 +1223,14 @@ function goToDraftFresh() {
 
 async function submitToLeaderboard(stageStr = "Unknown") {
   const youRow = state.standings[USER_ID];
-  if (!youRow) return;
+  if (!youRow) return null;
 
   const finalWins = state.totalWins;
   const finalLosses = state.totalLosses;
   const finalNrr = parseFloat(nrr(youRow));
 
   const config = state.config;
-  if (!config || !config.teamName) return;
+  if (!config || !config.teamName) return null;
 
   if (typeof initSupabase === "function") {
     initSupabase();
@@ -1191,7 +1238,7 @@ async function submitToLeaderboard(stageStr = "Unknown") {
 
   if (typeof supabaseClient !== "undefined" && supabaseClient) {
     try {
-      const { error } = await supabaseClient
+      const { data, error } = await supabaseClient
         .from("leaderboards")
         .insert([
           {
@@ -1202,16 +1249,30 @@ async function submitToLeaderboard(stageStr = "Unknown") {
             losses: finalLosses,
             nrr: finalNrr,
             difficulty: config.difficulty,
+            payload: buildOutcome(stageStr),
           },
-        ]);
+        ])
+        .select("id");
       if (error) throw error;
-      console.log("Successfully posted to leaderboard!");
+      if (data && data[0]) {
+        const id = data[0].id;
+        console.log("Successfully posted to leaderboard with ID:", id);
+        try {
+          const saved = JSON.parse(localStorage.getItem("seasonState") || "{}");
+          if (saved.completedData) {
+            saved.completedData.leaderboardId = id;
+            localStorage.setItem("seasonState", JSON.stringify(saved));
+          }
+        } catch (_) {}
+        return id;
+      }
     } catch (err) {
       console.error("Error submitting to leaderboard:", err);
     }
   } else {
     console.warn("Supabase is not configured yet. Skipping leaderboard submission.");
   }
+  return null;
 }
 
 function saveCompletedSeasonState(completedData) {
@@ -1243,6 +1304,7 @@ function restoreCompletedSeason(data) {
   state.totalWins = data.totalWins;
   state.totalLosses = data.totalLosses;
   state.roundIndex = data.roundIndex;
+  window.restoredLeaderboardId = data.leaderboardId || null;
 
   // Restore results panel HTML
   els.leagueResults.innerHTML = data.leagueResultsHtml || "";

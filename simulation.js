@@ -671,7 +671,7 @@ function renderTable() {
 }
 
 // Sanity caps — values above these are treated as accumulation errors and clamped.
-const RUNS_CAP = 950;
+const RUNS_CAP = 920;
 const WKTS_CAP = 35;
 
 function runsTier(runs) {
@@ -717,7 +717,7 @@ function leadersSummaryHtml() {
   if (!leaders.length) return "";
   const topRun = [...leaders].sort((a, b) => b.runs - a.runs)[0];
   const topWk = [...leaders].sort((a, b) => b.wickets - a.wickets)[0];
-  if (topRun.runs > 800) console.warn(`Suspicious runs: ${topRun.name} ${topRun.runs}`);
+  if (topRun.runs > 920) console.warn(`Suspicious runs: ${topRun.name} ${topRun.runs}`);
   if (topWk.wickets > 32) console.warn(`Suspicious wickets: ${topWk.name} ${topWk.wickets}`);
   const r = Math.min(topRun.runs, RUNS_CAP);
   const w = Math.min(topWk.wickets, WKTS_CAP);
@@ -1491,8 +1491,10 @@ function distributeBatting(team, opponent, runs, wickets, balls, isKnockout = fa
     const rat = penalizedBat(p, i);
     const matchup = Math.max(5, rat - oppBowlAvg * 0.35);
 
-    // Positional decay: opener gets ~28% share, middle order meaningful but less.
-    const posBonus = Math.pow(0.75, i);
+    // Positional decay: openers still top-load runs, but a gentler curve spreads
+    // scoring across the order so the orange cap lands in a realistic ~700 band
+    // (not 900+) and a low-rated opener can't run away with every innings.
+    const posBonus = Math.pow(0.85, i);
 
     // Wider noise = hero potential on any given day.
     const noise = isKnockout ? randomBetween(0.3, 2.5) : randomBetween(0.4, 2.0);
@@ -1517,8 +1519,9 @@ function distributeBatting(team, opponent, runs, wickets, balls, isKnockout = fa
     });
   }
 
-  // Cap any single batter at 90 — keeps per-match contribution realistic.
-  const INNINGS_CAP = 90;
+  // Cap any single batter at 72 — keeps per-match knocks realistic and stops a
+  // season's runs compounding onto one batter into 1000+ orange-cap totals.
+  const INNINGS_CAP = 72;
   rawRuns.forEach((r, i) => {
     if (r > INNINGS_CAP) {
       const excess = r - INNINGS_CAP;
@@ -1536,7 +1539,14 @@ function distributeBatting(team, opponent, runs, wickets, balls, isKnockout = fa
   // 35+ in league games), pulled proportionally from the other batters.
   const heroMin = isKnockout ? 45 : 35;
   if (runs >= 150 && Math.max(...rawRuns) < heroMin) {
-    const topIdx = weights.indexOf(Math.max(...weights));
+    // Spread the hero knock across the top-4 weighted batters instead of always
+    // the single best — otherwise the same opener gets floored high every game
+    // and the season total balloons unrealistically.
+    const topCand = weights
+      .map((w, i) => ({ w, i }))
+      .sort((a, b) => b.w - a.w)
+      .slice(0, 4);
+    const topIdx = topCand[Math.floor(Math.random() * topCand.length)].i;
     const boost = heroMin - rawRuns[topIdx];
     rawRuns[topIdx] += boost;
     const othersTotal = rawRuns.reduce((a, b, i) => (i === topIdx ? a : a + b), 0);

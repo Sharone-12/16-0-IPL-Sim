@@ -23,8 +23,9 @@ const GROUPS = {
   B: ["MI", "KKR", "SRH", "RR", USER_ID],
 };
 const MAX_OVERSEAS = 4;
-const ERA_FROM = 2008;
-const ERA_TO = 2026;
+let ERA_FROM = 2008;
+let ERA_TO = 2026;
+let DIFFICULTY = "normal";
 
 let PICK_STRATEGY = "greedy"; // 'greedy' | 'random'
 
@@ -170,14 +171,29 @@ function pickTeam(spinState) {
 
 // One full draft, mirroring user flow: spin -> squad -> legal picks -> place.
 // chooser(legal, xi) optionally overrides pick selection (default: PICK_STRATEGY).
-function simulateDraft(chooser) {
+function simulateDraft(chooser, options = {}) {
+  const forceOverseas = options.forceOverseas; // undefined | 0 | 4
   const xi = new Array(11).fill(null);
   const spinState = { tier1Hits: 0, tier2Hits: 0, spinNumber: 0 };
   const inXi = (name) => xi.some((p) => p && p.name === name);
   const overseasCount = () => xi.filter((p) => p && p.isOverseas).length;
   const canDraft = (p) => {
     if (inXi(p.name)) return false;
-    if (p.isOverseas && overseasCount() >= MAX_OVERSEAS) return false;
+
+    const count = overseasCount();
+    const picked = xi.filter(Boolean).length;
+    const remaining = 11 - picked;
+
+    if (forceOverseas === 0) {
+      if (p.isOverseas) return false;
+    } else if (forceOverseas === 4) {
+      const needed = 4 - count;
+      if (p.isOverseas && count >= 4) return false;
+      if (!p.isOverseas && remaining <= needed) return false;
+    } else {
+      if (p.isOverseas && count >= MAX_OVERSEAS) return false;
+    }
+
     return eligibleSlots(p).some((i) => xi[i] === null);
   };
 
@@ -240,7 +256,11 @@ function teamStrength(players, isUser = false) {
   const depth = average(players.slice(6).map((p) => p.ovr));
   const chemistry = chemistryScore(players);
   let total = batting * 0.46 + bowling * 0.42 + depth * 0.08 + chemistry * 0.04;
-  if (isUser) total *= 0.95; // mirrors career/normal handicap in simulation.js
+  if (isUser) {
+    const base = 0.95;
+    const dFactor = DIFFICULTY === "hard" ? 0.95 : DIFFICULTY === "easy" ? 1.02 : 1.0;
+    total *= base * dFactor;
+  }
   return { batting, bowling, depth, chemistry, total };
 }
 function selectBalancedXI(squad) {
@@ -327,7 +347,7 @@ function distributeBatting(team, opponent, runs, wickets, isKnockout = false) {
   const weights = activePlayers.map((p, i) => {
     const rat = penalizedBat(p, i);
     const matchup = Math.max(5, rat - oppBowlAvg * 0.35);
-    const posBonus = Math.pow(0.75, i);
+    const posBonus = Math.pow(0.85, i);
     const noise = isKnockout ? randomBetween(0.3, 2.5) : randomBetween(0.4, 2.0);
     const flop = Math.random() < 0.25 ? randomBetween(0.05, 0.18) : 1;
     return Math.max(0.5, matchup * posBonus * noise * flop);
@@ -344,7 +364,7 @@ function distributeBatting(team, opponent, runs, wickets, isKnockout = false) {
     deductFrom.forEach((j) => (rawRuns[j] = Math.max(3, rawRuns[j] - Math.floor(boost / deductFrom.length))));
   }
 
-  const INNINGS_CAP = 90;
+  const INNINGS_CAP = 72;
   rawRuns.forEach((r, i) => {
     if (r > INNINGS_CAP) {
       const excess = r - INNINGS_CAP;
@@ -357,12 +377,18 @@ function distributeBatting(team, opponent, runs, wickets, isKnockout = false) {
 
   const heroMin = isKnockout ? 45 : 35;
   if (runs >= 150 && Math.max(...rawRuns) < heroMin) {
-    const topIdx = weights.indexOf(Math.max(...weights));
+    const topCand = weights
+      .map((w, i) => ({ w, i }))
+      .sort((a, b) => b.w - a.w)
+      .slice(0, 4);
+    const topIdx = topCand[Math.floor(Math.random() * topCand.length)].i;
     const boost = heroMin - rawRuns[topIdx];
     rawRuns[topIdx] += boost;
-    const ot = rawRuns.reduce((a, b, i) => (i === topIdx ? a : a + b), 0);
+    const othersTotal = rawRuns.reduce((a, b, i) => (i === topIdx ? a : a + b), 0);
     rawRuns.forEach((_, i) => {
-      if (i !== topIdx && ot > 0) rawRuns[i] = Math.max(0, rawRuns[i] - Math.round((boost * rawRuns[i]) / ot));
+      if (i !== topIdx && othersTotal > 0) {
+        rawRuns[i] = Math.max(0, rawRuns[i] - Math.round((boost * rawRuns[i]) / othersTotal));
+      }
     });
   }
 
@@ -480,10 +506,42 @@ function runSeason(userXi) {
     runsFor: 0, ballsFor: 0, runsAgainst: 0, ballsAgainst: 0,
   }));
 
+  const leaders = {};
+  teams.forEach((team) => {
+    team.players.forEach((p) => {
+      leaders[p.id] = {
+        name: p.name,
+        year: p.season,
+        team: team.id,
+        runs: 0,
+        wickets: 0,
+      };
+    });
+  });
+
+  const updateStats = (m) => {
+    [m.home.id, m.away.id].forEach((tid) => {
+      const inn = m.scoreFor(tid);
+      inn.batting.forEach((b) => {
+        if (leaders[b.player.id]) {
+          leaders[b.player.id].runs += b.runs;
+        }
+      });
+      const oppId = tid === m.home.id ? m.away.id : m.home.id;
+      const oppInn = m.scoreFor(oppId);
+      oppInn.bowling.forEach((bwl) => {
+        if (leaders[bwl.player.id]) {
+          leaders[bwl.player.id].wickets += bwl.wickets;
+        }
+      });
+    });
+  };
+
   const fixtures = buildGroupFixtures(teams);
   let userWins = 0, userLosses = 0;
   fixtures.forEach(([home, away]) => {
     const m = simulateMatch(home, away);
+    updateStats(m);
     [home, away].forEach((team) => {
       const row = standings[team.id];
       const own = m.scoreFor(team.id);
@@ -518,23 +576,30 @@ function runSeason(userXi) {
       }
     };
     // Q1: 1 v 2
-    const q1 = ko(top4[0], top4[1]); tally(q1);
+    const q1 = ko(top4[0], top4[1]); tally(q1); updateStats(q1);
     // Eliminator: 3 v 4
-    const elim = ko(top4[2], top4[3]); tally(elim);
+    const elim = ko(top4[2], top4[3]); tally(elim); updateStats(elim);
     let finalistA = q1.winner;
     // Q2: Q1 loser v Eliminator winner
-    const q2 = ko(q1.loser, elim.winner); tally(q2);
+    const q2 = ko(q1.loser, elim.winner); tally(q2); updateStats(q2);
     const finalistB = q2.winner;
     stage = "playoffs";
     // user out before final?
     if (finalistA.id === USER_ID || finalistB.id === USER_ID) {
-      const final = ko(finalistA, finalistB); tally(final);
+      const final = ko(finalistA, finalistB); tally(final); updateStats(final);
       stage = "final";
       if (final.winner.id === USER_ID) { champion = true; stage = "champion"; }
     }
   }
 
-  return { wins: userWins, losses: userLosses, rank, stage, champion };
+  const leadersList = Object.values(leaders);
+  const orangeCapRaw = [...leadersList].sort((a, b) => b.runs - a.runs)[0];
+  const purpleCapRaw = [...leadersList].sort((a, b) => b.wickets - a.wickets)[0];
+
+  const orangeCap = orangeCapRaw ? { name: orangeCapRaw.name, year: orangeCapRaw.year, runs: orangeCapRaw.runs } : null;
+  const purpleCap = purpleCapRaw ? { name: purpleCapRaw.name, year: purpleCapRaw.year, wickets: purpleCapRaw.wickets } : null;
+
+  return { wins: userWins, losses: userLosses, rank, stage, champion, orangeCap, purpleCap };
 }
 
 // ======================= RUN N =======================
@@ -607,7 +672,8 @@ module.exports = {
   allPlayers, spinPool, byTeamSeason, SLOTS,
   simulateDraft, runSeason, runN, analyze, setStrategy,
   eligibleSlots, pickTeam, GROUPS, ERA_FROM, ERA_TO, MAX_OVERSEAS,
-  evaluatePlayerForStrategy, evaluateOptimalPlayer, runDraftWithStrategy, runDeeperStressTest
+  evaluatePlayerForStrategy, evaluateOptimalPlayer, runDraftWithStrategy,
+  simulateDraftNoChemistry, runComprehensiveStressTest
 };
 
 /**
@@ -716,90 +782,314 @@ function runDraftWithStrategy(strategy) {
 }
 
 /**
- * Runs the deep stress test with 10,000 total drafts split across the 3 strategies.
+ * Runs a draft ignoring chemistry rules: placing players in the first empty slot.
  */
-async function runDeeperStressTest() {
-  const strategies = ['batting_heavy', 'bowling_heavy', 'optimal'];
-  const results = {
-    batting_heavy: { wins: [], championships: 0, perfectSeasons: 0, avgWins: 0, perfectTeams: [] },
-    bowling_heavy: { wins: [], championships: 0, perfectSeasons: 0, avgWins: 0, perfectTeams: [] },
-    optimal:       { wins: [], championships: 0, perfectSeasons: 0, avgWins: 0, perfectTeams: [] }
+function simulateDraftNoChemistry() {
+  const xi = new Array(11).fill(null);
+  const spinState = { tier1Hits: 0, tier2Hits: 0, spinNumber: 0 };
+  const inXi = (name) => xi.some((p) => p && p.name === name);
+  const overseasCount = () => xi.filter((p) => p && p.isOverseas).length;
+  
+  const canDraftNoChem = (p) => {
+    if (inXi(p.name)) return false;
+    if (p.isOverseas && overseasCount() >= MAX_OVERSEAS) return false;
+    return xi.some((s) => s === null); // any empty slot is fine
   };
-  
-  console.log(`Starting deep stress test (10,000 total drafts). Loaded ${allPlayers.length} player-seasons, ${spinPool.length} draftable squads.`);
-  
-  for (const strategy of strategies) {
-    console.log(`Running drafts for strategy: ${strategy.toUpperCase()}...`);
-    const count = strategy === 'optimal' ? 3334 : 3333;
+
+  let guard = 0;
+  while (xi.some((s) => s === null) && guard < 5000) {
+    guard++;
+
+    let entry = pickTeam(spinState);
+    const squad = byTeamSeason.get(`${entry.fr}|${entry.season}`) || [];
+    const legal = squad.filter(canDraftNoChem);
+    if (!legal.length) continue;
+
+    // Pick the player with the highest OVR (greedy)
+    const choice = [...legal].sort((a, b) => b.ovr - a.ovr)[0];
     
-    for (let i = 0; i < count; i++) {
-      const team = runDraftWithStrategy(strategy); 
-      const seasonResult = runSeason(team); 
-      
-      const wins = seasonResult.wins;
-      results[strategy].wins.push(wins);
-      
-      if (seasonResult.champion) {
-        results[strategy].championships++;
-      }
-      if (wins === 16) {
-        results[strategy].perfectSeasons++;
-        results[strategy].perfectTeams.push(team);
-      }
-    }
-    
-    const totalWins = results[strategy].wins.reduce((sum, w) => sum + w, 0);
-    results[strategy].avgWins = totalWins / count;
+    // Place in the first available empty slot
+    const slot = xi.indexOf(null);
+    if (slot === -1) continue;
+    xi[slot] = choice;
   }
-  
-  // --- PRINT COMPARISON REPORT ---
-  console.log("\n================ STRESS TEST COMPARISON REPORT ================");
-  console.log(`Total Drafts Simulated: 10,000`);
-  console.log("---------------------------------------------------------------");
-  
-  for (const strategy of strategies) {
-    const count = strategy === 'optimal' ? 3334 : 3333;
-    const stats = results[strategy];
-    const winPct = ((stats.wins.reduce((sum, w) => sum + w, 0) / (count * 16)) * 100).toFixed(2);
-    const champPct = ((stats.championships / count) * 100).toFixed(2);
-    const perfectPct = ((stats.perfectSeasons / count) * 100).toFixed(4);
-    
-    console.log(`\nStrategy: ${strategy.toUpperCase()}`);
-    console.log(`- Avg Total Wins: ${stats.avgWins.toFixed(2)} / 16 (Win %: ${winPct}%)`);
-    console.log(`- Championship Rate: ${champPct}%`);
-    console.log(`- 16-0 Rate: ${perfectPct}% (${stats.perfectSeasons} perfect seasons)`);
-    
-    // Print basic distribution histogram
-    const dist = {};
-    stats.wins.forEach(w => dist[w] = (dist[w] || 0) + 1);
-    console.log("- Win Distribution:");
-    for (let w = 0; w <= 16; w++) {
-      const winCount = dist[w] || 0;
-      if (winCount > 0) {
-        const pct = ((winCount / count) * 100).toFixed(1);
-        const bar = "█".repeat(Math.round(pct / 2));
-        console.log(`   ${w.toString().padStart(2)} wins: ${bar} ${pct}%`);
+  return xi;
+}
+
+/**
+ * Runs the comprehensive calibration experiments with 12,000 total drafts and tracks cap awards.
+ */
+async function runComprehensiveStressTest() {
+  // Track who wins the caps and their scores
+  const orangeCapTallies = {};
+  const purpleCapTallies = {};
+  const capWinnerStats = {
+    orangeCapRuns: [],
+    purpleCapWickets: []
+  };
+
+  const recordSeasonResult = (seasonResult) => {
+    const oCap = seasonResult.orangeCap;
+    if (oCap) {
+      const key = `${oCap.name} (${oCap.year})`;
+      if (!orangeCapTallies[key]) {
+        orangeCapTallies[key] = { count: 0, totalRuns: 0 };
       }
+      orangeCapTallies[key].count++;
+      orangeCapTallies[key].totalRuns += oCap.runs;
+      capWinnerStats.orangeCapRuns.push(oCap.runs);
     }
-    
-    if (stats.perfectSeasons > 0) {
-      console.log("🏆 PERFECT TEAMS FOUND:");
-      stats.perfectTeams.forEach((team, idx) => {
-        console.log(`  Team #${idx + 1}: ${team.map(p => `${p.name} (${p.season})`).join(', ')}`);
+    const pCap = seasonResult.purpleCap;
+    if (pCap) {
+      const key = `${pCap.name} (${pCap.year})`;
+      if (!purpleCapTallies[key]) {
+        purpleCapTallies[key] = { count: 0, totalWickets: 0 };
+      }
+      purpleCapTallies[key].count++;
+      purpleCapTallies[key].totalWickets += pCap.wickets;
+      capWinnerStats.purpleCapWickets.push(pCap.wickets);
+    }
+  };
+
+  const experimentResults = {};
+
+  // ==========================================
+  // EXPERIMENT 1: Chemistry Penalty Impact
+  // ==========================================
+  console.log("\n>>> RUNNING EXPERIMENT 1: Chemistry Penalty Impact (3,000 drafts)...");
+  
+  console.log("Simulating 1,500 drafts with Perfect Chemistry (Optimal Bot)...");
+  const chemPerfWins = [];
+  let chemPerfChamps = 0;
+  for (let i = 0; i < 1500; i++) {
+    const team = runDraftWithStrategy('optimal');
+    const res = runSeason(team);
+    chemPerfWins.push(res.wins);
+    if (res.champion) chemPerfChamps++;
+    recordSeasonResult(res);
+  }
+
+  console.log("Simulating 1,500 drafts ignoring chemistry rules (Bowlers in top order, Openers at 11)...");
+  const chemNoWins = [];
+  let chemNoChamps = 0;
+  for (let i = 0; i < 1500; i++) {
+    const team = simulateDraftNoChemistry();
+    const res = runSeason(team);
+    chemNoWins.push(res.wins);
+    if (res.champion) chemNoChamps++;
+    recordSeasonResult(res);
+  }
+
+  experimentResults.chemistry = {
+    perfect: {
+      avgWins: chemPerfWins.reduce((a, b) => a + b, 0) / 1500,
+      champsPct: (chemPerfChamps / 1500 * 100).toFixed(2),
+      perfectCount: chemPerfWins.filter(w => w === 16).length
+    },
+    ignored: {
+      avgWins: chemNoWins.reduce((a, b) => a + b, 0) / 1500,
+      champsPct: (chemNoChamps / 1500 * 100).toFixed(2),
+      perfectCount: chemNoWins.filter(w => w === 16).length
+    }
+  };
+
+  // ==========================================
+  // EXPERIMENT 2: Difficulty Level Calibration
+  // ==========================================
+  console.log("\n>>> RUNNING EXPERIMENT 2: Difficulty Level Calibration (3,000 drafts)...");
+  
+  const diffs = ['easy', 'normal', 'hard'];
+  experimentResults.difficulty = {};
+  
+  for (const diff of diffs) {
+    console.log(`Simulating 1,000 drafts on ${diff.toUpperCase()} mode...`);
+    DIFFICULTY = diff;
+    const diffWins = [];
+    let diffChamps = 0;
+    for (let i = 0; i < 1000; i++) {
+      const team = runDraftWithStrategy('optimal');
+      const res = runSeason(team);
+      diffWins.push(res.wins);
+      if (res.champion) diffChamps++;
+      recordSeasonResult(res);
+    }
+    experimentResults.difficulty[diff] = {
+      avgWins: diffWins.reduce((a, b) => a + b, 0) / 1000,
+      champsPct: (diffChamps / 1000 * 100).toFixed(2),
+      perfectCount: diffWins.filter(w => w === 16).length
+    };
+  }
+  DIFFICULTY = "normal"; // Reset
+
+  // ==========================================
+  // EXPERIMENT 3: The "No-Overseas" Challenge
+  // ==========================================
+  console.log("\n>>> RUNNING EXPERIMENT 3: The 'No-Overseas' Challenge (3,000 drafts)...");
+  
+  console.log("Simulating 1,500 drafts with exactly 4 overseas players...");
+  const overseas4Wins = [];
+  let overseas4Champs = 0;
+  for (let i = 0; i < 1500; i++) {
+    const team = simulateDraft((legal, xi, picked) => {
+      const sorted = [...legal].sort((a, b) => {
+        return evaluateOptimalPlayer(b, xi, picked) - evaluateOptimalPlayer(a, xi, picked);
       });
-    }
+      return sorted[0];
+    }, { forceOverseas: 4 });
+    const res = runSeason(team);
+    overseas4Wins.push(res.wins);
+    if (res.champion) overseas4Champs++;
+    recordSeasonResult(res);
   }
+
+  console.log("Simulating 1,500 drafts with 0 overseas players (Indian Players Only)...");
+  const overseas0Wins = [];
+  let overseas0Champs = 0;
+  for (let i = 0; i < 1500; i++) {
+    const team = simulateDraft((legal, xi, picked) => {
+      const sorted = [...legal].sort((a, b) => {
+        return evaluateOptimalPlayer(b, xi, picked) - evaluateOptimalPlayer(a, xi, picked);
+      });
+      return sorted[0];
+    }, { forceOverseas: 0 });
+    const res = runSeason(team);
+    overseas0Wins.push(res.wins);
+    if (res.champion) overseas0Champs++;
+    recordSeasonResult(res);
+  }
+
+  experimentResults.overseas = {
+    four: {
+      avgWins: overseas4Wins.reduce((a, b) => a + b, 0) / 1500,
+      champsPct: (overseas4Champs / 1500 * 100).toFixed(2),
+      perfectCount: overseas4Wins.filter(w => w === 16).length
+    },
+    zero: {
+      avgWins: overseas0Wins.reduce((a, b) => a + b, 0) / 1500,
+      champsPct: (overseas0Champs / 1500 * 100).toFixed(2),
+      perfectCount: overseas0Wins.filter(w => w === 16).length
+    }
+  };
+
+  // ==========================================
+  // EXPERIMENT 4: Era Filter Impact
+  // ==========================================
+  console.log("\n>>> RUNNING EXPERIMENT 4: Era Filter Impact (3,000 drafts)...");
+  
+  const origFrom = ERA_FROM;
+  const origTo = ERA_TO;
+
+  console.log("Simulating 1,500 drafts using only the Early Era (2008-2015)...");
+  ERA_FROM = 2008;
+  ERA_TO = 2015;
+  const earlyWins = [];
+  let earlyChamps = 0;
+  for (let i = 0; i < 1500; i++) {
+    const team = runDraftWithStrategy('optimal');
+    const res = runSeason(team);
+    earlyWins.push(res.wins);
+    if (res.champion) earlyChamps++;
+    recordSeasonResult(res);
+  }
+
+  console.log("Simulating 1,500 drafts using only the Modern Era (2016-2026)...");
+  ERA_FROM = 2016;
+  ERA_TO = 2026;
+  const modernWins = [];
+  let modernChamps = 0;
+  for (let i = 0; i < 1500; i++) {
+    const team = runDraftWithStrategy('optimal');
+    const res = runSeason(team);
+    modernWins.push(res.wins);
+    if (res.champion) modernChamps++;
+    recordSeasonResult(res);
+  }
+
+  // Restore eras
+  ERA_FROM = origFrom;
+  ERA_TO = origTo;
+
+  experimentResults.era = {
+    early: {
+      avgWins: earlyWins.reduce((a, b) => a + b, 0) / 1500,
+      champsPct: (earlyChamps / 1500 * 100).toFixed(2),
+      perfectCount: earlyWins.filter(w => w === 16).length
+    },
+    modern: {
+      avgWins: modernWins.reduce((a, b) => a + b, 0) / 1500,
+      champsPct: (modernChamps / 1500 * 100).toFixed(2),
+      perfectCount: modernWins.filter(w => w === 16).length
+    }
+  };
+
+  // --- PRINT COMPREHENSIVE EXPERIMENT REPORT ---
+  console.log("\n=================== CALIBRATION & EXPERIMENT REPORT ===================");
+  console.log(`Total Drafts Simulated: 12,000`);
+  console.log("-----------------------------------------------------------------------");
+  
+  console.log("\n1. CHEMISTRY PENALTY IMPACT (Perfect vs. Zero Chemistry):");
+  console.log(`- Perfect Chemistry: Avg Wins: ${experimentResults.chemistry.perfect.avgWins.toFixed(2)} / 16, Champ Rate: ${experimentResults.chemistry.perfect.champsPct}%, 16-0s: ${experimentResults.chemistry.perfect.perfectCount}`);
+  console.log(`- Ignored Chemistry: Avg Wins: ${experimentResults.chemistry.ignored.avgWins.toFixed(2)} / 16, Champ Rate: ${experimentResults.chemistry.ignored.champsPct}%, 16-0s: ${experimentResults.chemistry.ignored.perfectCount}`);
+  
+  console.log("\n2. DIFFICULTY LEVEL CALIBRATION (Easy vs. Normal vs. Hard):");
+  for (const diff of diffs) {
+    const r = experimentResults.difficulty[diff];
+    console.log(`- ${diff.toUpperCase()} Mode: Avg Wins: ${r.avgWins.toFixed(2)} / 16, Champ Rate: ${r.champsPct}%, 16-0s: ${r.perfectCount}`);
+  }
+  
+  console.log("\n3. THE 'NO-OVERSEAS' CHALLENGE (4 Overseas vs. 0 Overseas):");
+  console.log(`- Exactly 4 Overseas: Avg Wins: ${experimentResults.overseas.four.avgWins.toFixed(2)} / 16, Champ Rate: ${experimentResults.overseas.four.champsPct}%, 16-0s: ${experimentResults.overseas.four.perfectCount}`);
+  console.log(`- 0 Overseas:         Avg Wins: ${experimentResults.overseas.zero.avgWins.toFixed(2)} / 16, Champ Rate: ${experimentResults.overseas.zero.champsPct}%, 16-0s: ${experimentResults.overseas.zero.perfectCount}`);
+  
+  console.log("\n4. ERA FILTER IMPACT (Early Era 2008-2015 vs. Modern Era 2016-2026):");
+  console.log(`- Early Era (2008-2015):  Avg Wins: ${experimentResults.era.early.avgWins.toFixed(2)} / 16, Champ Rate: ${experimentResults.era.early.champsPct}%, 16-0s: ${experimentResults.era.early.perfectCount}`);
+  console.log(`- Modern Era (2016-2026): Avg Wins: ${experimentResults.era.modern.avgWins.toFixed(2)} / 16, Champ Rate: ${experimentResults.era.modern.champsPct}%, 16-0s: ${experimentResults.era.modern.perfectCount}`);
+  
+  console.log("================================================-----------------------");
+
+  // --- PRINT INDIVIDUAL AWARDS STRESS TEST ---
+  console.log("\n================ INDIVIDUAL AWARDS STRESS TEST ================");
+  // Sort and get Top 10 Orange Cap winners
+  const topOrange = Object.entries(orangeCapTallies)
+      .map(([player, data]) => ({ player, ...data, avgRuns: Math.round(data.totalRuns / data.count) }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 10);
+  console.log("\n🏆 TOP 10 ORANGE CAP WINNERS (Most Frequent):");
+  topOrange.forEach((p, idx) => {
+      console.log(`  #${idx + 1}: ${p.player} - Won ${p.count} times (Avg: ${p.avgRuns} runs)`);
+  });
+  
+  // Sort and get Top 10 Purple Cap winners
+  const topPurple = Object.entries(purpleCapTallies)
+      .map(([player, data]) => ({ player, ...data, avgWickets: Math.round(data.totalWickets / data.count) }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 10);
+  console.log("\n💜 TOP 10 PURPLE CAP WINNERS (Most Frequent):");
+  topPurple.forEach((p, idx) => {
+      console.log(`  #${idx + 1}: ${p.player} - Won ${p.count} times (Avg: ${p.avgWickets} wickets)`);
+  });
+  
+  // Calculate statistical averages of the winners
+  const avgOrangeRuns = Math.round(capWinnerStats.orangeCapRuns.reduce((s, r) => s + r, 0) / capWinnerStats.orangeCapRuns.length);
+  const maxOrangeRuns = Math.max(...capWinnerStats.orangeCapRuns);
+  const minOrangeRuns = Math.min(...capWinnerStats.orangeCapRuns);
+  const avgPurpleWickets = Math.round(capWinnerStats.purpleCapWickets.reduce((s, w) => s + w, 0) / capWinnerStats.purpleCapWickets.length);
+  const maxPurpleWickets = Math.max(...capWinnerStats.purpleCapWickets);
+  const minPurpleWickets = Math.min(...capWinnerStats.purpleCapWickets);
+  console.log("\n📊 CAP STATS CALIBRATION CHECK:");
+  console.log(`- Orange Cap Runs: Avg ${avgOrangeRuns} runs (Range: ${minOrangeRuns} - ${maxOrangeRuns})`);
+  console.log(`- Purple Cap Wickets: Avg ${avgPurpleWickets} wickets (Range: ${minPurpleWickets} - ${maxPurpleWickets})`);
   console.log("===============================================================");
 
   fs.writeFileSync(
     `${__dirname}/stress_test_results.json`,
-    JSON.stringify({ totalRuns: 10000, results }, null, 2)
+    JSON.stringify({ totalRuns: 12000, experimentResults, orangeCapTallies, purpleCapTallies, capWinnerStats }, null, 2)
   );
   console.log("\nResults saved to stress_test_results.json");
 }
 
 // ======================= MAIN =======================
 if (require.main === module) {
-  runDeeperStressTest().catch(console.error);
+  runComprehensiveStressTest().catch(console.error);
 }
 

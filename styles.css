@@ -231,6 +231,189 @@ h1 {
   outline-offset: 4px;
 }
 
+/* How to Play — subtle text-style button under the main actions */
+.how-to-btn {
+  min-width: 10.5rem;
+  padding: 0.6rem 1.45rem;
+  border: none;
+  background: transparent;
+  color: #9a9a9a;
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+  cursor: pointer;
+  transition: color 180ms ease;
+}
+
+.how-to-btn:hover {
+  color: #fff;
+}
+
+.how-to-btn:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: 4px;
+}
+
+/* ===================== HOW TO PLAY MODAL (card deck) ===================== */
+.how-to-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.25rem;
+}
+
+.how-to-modal[hidden] {
+  display: none;
+}
+
+.how-to-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.78);
+  backdrop-filter: blur(4px);
+}
+
+.how-to-card {
+  position: relative;
+  z-index: 1;
+  width: min(92vw, 24rem);
+  padding: 2rem 1.75rem 1.5rem;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 1.1rem;
+  background: #0c0c0c;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.6);
+  animation: how-to-pop 240ms cubic-bezier(0.2, 0.8, 0.25, 1);
+}
+
+@keyframes how-to-pop {
+  from { opacity: 0; transform: translateY(14px) scale(0.96); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.how-to-close {
+  position: absolute;
+  top: 0.6rem;
+  right: 0.8rem;
+  border: none;
+  background: transparent;
+  color: #7a7a7a;
+  font-size: 1.5rem;
+  line-height: 1;
+  cursor: pointer;
+  transition: color 160ms ease;
+}
+
+.how-to-close:hover {
+  color: #fff;
+}
+
+.how-to-steps {
+  position: relative;
+  min-height: 8.5rem;
+}
+
+.how-to-step {
+  display: none;
+  text-align: center;
+}
+
+.how-to-step.is-active {
+  display: block;
+  animation: how-to-fade 220ms ease;
+}
+
+@keyframes how-to-fade {
+  from { opacity: 0; transform: translateX(10px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+.how-to-num {
+  display: inline-block;
+  margin-bottom: 0.5rem;
+  color: #5fce7e;
+  font-family: "Anton", Impact, sans-serif;
+  font-size: 1.5rem;
+  letter-spacing: 0.05em;
+}
+
+.how-to-step-title {
+  margin: 0 0 0.5rem;
+  color: #fff;
+  font-family: "Anton", Impact, sans-serif;
+  font-size: 1.5rem;
+  font-weight: 400;
+  letter-spacing: -0.01em;
+  text-transform: uppercase;
+}
+
+.how-to-step-text {
+  margin: 0;
+  color: #b0b0b0;
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 0.82rem;
+  font-weight: 500;
+  line-height: 1.55;
+}
+
+.how-to-dots {
+  display: flex;
+  justify-content: center;
+  gap: 0.4rem;
+  margin: 1.1rem 0;
+}
+
+.how-to-dot {
+  width: 0.45rem;
+  height: 0.45rem;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.22);
+  transition: background-color 200ms ease, transform 200ms ease;
+}
+
+.how-to-dot.is-active {
+  background: #fff;
+  transform: scale(1.25);
+}
+
+.how-to-nav {
+  display: flex;
+  gap: 0.6rem;
+}
+
+.how-to-nav-btn {
+  flex: 1;
+  padding: 0.7rem 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  border-radius: 999px;
+  background: transparent;
+  color: #fff;
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background-color 160ms ease, color 160ms ease, opacity 160ms ease;
+}
+
+.how-to-nav-btn.is-primary {
+  background: #fff;
+  color: #000;
+  border-color: #fff;
+}
+
+.how-to-nav-btn:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
 @media (max-width: 600px) {
   header {
     top: max(1.25rem, env(safe-area-inset-top));

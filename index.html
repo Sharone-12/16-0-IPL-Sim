@@ -42,9 +42,53 @@
         <div class="landing-actions">
           <button class="start-button" type="button">Start Draft</button>
           <a class="leaderboard-landing-btn" href="leaderboard.html">Leaderboard</a>
+          <button id="howToBtn" class="how-to-btn" type="button">How to Play</button>
         </div>
       </header>
     </main>
+
+    <!-- ===================== HOW TO PLAY (card deck) ===================== -->
+    <div id="howToModal" class="how-to-modal" hidden>
+      <div class="how-to-backdrop" data-close></div>
+      <div class="how-to-card" role="dialog" aria-modal="true" aria-label="How to play">
+        <button class="how-to-close" type="button" data-close aria-label="Close">×</button>
+
+        <div class="how-to-steps">
+          <div class="how-to-step is-active">
+            <span class="how-to-num">01</span>
+            <h3 class="how-to-step-title">Spin for a club</h3>
+            <p class="how-to-step-text">Hit spin to land on a random IPL franchise &amp; season. Don't like it? Reroll (limited by difficulty).</p>
+          </div>
+          <div class="how-to-step">
+            <span class="how-to-num">02</span>
+            <h3 class="how-to-step-title">Pick one player</h3>
+            <p class="how-to-step-text">Draft a single player from that squad into your XI, then spin again for the next pick.</p>
+          </div>
+          <div class="how-to-step">
+            <span class="how-to-num">03</span>
+            <h3 class="how-to-step-title">Build your XI</h3>
+            <p class="how-to-step-text">Fill all 11 slots — openers, middle order, a keeper, and bowlers. Max 4 overseas. Drag to reorder.</p>
+          </div>
+          <div class="how-to-step">
+            <span class="how-to-num">04</span>
+            <h3 class="how-to-step-title">Simulate the season</h3>
+            <p class="how-to-step-text">Play 14 league games. Finish top 4 to reach the playoffs and fight for the cup.</p>
+          </div>
+          <div class="how-to-step">
+            <span class="how-to-num">05</span>
+            <h3 class="how-to-step-title">Go 16-0</h3>
+            <p class="how-to-step-text">Win every league game and the knockouts for a perfect undefeated season. Post it to the leaderboard.</p>
+          </div>
+        </div>
+
+        <div class="how-to-dots" id="howToDots"></div>
+
+        <div class="how-to-nav">
+          <button id="howToBack" class="how-to-nav-btn" type="button">Back</button>
+          <button id="howToNext" class="how-to-nav-btn is-primary" type="button">Next</button>
+        </div>
+      </div>
+    </div>
 
     <!-- ===================== SETUP ===================== -->
     <section id="setup" class="screen" aria-hidden="true">

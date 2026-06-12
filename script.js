@@ -173,3 +173,56 @@ document.getElementById("beginDraft").addEventListener("click", () => {
   }
   window.location.href = "draft.html";
 });
+
+// ---------- How to Play card deck ----------
+(function setupHowTo() {
+  const modal = document.getElementById("howToModal");
+  if (!modal) return;
+  const steps = Array.from(modal.querySelectorAll(".how-to-step"));
+  const dotsWrap = document.getElementById("howToDots");
+  const backBtn = document.getElementById("howToBack");
+  const nextBtn = document.getElementById("howToNext");
+  let index = 0;
+
+  // build dots
+  steps.forEach(() => {
+    const dot = document.createElement("span");
+    dot.className = "how-to-dot";
+    dotsWrap.appendChild(dot);
+  });
+  const dots = Array.from(dotsWrap.children);
+
+  function render() {
+    steps.forEach((s, i) => s.classList.toggle("is-active", i === index));
+    dots.forEach((d, i) => d.classList.toggle("is-active", i === index));
+    backBtn.disabled = index === 0;
+    nextBtn.textContent = index === steps.length - 1 ? "Got it" : "Next";
+  }
+
+  function open() {
+    index = 0;
+    render();
+    modal.hidden = false;
+  }
+  function close() {
+    modal.hidden = true;
+  }
+
+  document.getElementById("howToBtn").addEventListener("click", open);
+  modal.querySelectorAll("[data-close]").forEach((el) =>
+    el.addEventListener("click", close)
+  );
+  backBtn.addEventListener("click", () => {
+    if (index > 0) { index--; render(); }
+  });
+  nextBtn.addEventListener("click", () => {
+    if (index < steps.length - 1) { index++; render(); }
+    else close();
+  });
+  document.addEventListener("keydown", (e) => {
+    if (modal.hidden) return;
+    if (e.key === "Escape") close();
+    else if (e.key === "ArrowRight") nextBtn.click();
+    else if (e.key === "ArrowLeft") backBtn.click();
+  });
+})();

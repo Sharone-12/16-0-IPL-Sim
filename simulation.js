@@ -222,15 +222,6 @@ function initSeason() {
   });
   state.rounds = buildGroupFixtures();
   state.roundIndex = 0;
-  console.log(
-    "Team strengths:",
-    state.teams.map((t) => ({
-      name: t.name,
-      total: t.strength.total,
-      bat: t.strength.batting,
-      bowl: t.strength.bowling,
-    }))
-  );
   renderStrengthReadout();
   if (els.userVsName) els.userVsName.textContent = USER_NAME;
   renderUserRoster();
@@ -1544,9 +1535,7 @@ function applyMatchToTable(match) {
   });
 }
 
-let _matchNum = 0;
 function updatePlayerStats(match) {
-  _matchNum++;
   // Home team batting (home bats in home innings)
   match.innings[match.home.id].batting.forEach((b) => {
     if (!b.didBat) return;
@@ -1565,11 +1554,6 @@ function updatePlayerStats(match) {
   match.innings[match.away.id].bowling.forEach((bwl) => {
     if (state.leaders[bwl.player.id]) state.leaders[bwl.player.id].wickets += bwl.wickets;
   });
-  // Debug: log top scorer after every match to detect double-counting
-  const top = Object.values(state.leaders).sort((a, b) => b.runs - a.runs)[0];
-  if (top) console.log(`Match ${_matchNum} (${match.home.id} v ${match.away.id}): top scorer ${top.name} = ${top.runs} runs`);
-  const maxRuns = top ? top.runs : 0;
-  if (maxRuns > 800) console.warn(`STATS OVERFLOW: top scorer at ${maxRuns} runs after match ${_matchNum}`);
 }
 
 function renderFullScorecard(match) {

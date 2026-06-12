@@ -1161,9 +1161,9 @@ function penalizedBowl(player) {
 }
 
 function distributeBatting(team, opponent, runs, wickets, balls, isKnockout = false, srBonus = 0) {
-  // Exactly the batters who reached the crease: dismissed batters + 1 not-out
-  // batter. A T20 card can only carry ONE undismissed batter here.
-  const battersUsed = wickets >= 10 ? 11 : clamp(wickets + 1, 2, 11);
+  // Batters who reached the crease: dismissed batters + the not-out pair (2),
+  // except an all-out innings which leaves just 1 not out.
+  const battersUsed = wickets >= 10 ? 11 : clamp(wickets + 2, 3, 11);
   const activePlayers = team.players.slice(0, battersUsed);
 
   // Avg bowling quality of the opponent's top-4 bowlers — better attack suppresses all batters.
@@ -1277,8 +1277,10 @@ function distributeBatting(team, opponent, runs, wickets, balls, isKnockout = fa
       };
     }
 
-    // Only the last batter to reach the crease is not out; everyone else is dismissed.
-    const out = i !== battersUsed - 1;
+    // The not-out pair (last 2 to the crease) stay not out; an all-out innings
+    // leaves only the last man not out. Everyone else is dismissed.
+    const notOutCount = wickets >= 10 ? 1 : 2;
+    const out = i < battersUsed - notOutCount;
     return {
       player: p,
       runs: rawRuns[i],

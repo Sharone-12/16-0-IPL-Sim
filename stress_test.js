@@ -320,7 +320,7 @@ function getPitchType() {
 }
 
 function distributeBatting(team, opponent, runs, wickets, isKnockout = false) {
-  const battersUsed = wickets >= 10 ? 11 : clamp(wickets + 1, 2, 11);
+  const battersUsed = wickets >= 10 ? 11 : clamp(wickets + 2, 3, 11);
   const activePlayers = team.players.slice(0, battersUsed);
   const oppBowlAvg =
     [...opponent.players].sort((a, b) => b.bowl - a.bowl).slice(0, 4)

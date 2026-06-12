@@ -925,7 +925,7 @@ function showResultCard(outcome, container) {
     }
 
     if (id) {
-      const shareUrl = `${window.location.origin}/r/${id}`;
+      const shareUrl = `${window.location.origin}/r.html?id=${id}`;
       navigator.clipboard.writeText(shareUrl)
         .then(() => {
           shareLinkBtn.textContent = "Copied Verified Link! 🔗";

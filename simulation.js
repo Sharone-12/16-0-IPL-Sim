@@ -890,7 +890,10 @@ function showResultCard(outcome, container) {
       <button class="primary-btn" type="button" data-act="download">Download</button>
       <button class="primary-btn ghost" type="button" data-act="x">${X_LOGO} Share</button>
     </div>
-    <a class="primary-btn wide play-again-btn" href="draft.html" data-act="again">Play Again</a>`;
+    <div style="display: flex; gap: 0.5rem; margin-top: 0.5rem;">
+      <a class="primary-btn ghost" style="flex: 1; margin: 0; text-align: center; display: flex; align-items: center; justify-content: center;" href="leaderboard.html">Leaderboard</a>
+      <a class="primary-btn wide play-again-btn" style="flex: 1; margin: 0; text-align: center; display: flex; align-items: center; justify-content: center;" href="draft.html" data-act="again">Play Again</a>
+    </div>`;
 
   const card = container.querySelector(".result-card");
   container.querySelector('[data-act="download"]').onclick = () => {

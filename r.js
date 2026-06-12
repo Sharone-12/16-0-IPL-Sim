@@ -278,8 +278,9 @@
       `;
 
       // Build roster list
-      const rosterRowsHtml = (o.xi || []).map(p => {
+      const rosterRowsHtml = (o.xi || []).map((p, idx) => {
         const roleInfo = rosterRoleInfo(p);
+        const playerNum = (p.slot !== undefined ? p.slot : idx) + 1;
         let subText = "";
         
         // Mention the team player came from: full name mapping or frFull
@@ -307,7 +308,7 @@
 
         return `
           <article class="player-row">
-            <span class="player-slot ${roleInfo.cls}">${roleInfo.label}</span>
+            <span class="player-slot ${roleInfo.cls}">${playerNum}</span>
             <div class="player-info">
               <div style="display: flex; align-items: center; gap: var(--space-xs, 8px); min-width: 0;">
                 <h4 class="player-name" style="margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; flex: 0 1 auto;">${escapeHtml(p.name)}</h4>

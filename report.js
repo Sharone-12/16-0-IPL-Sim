@@ -1,30 +1,8 @@
 // ===================== 16-0 — Report Issues modal =====================
-// Shared across index / draft / simulation. Fill in your EmailJS keys below
-// (https://dashboard.emailjs.com → Account, Email Services, Email Templates).
+// Shared across index / draft / simulation. Uses Web3Forms (no SDK needed) —
+// the access key is public by design. https://web3forms.com
 
-const REPORT_CONFIG = {
-  publicKey: "YOUR_PUBLIC_KEY",
-  serviceId: "YOUR_SERVICE_ID",
-  templateId: "YOUR_TEMPLATE_ID",
-};
-
-(function initReporting() {
-  if (
-    typeof emailjs !== "undefined" &&
-    REPORT_CONFIG.publicKey &&
-    REPORT_CONFIG.publicKey !== "YOUR_PUBLIC_KEY"
-  ) {
-    emailjs.init(REPORT_CONFIG.publicKey);
-  }
-})();
-
-function reportingConfigured() {
-  return (
-    typeof emailjs !== "undefined" &&
-    REPORT_CONFIG.serviceId !== "YOUR_SERVICE_ID" &&
-    REPORT_CONFIG.templateId !== "YOUR_TEMPLATE_ID"
-  );
-}
+const WEB3FORMS_KEY = "1c22d3f1-f67c-4882-b69b-e6f7e055c712";
 
 function openBugModal() {
   const modal = document.getElementById("bugModal");
@@ -57,26 +35,28 @@ async function submitBug() {
     return;
   }
   text.style.borderColor = "";
-
-  if (!reportingConfigured()) {
-    status.hidden = false;
-    status.style.color = "#f2cd5c";
-    status.textContent = "⚠️ Reporting isn't configured yet.";
-    return;
-  }
-
   submit.disabled = true;
   submit.textContent = "Sending...";
 
-  const payload = {
-    message,
-    page: window.location.pathname,
-    device: /Mobile|Android|iPhone|iPad/i.test(navigator.userAgent) ? "Mobile" : "Desktop",
-    time: new Date().toLocaleString(),
-  };
+  const device = /Mobile|Android|iPhone|iPad/i.test(navigator.userAgent) ? "Mobile" : "Desktop";
 
   try {
-    await emailjs.send(REPORT_CONFIG.serviceId, REPORT_CONFIG.templateId, payload);
+    const res = await fetch("https://api.web3forms.com/submit", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Accept: "application/json" },
+      body: JSON.stringify({
+        access_key: WEB3FORMS_KEY,
+        subject: "16-0 — Issue Report",
+        from_name: "16-0 Bug Reporter",
+        message,
+        page: window.location.pathname,
+        device,
+        time: new Date().toLocaleString(),
+      }),
+    });
+    const data = await res.json();
+    if (!data.success) throw new Error(data.message || "send failed");
+
     status.hidden = false;
     status.style.color = "#4ade80";
     status.textContent = "✅ Report sent! Thank you.";
@@ -92,7 +72,7 @@ async function submitBug() {
   }
 }
 
-// Close on backdrop click
+// Close on backdrop click / Escape
 document.addEventListener("DOMContentLoaded", () => {
   const modal = document.getElementById("bugModal");
   if (modal) {

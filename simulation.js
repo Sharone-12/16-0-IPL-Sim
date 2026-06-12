@@ -937,7 +937,7 @@ function showResultCard(outcome, container) {
 
     if (id) {
       const code = shortCode || id;
-      const shareUrl = `${window.location.origin}/r/${code}`;
+      const shareUrl = `${window.location.origin}/v/${code}`;
       const clipboardText = `Check out my team on 16-0! 🏏 ${shareUrl}`;
       navigator.clipboard.writeText(clipboardText)
         .then(() => {

@@ -472,11 +472,31 @@ function weightedPick(items, weightOf) {
   return items[items.length - 1];
 }
 
-function pickTeam() {
+function pickTeam(forceWk = false) {
   const from = config.eraFrom;
   const to = config.eraTo;
 
-  const valid = spinPool.filter((e) => +e.season >= from && +e.season <= to);
+  let valid = spinPool.filter((e) => {
+    if (+e.season < from || +e.season > to) return false;
+    const squad = byTeamSeason.get(`${e.fr}|${e.season}`) || [];
+    return squad.some(p => canDraft(p) && (!forceWk || p.isWk));
+  });
+
+  if (!valid.length) {
+    if (forceWk) showToast("Relaxing era filter to find a valid pick", "error");
+    valid = spinPool.filter((e) => {
+      const squad = byTeamSeason.get(`${e.fr}|${e.season}`) || [];
+      return squad.some(p => canDraft(p) && (!forceWk || p.isWk));
+    });
+  }
+
+  if (!valid.length) {
+    valid = spinPool.filter((e) => {
+      const squad = byTeamSeason.get(`${e.fr}|${e.season}`) || [];
+      return squad.some(p => canDraft(p));
+    });
+  }
+
   if (!valid.length) return spinPool[Math.floor(Math.random() * spinPool.length)];
 
   const weights = getSpinWeights(spinState);
@@ -596,42 +616,13 @@ async function doSpin() {
     showToast("No wicketkeeper yet — pick one soon or you can't finish", "error");
   }
 
-  // After pick 9 with no WK — force spin pool to squads that have a draftable WK
+  let forceWk = false;
   if (picked >= 9 && !wkFilled && diff.enforceWk) {
-    const from = config.eraFrom;
-    const to = config.eraTo;
-    let wkPool = spinPool.filter((e) => {
-      if (+e.season < from || +e.season > to) return false;
-      const squad = byTeamSeason.get(`${e.fr}|${e.season}`) || [];
-      return squad.some((p) => p.isWk);
-    });
-    if (!wkPool.length) {
-      showToast("Relaxing era filter to find a wicketkeeper", "error");
-      wkPool = spinPool.filter((e) => {
-        const squad = byTeamSeason.get(`${e.fr}|${e.season}`) || [];
-        return squad.some((p) => p.isWk);
-      });
-    }
-    const wkEntry = wkPool[Math.floor(Math.random() * wkPool.length)];
-    const clubPool = franchises.map((fr) => fullNames[fr]);
-    const seasonPool = seasonsByFranchise[wkEntry.fr];
-    await Promise.all([
-      rollReel(reelClub, clubPool, fullNames[wkEntry.fr], 2200),
-      rollReel(reelSeason, seasonPool, wkEntry.season, 2900),
-    ]);
-    currentTeam = { fr: wkEntry.fr, season: wkEntry.season };
-    pendingSquad = (byTeamSeason.get(`${wkEntry.fr}|${wkEntry.season}`) || [])
-      .slice()
-      .sort((a, b) => ovrOf(b) - ovrOf(a));
-    renderSquad();
-    spinning = false;
-    spinBtn.disabled = false;
-    updateControls();
-    updateSpinMeta();
-    return;
+    forceWk = true;
   }
 
-  const target = pickTeam();
+  const target = pickTeam(forceWk);
+
   const clubPool2 = franchises.map((fr) => fullNames[fr]);
   const seasonPool2 = seasonsByFranchise[target.fr];
 

@@ -170,7 +170,15 @@
 
   async function loadResult() {
     const params = new URLSearchParams(window.location.search);
-    const id = params.get("id");
+    let id = params.get("id");
+
+    if (!id) {
+      const path = window.location.pathname;
+      const parts = path.split('/');
+      if (parts.length >= 3 && (parts[1] === 'v' || parts[1] === 'r')) {
+        id = parts[2];
+      }
+    }
 
     if (!id) {
       showError("Invalid Link", "No score ID was specified in the URL.");

@@ -1,3 +1,4 @@
+
 Player_ID,Player_Name,Registry_ID,Season,Franchise,Franchise_Full,Nationality,Primary_Role,Batting_Order,Is_Wicketkeeper,Batting_Position_Avg,Age_In_Season,Matches_Played,Fielding_Catches,Run_Outs,Batting_Runs,Batting_Balls_Faced,Batting_Strike_Rate,Batting_Average,Batting_Dismissals,Bowling_Wickets,Bowling_Balls,Bowling_Runs_Conceded,Bowling_Economy,Bowling_Strike_Rate,Bowling_Average,WK_Catches,WK_Stumpings,OVR,Bat_Rat,Bowl_Rat,OVR_Method
 a-mukund,A Mukund,6165bca6,2008,CSK,Chennai Super Kings,Indian,Batsman,Middle Order,0,8.0,28,2,3,0,0,1,0.0,0.0,1,0,0,0,0.0,0.0,0.0,0,0,65,55,55,fallback
 ck-kapugedera,CK Kapugedera,cfad138c,2008,CSK,Chennai Super Kings,Overseas,Batsman,Middle Order,0,5.67,28,5,4,0,16,23,69.57,5.33,3,0,17,49,17.29,0.0,0.0,0,0,69,69,55,fallback
@@ -1507,7 +1508,7 @@ str-binny,STR Binny,bd17b45f,2016,RCB,Royal Challengers Bangalore,Indian,Batsman
 sachin-baby,Sachin Baby,dc9dd038,2016,RCB,Royal Challengers Bangalore,Indian,Batsman,Finisher,0,5.67,28,11,1,2,119,79,150.63,29.75,4,2,10,8,4.8,5.0,4.0,0,0,72,74,68,impact
 t-shamsi,T Shamsi,a03bba42,2016,RCB,Royal Challengers Bangalore,Overseas,Bowler,Lower Order,0,0.0,28,4,0,0,0,0,0.0,0.0,0,3,96,147,9.19,32.0,49.0,0,0,76,69,76,fallback
 tm-head,TM Head,12b610c2,2016,RCB,Royal Challengers Bangalore,Overseas,Batsman,Middle Order,0,5.33,28,3,0,0,54,40,135.0,27.0,2,0,0,0,0.0,0.0,0.0,0,0,72,72,55,fallback
-v-kohli,V Kohli,ba607b88,2016,RCB,Royal Challengers Bangalore,Indian,Batsman,Opener,0,1.62,28,16,6,1,973,640,152.03,81.08,12,0,6,13,13.0,0.0,0.0,0,0,91,92,55,impact
+v-kohli,V Kohli,ba607b88,2016,RCB,Royal Challengers Bangalore,Indian,Batsman,Opener,0,1.62,28,16,6,1,973,640,152.03,81.08,12,0,6,13,13.0,0.0,0.0,0,0,95,92,55,impact
 vr-aaron,VR Aaron,0a3d54b9,2016,RCB,Royal Challengers Bangalore,Indian,Bowler,Lower Order,0,8.0,28,8,0,0,0,0,0.0,0.0,0,2,142,227,9.59,71.0,113.5,0,0,66,69,68,impact
 ys-chahal,YS Chahal,57ee1fde,2016,RCB,Royal Challengers Bangalore,Indian,Bowler,Lower Order,0,0.0,28,13,4,1,0,0,0.0,0.0,0,21,295,401,8.16,14.05,19.1,0,0,87,69,90,impact
 a-zampa,A Zampa,14f96089,2016,RPS,Rising Pune Supergiants,Overseas,Bowler,Lower Order,0,9.0,28,5,0,0,0,1,0.0,0.0,1,12,102,115,6.76,8.5,9.58,0,0,86,69,95,impact

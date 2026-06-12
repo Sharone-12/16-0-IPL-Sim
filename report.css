@@ -1,0 +1,148 @@
+/* ===================== 16-0 — Report Issues modal (shared) ===================== */
+.report-link {
+  font-size: 11px;
+  color: #555;
+  cursor: pointer;
+  letter-spacing: 0.05em;
+  text-decoration: none;
+  transition: color 0.2s;
+}
+.report-link:hover {
+  color: #888;
+}
+
+/* Minimal footer bar for the full-screen app pages (draft / simulation) */
+.app-report-footer {
+  display: flex;
+  justify-content: center;
+  padding: 1rem 1rem calc(env(safe-area-inset-bottom) + 1.25rem);
+}
+
+.bug-modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.75);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  padding: 16px;
+}
+.bug-modal[hidden] {
+  display: none;
+}
+
+.bug-modal-inner {
+  background: #1a1a1a;
+  border: 1px solid #2a2a2a;
+  border-radius: 14px;
+  padding: 24px;
+  width: 100%;
+  max-width: 420px;
+  position: relative;
+  animation: bug-pop 220ms cubic-bezier(0.2, 0.8, 0.25, 1);
+}
+
+@keyframes bug-pop {
+  from { opacity: 0; transform: translateY(12px) scale(0.97); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.bug-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+.bug-modal-header h3 {
+  font-size: 16px;
+  font-weight: 700;
+  margin: 0;
+  color: #fff;
+}
+.bug-close {
+  background: none;
+  border: none;
+  color: #666;
+  font-size: 22px;
+  cursor: pointer;
+  line-height: 1;
+  padding: 0;
+}
+.bug-close:hover {
+  color: #aaa;
+}
+
+.bug-subtitle {
+  font-size: 12px;
+  color: #666;
+  margin: 0 0 14px;
+}
+
+#bugText {
+  width: 100%;
+  background: #111;
+  border: 1px solid #2a2a2a;
+  border-radius: 8px;
+  color: #fff;
+  padding: 10px 12px;
+  font-size: 13px;
+  resize: none;
+  margin-bottom: 12px;
+  font-family: inherit;
+  line-height: 1.5;
+  transition: border-color 0.2s;
+}
+#bugText:focus {
+  outline: none;
+  border-color: #444;
+}
+
+#bugSubmit {
+  width: 100%;
+  padding: 11px;
+  background: #fff;
+  color: #000;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  letter-spacing: 0.05em;
+  transition: opacity 0.2s;
+}
+#bugSubmit:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+#bugSubmit:hover:not(:disabled) {
+  opacity: 0.9;
+}
+
+#bugStatus {
+  text-align: center;
+  font-size: 12px;
+  margin-top: 10px;
+  color: #4ade80;
+}
+#bugStatus[hidden] {
+  display: none;
+}
+
+/* Mobile: modal becomes a bottom sheet */
+@media (max-width: 768px) {
+  .bug-modal {
+    align-items: flex-end;
+    padding: 0;
+  }
+  .bug-modal-inner {
+    border-radius: 16px 16px 0 0;
+    padding: 20px 16px 32px;
+    max-width: 100%;
+    animation: bug-sheet 240ms cubic-bezier(0.2, 0.8, 0.25, 1);
+  }
+  @keyframes bug-sheet {
+    from { transform: translateY(100%); }
+    to { transform: translateY(0); }
+  }
+}

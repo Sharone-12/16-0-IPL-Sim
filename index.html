@@ -14,6 +14,8 @@
       rel="stylesheet"
     />
     <link rel="stylesheet" href="styles.css" />
+    <link rel="stylesheet" href="report.css" />
+    <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
   </head>
   <body>
     <img class="bg" src="assets/landing.png" alt="" />
@@ -229,13 +231,30 @@
             player names and statistics are used for informational and
             descriptive purposes only.
           </p>
-          <p class="copyright">© 2026 16-0game.vercel.app</p>
+          <p class="copyright">
+            © 2026 16-0game.vercel.app ·
+            <a class="report-link" onclick="openBugModal()">Report Issues</a>
+          </p>
         </footer>
       </div>
     </section>
 
     <div class="toast" role="status" aria-live="polite"></div>
 
+    <div id="bugModal" class="bug-modal" hidden>
+      <div class="bug-modal-inner">
+        <div class="bug-modal-header">
+          <h3>Report an Issue</h3>
+          <button class="bug-close" onclick="closeBugModal()" aria-label="Close">×</button>
+        </div>
+        <p class="bug-subtitle">Describe what went wrong and we'll fix it.</p>
+        <textarea id="bugText" placeholder="e.g. Draft page crashed when I picked a player..." rows="5"></textarea>
+        <button id="bugSubmit" onclick="submitBug()">Send Report</button>
+        <p id="bugStatus" hidden></p>
+      </div>
+    </div>
+
+    <script src="report.js"></script>
     <script src="script.js"></script>
   </body>
 </html>

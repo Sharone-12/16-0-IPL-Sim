@@ -14,9 +14,11 @@
       rel="stylesheet"
     />
     <link rel="stylesheet" href="simulation.css" />
+    <link rel="stylesheet" href="report.css" />
     <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
     <script src="supabase_config.js"></script>
   </head>
   <body>
@@ -171,8 +173,26 @@
       </section>
     </main>
 
+    <footer class="app-report-footer">
+      <a class="report-link" onclick="openBugModal()">Report Issues</a>
+    </footer>
+
     <div class="toast" role="status" aria-live="polite"></div>
 
+    <div id="bugModal" class="bug-modal" hidden>
+      <div class="bug-modal-inner">
+        <div class="bug-modal-header">
+          <h3>Report an Issue</h3>
+          <button class="bug-close" onclick="closeBugModal()" aria-label="Close">×</button>
+        </div>
+        <p class="bug-subtitle">Describe what went wrong and we'll fix it.</p>
+        <textarea id="bugText" placeholder="e.g. Simulation froze during the playoffs..." rows="5"></textarea>
+        <button id="bugSubmit" onclick="submitBug()">Send Report</button>
+        <p id="bugStatus" hidden></p>
+      </div>
+    </div>
+
+    <script src="report.js"></script>
     <script src="simulation.js"></script>
   </body>
 </html>

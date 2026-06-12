@@ -202,7 +202,6 @@
         width: 10%;
         font-family: var(--font-title);
         font-size: 1.05rem;
-        color: #f2cd5c;
       }
 
       .col-diff {
@@ -471,7 +470,7 @@
                   <div style="font-family: var(--font-title); font-size: 1.15rem; font-weight: 400; color: #fff; text-transform: uppercase; letter-spacing: 0.05em;">${escapeHtml(score.team_name)}</div>
                   <div style="font-size: 0.65rem; color: #fff; margin-top: 0.2rem;">${dateStr}</div>
                 </td>
-                <td class="col-ovr">${score.ovr || 0}</td>
+                <td class="col-ovr" style="color: ${ovrColor(score.ovr || 0)}">${score.ovr || 0}</td>
                 <td class="col-diff" style="color: ${difficultyColor(diffLabel)}">${diffLabel}</td>
                 <td class="col-wl">${score.wins} - ${score.losses}</td>
                 <td class="col-stage">${escapeHtml(stageStr)}</td>
@@ -485,6 +484,13 @@
         if (diff === "hard") return "#ee6e6e";
         if (diff === "easy") return "#5fce7e";
         return "#f2cd5c";
+      }
+
+      function ovrColor(ovr) {
+        if (ovr >= 92) return "#f2cd5c"; // Gold
+        if (ovr >= 89) return "#5c9df2"; // Blue
+        if (ovr >= 85) return "#5fce7e"; // Green
+        return "#ffffff"; // White
       }
 
       function escapeHtml(str) {

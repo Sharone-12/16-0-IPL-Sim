@@ -20,6 +20,9 @@ function loadConfig() {
   }
 }
 const config = loadConfig();
+if (config.difficulty === "hard") {
+  config.showRatings = "off";
+}
 
 const DIFFICULTY = {
   easy: { respins: 3, enforceWk: false, label: "Easy" },
@@ -123,7 +126,6 @@ let allPlayers = [];
 let byTeamSeason = new Map(); // "FR|SEASON" -> [player]
 let seasonsByFranchise = {}; // FR -> [season strings]
 let fullNames = {}; // FR -> Franchise_Full
-let primeByName = {}; // Player_Name -> best OVR across seasons
 let mappedNames = {}; // Master_DB_Name -> Impact_CSV_Name
 let franchises = [];
 let teamStrength = {}; // "FR|SEASON" -> mean of top-5 OVR (the draftable stars)
@@ -164,7 +166,7 @@ function tierClass(ovr) {
   return "ovr-white";
 }
 function ovrOf(p) {
-  return isPrime ? primeByName[p.name] ?? p.ovr : p.ovr;
+  return p.ovr;
 }
 function keyStat(p) {
   return p.primaryRole === "Bowler" ? `${p.wkts} wkts` : `${p.runs} runs`;
@@ -202,20 +204,21 @@ function overseasCount() {
 
 const MAX_OVERSEAS = 4;
 
-// When a keeper is required (Normal/Hard) and none sits in the top 7 yet, reserve
-// the LAST remaining top-7 slot for a wicketkeeper — returns that slot, else -1.
-function reservedWkSlot() {
-  if (!diff.enforceWk) return -1;
-  if (xi.slice(0, 7).some((p) => p && p.isWk)) return -1; // already have a keeper
+// Check if we are in the "danger zone" (exactly 1 empty slot in the top 7, and no wicketkeeper has been selected yet)
+function getDangerWkSlot() {
+  if (!diff.enforceWk) return null;
+  const top7 = xi.slice(0, 7);
+  if (top7.some((p) => p && p.isWk)) return null;
+
   const emptyTop7 = [];
   for (let i = 0; i < 7; i++) if (xi[i] === null) emptyTop7.push(i);
-  return emptyTop7.length === 1 ? emptyTop7[0] : -1;
+  return emptyTop7.length === 1 ? emptyTop7[0] : null;
 }
 
 // The slot a player would actually take, honouring the reserved keeper slot:
 // non-keepers may not occupy the reserved slot.
 function slotFor(p) {
-  const reserved = reservedWkSlot();
+  const reserved = getDangerWkSlot() ?? -1;
   return eligibleSlots(p).find(
     (i) => xi[i] === null && (p.isWk || i !== reserved)
   );
@@ -225,6 +228,18 @@ function slotFor(p) {
 function canDraft(p) {
   if (inXi(p.name)) return false;
   if (p.isOverseas && overseasCount() >= MAX_OVERSEAS) return false;
+
+  const dangerSlot = getDangerWkSlot();
+  if (dangerSlot !== null) {
+    // If we absolutely need a WK in the top 7, we can ONLY draft this player if:
+    // 1. They are a WK, OR
+    // 2. They can be placed in the lower order (slots 8-11)
+    if (!p.isWk) {
+      const validLowerSlots = [7, 8, 9, 10].filter((i) => xi[i] === null && eligibleSlots(p).includes(i));
+      if (validLowerSlots.length === 0) return false;
+    }
+  }
+
   return slotFor(p) !== undefined;
 }
 
@@ -296,12 +311,35 @@ function buildData(rows) {
       bowl: +r.Bowl_Rat || 0,
     }));
 
+  const primeObjByName = {};
+  for (const p of allPlayers) {
+    const prev = primeObjByName[p.name];
+    if (!prev || p.ovr > prev.ovr) {
+      primeObjByName[p.name] = p;
+    }
+  }
+
+  if (isPrime) {
+    for (const p of allPlayers) {
+      const prime = primeObjByName[p.name];
+      if (prime) {
+        p.ovr = prime.ovr;
+        p.bat = prime.bat;
+        p.bowl = prime.bowl;
+        p.runs = prime.runs;
+        p.wkts = prime.wkts;
+        p.sr = prime.sr;
+        p.econ = prime.econ;
+        p.matches = prime.matches;
+      }
+    }
+  }
+
   for (const p of allPlayers) {
     const key = `${p.fr}|${p.season}`;
     if (!byTeamSeason.has(key)) byTeamSeason.set(key, []);
     byTeamSeason.get(key).push(p);
     fullNames[p.fr] = p.frFull;
-    primeByName[p.name] = Math.max(primeByName[p.name] ?? 0, p.ovr);
   }
 
   // seasons per franchise where the squad can field an XI (>= 11 players)
@@ -394,12 +432,11 @@ function updateControls() {
 function getTeamTier(avgOVR) {
   if (avgOVR >= 84) return 1;
   if (avgOVR >= 80) return 2;
-  if (avgOVR >= 76) return 3;
-  return 4;
+  return 3;
 }
 
 function getSpinWeights(state) {
-  let w1 = 42, w2 = 33, w3 = 20, w4 = 5;
+  let w1 = 42, w2 = 33, w3 = 25;
 
   const t1Penalty = Math.max(0, state.tier1Hits - 1) * 5;
   w1 = Math.max(30, w1 - t1Penalty);
@@ -408,17 +445,15 @@ function getSpinWeights(state) {
   w2 = Math.max(26, w2 - t2Penalty);
 
   const lost = t1Penalty + t2Penalty;
-  w3 += lost * 0.75;
-  w4 += lost * 0.25;
+  w3 += lost;
 
-  return { w1, w2, w3, w4 };
+  return { w1, w2, w3 };
 }
 
 function tierWeight(tier, weights) {
   if (tier === 1) return weights.w1;
   if (tier === 2) return weights.w2;
-  if (tier === 3) return weights.w3;
-  return weights.w4;
+  return weights.w3;
 }
 
 function weightedPick(items, weightOf) {
@@ -619,11 +654,23 @@ function renderSquad() {
   squadGrid.innerHTML = "";
   if (!pendingSquad) return;
 
-  // pickable players first (by OVR); unpickable ones greyed at the bottom
-  const ordered = [...pendingSquad].sort((a, b) => {
+  let pool = [...pendingSquad];
+
+  // Shuffle the pool completely if blind mode is active
+  if (config.showRatings === "off") {
+    for (let i = pool.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [pool[i], pool[j]] = [pool[j], pool[i]];
+    }
+  }
+
+  // pickable players first; unpickable ones greyed at the bottom.
+  // Within those groups, preserve the randomized order when ratings are off.
+  const ordered = pool.sort((a, b) => {
     const ca = canDraft(a);
     const cb = canDraft(b);
     if (ca !== cb) return ca ? -1 : 1;
+    if (config.showRatings === "off") return 0; // maintain stable shuffled order
     return ovrOf(b) - ovrOf(a);
   });
 
@@ -668,16 +715,16 @@ function draftPlayer(p) {
   }
 
   const slot = slotFor(p);
-  if (slot === undefined) {
-    if (xi.every((x) => x !== null)) {
-      showToast("Your XI is already full", "error");
-    } else if (reservedWkSlot() !== -1 && !p.isWk) {
-      showToast("Last spot is reserved — pick a wicketkeeper", "error");
-    } else {
-      showToast(`No open ${slotRole(p)} position left`, "error");
+    if (slot === undefined) {
+      if (xi.every((x) => x !== null)) {
+        showToast("Your XI is already full", "error");
+      } else if (getDangerWkSlot() !== null && !p.isWk) {
+        showToast("Last spot is reserved — pick a wicketkeeper", "error");
+      } else {
+        showToast(`No open ${slotRole(p)} position left`, "error");
+      }
+      return;
     }
-    return;
-  }
 
   xi[slot] = p;
   // pick is locked in — one pick per team, clear the squad, must spin again
@@ -837,6 +884,11 @@ completeBtn.addEventListener("click", () => {
 // ---------- init ----------
 function initUI() {
   if (config.showRatings === "off") body.classList.add("hide-ratings");
+  const customName = (config.teamName || "").trim();
+  if (customName) {
+    const titleEl = document.querySelector(".xi-title");
+    if (titleEl) titleEl.textContent = customName;
+  }
   setReel(reelClub, "—");
   setReel(reelSeason, "—");
   renderRulesBar();

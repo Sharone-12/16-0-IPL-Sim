@@ -1,7 +1,7 @@
 // ===================== 16-0 — Season simulation =====================
 
 const USER_ID = "USER";
-const USER_NAME = "Your XI";
+let USER_NAME = "Your XI"; // overridden by the player's custom team name on boot
 // Fixed BCCI-style group split (2024 groupings). Your XI takes LSG's slot in
 // Group B. Cross-group "rivals" are index-paired (A[i] <-> B[i]) and meet twice,
 // so every team plays 8 in-group + 2 vs rival + 4 cross = 14 matches.
@@ -91,6 +91,7 @@ function boot() {
   }
 
   state.config = saved.config || {};
+  USER_NAME = (state.config.teamName || "").trim() || "Your XI";
   state.userXi = saved.xi.map(normalizeSavedPlayer);
 
   Promise.all([
@@ -235,7 +236,7 @@ function renderStrengthReadout() {
   if (!el) return;
   const you = state.teams[0].strength;
   el.innerHTML = `
-    <span class="sr-label">Your XI</span>
+    <span class="sr-label">${escapeHtml(USER_NAME)}</span>
     <span class="sr-stat ${you.batting < 80 ? "is-weak" : ""}">BAT ${you.batting.toFixed(1)}</span>
     <span class="sr-stat ${you.bowling < 80 ? "is-weak" : ""}">BOWL ${you.bowling.toFixed(1)}</span>
     <span class="sr-stat">OVR ${you.total.toFixed(1)}</span>

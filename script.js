@@ -12,6 +12,7 @@ const draftConfig = {
   playerRatings: "career",
   eraFrom: MIN_YEAR,
   eraTo: MAX_YEAR,
+  teamName: "",
 };
 
 // ---------- screen switching ----------
@@ -43,20 +44,42 @@ document
 document.querySelectorAll(".group .options").forEach((groupEl) => {
   groupEl.addEventListener("click", (e) => {
     const opt = e.target.closest(".opt");
-    if (!opt || opt.classList.contains("is-selected")) return;
+    if (!opt) return;
 
     const setting = opt.closest(".group").dataset.setting;
+    const value = opt.dataset.value;
+
+    // Sync difficulty and ratings logic: Hard mode strictly forces blind ratings
+    if (setting === "showRatings" && value === "on" && draftConfig.difficulty === "hard") {
+      showToast("Ratings must be blind in Hard mode");
+      return;
+    }
+
+    if (opt.classList.contains("is-selected")) return;
+
     groupEl.querySelectorAll(".opt").forEach((o) => {
       const on = o === opt;
       o.classList.toggle("is-selected", on);
       o.setAttribute("aria-pressed", String(on));
     });
 
-    const value = opt.dataset.value;
     if (setting === "era") {
       applyEraPreset(value);
     } else {
       draftConfig[setting] = value;
+    }
+
+    // If difficulty was changed to hard, force showRatings to off
+    if (setting === "difficulty" && value === "hard") {
+      draftConfig.showRatings = "off";
+      const ratingsGroup = document.querySelector('.group[data-setting="showRatings"] .options');
+      if (ratingsGroup) {
+        ratingsGroup.querySelectorAll(".opt").forEach((o) => {
+          const isOff = o.dataset.value === "off";
+          o.classList.toggle("is-selected", isOff);
+          o.setAttribute("aria-pressed", String(isOff));
+        });
+      }
     }
   });
 });
@@ -135,6 +158,8 @@ function showToast(message) {
 }
 
 document.getElementById("beginDraft").addEventListener("click", () => {
+  const nameInput = document.getElementById("teamNameInput");
+  draftConfig.teamName = nameInput ? nameInput.value.trim().slice(0, 18) : "";
   try {
     localStorage.setItem("draftConfig", JSON.stringify(draftConfig));
   } catch (_) {

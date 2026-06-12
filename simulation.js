@@ -1165,6 +1165,10 @@ async function submitToLeaderboard() {
   const config = state.config;
   if (!config || !config.teamName) return;
 
+  if (typeof initSupabase === "function") {
+    initSupabase();
+  }
+
   if (typeof supabaseClient !== "undefined" && supabaseClient) {
     try {
       const { error } = await supabaseClient

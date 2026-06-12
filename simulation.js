@@ -1127,9 +1127,14 @@ function simulateMatch(home, away, options = {}) {
 }
 
 function buildInnings(battingTeam, bowlingTeam, options = {}) {
-  const batAdv = battingTeam.strength.batting - bowlingTeam.strength.bowling;
-  const totalAdv = battingTeam.strength.total - bowlingTeam.strength.total;
-  const pressure = options.knockout ? randomBetween(-14, 14) : randomBetween(-18, 18);
+  let batAdv = battingTeam.strength.batting - bowlingTeam.strength.bowling;
+  let totalAdv = battingTeam.strength.total - bowlingTeam.strength.total;
+  // Knockout step-up: trim the user's edge so the cup is genuinely earned.
+  if (options.knockout) {
+    if (battingTeam.id === USER_ID) { batAdv -= 1.5; totalAdv -= 1.5; }
+    else if (bowlingTeam.id === USER_ID) { batAdv += 1.5; totalAdv += 1.5; }
+  }
+  const pressure = options.knockout ? randomBetween(-16, 16) : randomBetween(-18, 18);
   const pitch = options.pitch || { runs: 0, wickets: 0, srBonus: 0 };
   let projected = 172 + batAdv * 2.4 + totalAdv * 1.6 + pressure + pitch.runs;
   if (options.target) {

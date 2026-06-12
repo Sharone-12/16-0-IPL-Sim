@@ -1867,9 +1867,9 @@ tr.is-user td:first-child {
   margin-top: 0.7rem;
 }
 
-.season-end .result-slot .result-card,
-.season-end .result-slot .result-actions,
-.season-end .result-slot .play-again-btn {
+.result-slot .result-card,
+.result-slot .result-actions,
+.result-slot .play-again-btn {
   width: 100%;
   max-width: 420px;
 }

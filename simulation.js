@@ -976,9 +976,12 @@ function startPlayoffs() {
 
 function renderPlayoffStage() {
   const match = currentPlayoffMatch();
+  els.playoffTitle.hidden = false;
   els.playoffTitle.textContent = PLAYOFF_LABELS[state.playoff.stage];
   els.playoffOutcome.hidden = true;
+  els.playoffTeams.hidden = false;
   els.playoffTeams.textContent = `${match.home.short} vs ${match.away.short}`;
+  els.playoffResult.hidden = false;
   els.playoffResult.textContent = playoffPromptText(match);
   els.playPlayoffBtn.textContent = `Play ${PLAYOFF_LABELS[state.playoff.stage]}`;
   els.playPlayoffBtn.disabled = false;
@@ -1074,15 +1077,10 @@ function advancePlayoff(match) {
 function endPlayoffs(text, outcome) {
   els.phasePill.textContent = "Complete";
   els.screenTitle.textContent = "Season Complete";
-  const labels = {
-    champion: "CHAMPIONS",
-    runnerup: "RUNNERS UP",
-    eliminated: "ELIMINATED",
-  };
-  els.playoffOutcome.hidden = false;
-  els.playoffOutcome.className = `playoff-outcome is-${outcome}`;
-  els.playoffOutcome.textContent = labels[outcome] || "SEASON OVER";
-  els.playoffResult.textContent = text;
+  els.playoffTitle.hidden = true;
+  els.playoffOutcome.hidden = true;
+  els.playoffTeams.hidden = true;
+  els.playoffResult.hidden = true;
   els.playoffLeaders.innerHTML = awardsHtml();
   // Provide the scorecard button. The result card has the other actions.
   els.playoffActions.innerHTML = `

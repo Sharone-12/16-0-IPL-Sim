@@ -6,7 +6,6 @@
 const DEFAULT_CONFIG = {
   difficulty: "normal",
   showRatings: "on",
-  draftMode: "squad",
   playerRatings: "career",
   eraFrom: 2008,
   eraTo: 2026,
@@ -377,7 +376,6 @@ function renderRulesBar() {
   const chips = [
     diff.label,
     config.showRatings === "on" ? "Ratings On" : "Blind Draft",
-    config.draftMode === "position" ? "Position First" : "Squad First",
     isPrime ? "Prime Mode" : "Career Seasons",
     `Era ${config.eraFrom}–${config.eraTo}`,
   ];

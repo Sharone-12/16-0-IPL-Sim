@@ -8,7 +8,6 @@ const TOTAL_SEASONS = MAX_YEAR - MIN_YEAR + 1; // 19
 const draftConfig = {
   difficulty: "normal",
   showRatings: "on",
-  draftMode: "squad",
   playerRatings: "career",
   eraFrom: MIN_YEAR,
   eraTo: MAX_YEAR,

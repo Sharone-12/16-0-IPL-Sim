@@ -1179,7 +1179,7 @@ async function submitToLeaderboard(stageStr = "Unknown") {
         .insert([
           {
             team_name: config.teamName,
-            ovr: config.teamOvr || 0,
+            ovr: Math.round(state.teams[0].strength.total) || 0,
             stage: stageStr,
             wins: finalWins,
             losses: finalLosses,

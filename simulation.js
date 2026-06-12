@@ -30,6 +30,7 @@ const state = {
   // Combined W-L across league AND playoffs (drives the shareable result card).
   totalWins: 0,
   totalLosses: 0,
+  isRestoring: false,
 };
 
 const els = {
@@ -104,7 +105,11 @@ function boot() {
       state.players = playerRows
         .filter((r) => r.Player_Name && r.Franchise && r.Season)
         .map((r) => normalizeCsvPlayer(r, names));
-      initSeason();
+      if (saved.completed && saved.completedData) {
+        restoreCompletedSeason(saved.completedData);
+      } else {
+        initSeason();
+      }
     })
     .catch((err) => {
       console.error(err);
@@ -633,9 +638,18 @@ function showTableScreen() {
     showResultCard(buildOutcome("ELIMINATED — LEAGUE"), els.seasonEnd.querySelector("#seasonResultSlot"));
     document.body.classList.add("is-endgame");
 
-    try {
-      localStorage.removeItem("seasonState");
-    } catch (_) {}
+    if (!state.isRestoring) {
+      saveCompletedSeasonState({
+        outcomeType: "league",
+        standings: state.standings,
+        leaders: state.leaders,
+        playoff: state.playoff,
+        totalWins: state.totalWins,
+        totalLosses: state.totalLosses,
+        roundIndex: state.roundIndex,
+        leagueResultsHtml: els.leagueResults.innerHTML,
+      });
+    }
   }
 }
 
@@ -1055,9 +1069,25 @@ function endPlayoffs(text, outcome) {
     : outcome === "runnerup" ? "RUNNERS-UP" : "ELIMINATED";
   showResultCard(buildOutcome(cardStage), els.resultSlot);
 
-  try {
-    localStorage.removeItem("seasonState");
-  } catch (_) {}
+  if (!state.isRestoring) {
+    saveCompletedSeasonState({
+      outcomeType: "complete",
+      playoffEndText: text,
+      playoffEndOutcome: outcome,
+      standings: state.standings,
+      leaders: state.leaders,
+      playoff: state.playoff,
+      totalWins: state.totalWins,
+      totalLosses: state.totalLosses,
+      roundIndex: state.roundIndex,
+      leagueResultsHtml: els.leagueResults.innerHTML,
+      resultBannerClass: els.resultBanner.className,
+      resultBannerText: els.resultBanner.textContent,
+      scorecardGridHtml: els.scorecardGrid.innerHTML,
+      motmHtml: els.motm.innerHTML,
+      playoffLeadersHtml: els.playoffLeaders.innerHTML,
+    });
+  }
 }
 
 // User XI lost a knockout (Eliminator, Q2, or Final) — show a dedicated
@@ -1087,9 +1117,24 @@ function showUserEliminated(stageLabel) {
 
   showResultCard(buildOutcome(`ELIMINATED — ${stageLabel.toUpperCase()}`), els.resultSlot);
 
-  try {
-    localStorage.removeItem("seasonState");
-  } catch (_) {}
+  if (!state.isRestoring) {
+    saveCompletedSeasonState({
+      outcomeType: "eliminated",
+      playoffStageLabel: stageLabel,
+      standings: state.standings,
+      leaders: state.leaders,
+      playoff: state.playoff,
+      totalWins: state.totalWins,
+      totalLosses: state.totalLosses,
+      roundIndex: state.roundIndex,
+      leagueResultsHtml: els.leagueResults.innerHTML,
+      resultBannerClass: els.resultBanner.className,
+      resultBannerText: els.resultBanner.textContent,
+      scorecardGridHtml: els.scorecardGrid.innerHTML,
+      motmHtml: els.motm.innerHTML,
+      playoffLeadersHtml: els.playoffLeaders.innerHTML,
+    });
+  }
 }
 
 function goToDraftFresh() {
@@ -1099,6 +1144,74 @@ function goToDraftFresh() {
     /* ignore */
   }
   window.location.href = "draft.html";
+}
+
+function saveCompletedSeasonState(completedData) {
+  try {
+    const saved = JSON.parse(localStorage.getItem("seasonState") || "{}");
+    saved.completed = true;
+    saved.completedData = completedData;
+    localStorage.setItem("seasonState", JSON.stringify(saved));
+  } catch (_) {
+    /* ignore */
+  }
+}
+
+function restoreCompletedSeason(data) {
+  state.isRestoring = true;
+
+  // Re-create opponents and teams based on the current players
+  state.opponents = buildOpponentTeams();
+  state.teams = [
+    makeTeam(USER_ID, USER_NAME, state.userXi),
+    ...state.opponents,
+  ];
+  applyCatchupBuff(state.teams);
+
+  // Restore state variables
+  state.standings = data.standings;
+  state.leaders = data.leaders;
+  state.playoff = data.playoff;
+  state.totalWins = data.totalWins;
+  state.totalLosses = data.totalLosses;
+  state.roundIndex = data.roundIndex;
+
+  // Restore results panel HTML
+  els.leagueResults.innerHTML = data.leagueResultsHtml || "";
+
+  // Render basic elements
+  renderStrengthReadout();
+  if (els.userVsName) els.userVsName.textContent = USER_NAME;
+  renderUserRoster();
+
+  // Restore the specific screens and outcome
+  if (data.outcomeType === "league") {
+    showTableScreen();
+  } else if (data.outcomeType === "eliminated") {
+    els.leagueScreen.classList.remove("is-active");
+    els.playoffScreen.classList.add("is-active");
+    showUserEliminated(data.playoffStageLabel);
+    
+    // Restore scorecard details
+    els.resultBanner.className = data.resultBannerClass || "result-banner";
+    els.resultBanner.textContent = data.resultBannerText || "";
+    els.scorecardGrid.innerHTML = data.scorecardGridHtml || "";
+    els.motm.innerHTML = data.motmHtml || "";
+    els.playoffLeaders.innerHTML = data.playoffLeadersHtml || "";
+  } else if (data.outcomeType === "complete") {
+    els.leagueScreen.classList.remove("is-active");
+    els.playoffScreen.classList.add("is-active");
+    endPlayoffs(data.playoffEndText, data.playoffEndOutcome);
+    
+    // Restore scorecard details
+    els.resultBanner.className = data.resultBannerClass || "result-banner";
+    els.resultBanner.textContent = data.resultBannerText || "";
+    els.scorecardGrid.innerHTML = data.scorecardGridHtml || "";
+    els.motm.innerHTML = data.motmHtml || "";
+    els.playoffLeaders.innerHTML = data.playoffLeadersHtml || "";
+  }
+
+  state.isRestoring = false;
 }
 
 // Pitch is a property of the match — both innings share it. Low-scoring

@@ -31,6 +31,14 @@ const DIFFICULTY = {
 const diff = DIFFICULTY[config.difficulty] || DIFFICULTY.normal;
 const isPrime = config.playerRatings === "prime";
 
+// If the previous season was completed, clear it so we start a new draft
+try {
+  const saved = JSON.parse(localStorage.getItem("seasonState") || "null");
+  if (saved && saved.completed) {
+    localStorage.removeItem("seasonState");
+  }
+} catch (_) {}
+
 
 // ---------- XI structure ----------
 // 11 batting positions. Bands drive auto-placement; drag can override order.

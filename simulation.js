@@ -876,11 +876,16 @@ function showResultCard(outcome, container) {
   container.innerHTML = `
     <div class="result-card">${resultCardHtml(outcome)}</div>
     <div style="display: flex; gap: 0.5rem; margin-top: 0.8rem;">
-      <button class="primary-btn" style="flex: 1; justify-content: center;" type="button" data-act="share">Share Result</button>
+      <button class="primary-btn ghost" style="flex: 1; padding: 0.6rem 0; color: #25D366; border-color: rgba(37, 211, 102, 0.4);" type="button" data-act="wa">WhatsApp</button>
+      <button class="primary-btn ghost" style="flex: 1; padding: 0.6rem 0;" type="button" data-act="x">${X_LOGO}</button>
+      <button class="primary-btn ghost" style="flex: 1; padding: 0.6rem 0;" type="button" data-act="copy">Copy</button>
     </div>
     <div style="display: flex; gap: 0.5rem; margin-top: 0.5rem;">
-      <a class="primary-btn ghost" style="flex: 1; margin: 0; display: flex; justify-content: center;" href="leaderboard.html">Leaderboard</a>
-      <button class="primary-btn play-again-btn" style="flex: 1; margin: 0; display: flex; justify-content: center;" type="button" data-act="again">Play Again</button>
+      <button class="primary-btn ghost" style="flex: 1; justify-content: center;" type="button" data-act="download">⬇ Save image</button>
+      <a class="primary-btn ghost" style="flex: 1; justify-content: center; display: flex; align-items: center;" href="leaderboard.html">Leaderboard</a>
+    </div>
+    <div style="display: flex; gap: 0.5rem; margin-top: 0.5rem;">
+      <button class="primary-btn play-again-btn" style="flex: 1; display: flex; justify-content: center;" type="button" data-act="again">Close / Play Again</button>
     </div>`;
 
   const card = container.querySelector(".result-card");
@@ -888,12 +893,23 @@ function showResultCard(outcome, container) {
 
   const shareText = `I went ${outcome.wins}-${outcome.losses} and got ${outcome.pts} pts with my drafted IPL XI! ${outcome.stage} Can you beat it? Play at https://16-0game.vercel.app`;
   
-  const shareBtn = container.querySelector('[data-act="share"]');
-  shareBtn.onclick = async () => {
-    const originalText = shareBtn.textContent;
-    shareBtn.textContent = "Generating...";
-    shareBtn.style.opacity = "0.7";
-    shareBtn.style.pointerEvents = "none";
+  container.querySelector('[data-act="wa"]').onclick = () =>
+    window.open(`https://wa.me/?text=${encodeURIComponent(shareText)}`, "_blank");
+
+  container.querySelector('[data-act="x"]').onclick = () =>
+    window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}`, "_blank");
+
+  container.querySelector('[data-act="copy"]').onclick = () => {
+    navigator.clipboard.writeText(shareText).catch(() => {});
+    showToast("Copied to clipboard!");
+  };
+
+  const dlBtn = container.querySelector('[data-act="download"]');
+  dlBtn.onclick = async () => {
+    const originalText = dlBtn.textContent;
+    dlBtn.textContent = "Generating...";
+    dlBtn.style.opacity = "0.7";
+    dlBtn.style.pointerEvents = "none";
 
     try {
       const canvas = await html2canvas(card, {
@@ -902,38 +918,19 @@ function showResultCard(outcome, container) {
         useCORS: true,
       });
 
-      canvas.toBlob(async (blob) => {
-        const file = new File([blob], `16-0-result-${Date.now()}.png`, { type: "image/png" });
-        
-        if (navigator.canShare && navigator.canShare({ files: [file] })) {
-          try {
-            await navigator.share({
-              title: "16-0 IPL Simulator",
-              text: shareText,
-              files: [file]
-            });
-          } catch (e) {
-            // User likely cancelled share
-          }
-        } else {
-          // Fallback: Copy text and download image
-          navigator.clipboard.writeText(shareText).catch(() => {});
-          showToast("Score copied! Downloading image...");
-          const link = document.createElement("a");
-          link.download = file.name;
-          link.href = URL.createObjectURL(blob);
-          link.click();
-        }
-
-        shareBtn.textContent = originalText;
-        shareBtn.style.opacity = "1";
-        shareBtn.style.pointerEvents = "auto";
-      }, "image/png");
+      const link = document.createElement("a");
+      link.download = `16-0-result-${Date.now()}.png`;
+      link.href = canvas.toDataURL("image/png");
+      link.click();
+      
+      dlBtn.textContent = originalText;
+      dlBtn.style.opacity = "1";
+      dlBtn.style.pointerEvents = "auto";
     } catch (err) {
-      console.error("Error generating share image:", err);
-      shareBtn.textContent = originalText;
-      shareBtn.style.opacity = "1";
-      shareBtn.style.pointerEvents = "auto";
+      console.error("Error generating image:", err);
+      dlBtn.textContent = originalText;
+      dlBtn.style.opacity = "1";
+      dlBtn.style.pointerEvents = "auto";
     }
   };
 }

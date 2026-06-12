@@ -649,6 +649,7 @@ function showTableScreen() {
         roundIndex: state.roundIndex,
         leagueResultsHtml: els.leagueResults.innerHTML,
       });
+      submitToLeaderboard();
     }
   }
 }
@@ -1087,6 +1088,7 @@ function endPlayoffs(text, outcome) {
       motmHtml: els.motm.innerHTML,
       playoffLeadersHtml: els.playoffLeaders.innerHTML,
     });
+    submitToLeaderboard();
   }
 }
 
@@ -1134,6 +1136,7 @@ function showUserEliminated(stageLabel) {
       motmHtml: els.motm.innerHTML,
       playoffLeadersHtml: els.playoffLeaders.innerHTML,
     });
+    submitToLeaderboard();
   }
 }
 
@@ -1144,6 +1147,40 @@ function goToDraftFresh() {
     /* ignore */
   }
   window.location.href = "draft.html";
+}
+
+async function submitToLeaderboard() {
+  const youRow = state.standings[USER_ID];
+  if (!youRow) return;
+
+  const finalWins = state.totalWins;
+  const finalLosses = state.totalLosses;
+  const finalNrr = parseFloat(nrr(youRow));
+
+  const config = state.config;
+  if (!config || !config.teamName) return;
+
+  if (typeof supabaseClient !== "undefined" && supabaseClient) {
+    try {
+      const { error } = await supabaseClient
+        .from("leaderboards")
+        .insert([
+          {
+            team_name: config.teamName,
+            wins: finalWins,
+            losses: finalLosses,
+            nrr: finalNrr,
+            difficulty: config.difficulty,
+          },
+        ]);
+      if (error) throw error;
+      console.log("Successfully posted to leaderboard!");
+    } catch (err) {
+      console.error("Error submitting to leaderboard:", err);
+    }
+  } else {
+    console.warn("Supabase is not configured yet. Skipping leaderboard submission.");
+  }
 }
 
 function saveCompletedSeasonState(completedData) {

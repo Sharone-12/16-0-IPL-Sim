@@ -188,6 +188,43 @@ h1 {
   outline-offset: 4px;
 }
 
+.leaderboard-landing-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 10.5rem;
+  margin-top: 0.75rem;
+  padding: 0.78rem 1.45rem;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  border-radius: 999px;
+  background: transparent;
+  color: #fff;
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  text-decoration: none;
+  cursor: pointer;
+  transition:
+    border-color 180ms ease,
+    background-color 180ms ease,
+    color 180ms ease,
+    transform 180ms ease;
+}
+
+.leaderboard-landing-btn:hover {
+  border-color: #fff;
+  background: #fff;
+  color: #000;
+  transform: translateY(-2px);
+}
+
+.leaderboard-landing-btn:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: 4px;
+}
+
 @media (max-width: 600px) {
   header {
     top: max(1.25rem, env(safe-area-inset-top));
@@ -240,6 +277,16 @@ h1 {
     min-width: 10rem;
     min-height: 2.75rem;
     margin-top: 1.25rem;
+    padding: 0.8rem 1.35rem;
+    font-size: 0.62rem;
+    letter-spacing: 0.14em;
+    touch-action: manipulation;
+  }
+
+  .leaderboard-landing-btn {
+    min-width: 10rem;
+    min-height: 2.75rem;
+    margin-top: 0.75rem;
     padding: 0.8rem 1.35rem;
     font-size: 0.62rem;
     letter-spacing: 0.14em;
@@ -768,6 +815,16 @@ h1 {
     min-height: 52px;
     height: 52px;
     margin-top: 1.25rem;
+    font-size: 0.68rem;
+    letter-spacing: 0.14em;
+    touch-action: manipulation;
+  }
+
+  .leaderboard-landing-btn {
+    width: 100%;
+    min-height: 52px;
+    height: 52px;
+    margin-top: 0.75rem;
     font-size: 0.68rem;
     letter-spacing: 0.14em;
     touch-action: manipulation;

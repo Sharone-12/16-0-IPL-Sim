@@ -1,0 +1,14 @@
+// Supabase configuration - update with your credentials
+const SUPABASE_URL = "YOUR_SUPABASE_URL";
+const SUPABASE_ANON_KEY = "YOUR_SUPABASE_ANON_KEY";
+
+let supabaseClient = null;
+
+if (
+  typeof supabase !== "undefined" &&
+  supabase.createClient &&
+  SUPABASE_URL !== "YOUR_SUPABASE_URL" &&
+  SUPABASE_ANON_KEY !== "YOUR_SUPABASE_ANON_KEY"
+) {
+  supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+}

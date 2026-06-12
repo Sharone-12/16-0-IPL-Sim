@@ -158,7 +158,14 @@ function showToast(message) {
 
 document.getElementById("beginDraft").addEventListener("click", () => {
   const nameInput = document.getElementById("teamNameInput");
-  draftConfig.teamName = nameInput ? nameInput.value.trim().slice(0, 18) : "";
+  const teamName = nameInput ? nameInput.value.trim().slice(0, 18) : "";
+  
+  if (!teamName) {
+    showToast("Please enter a team name before starting!");
+    return;
+  }
+  
+  draftConfig.teamName = teamName;
   try {
     localStorage.setItem("draftConfig", JSON.stringify(draftConfig));
   } catch (_) {

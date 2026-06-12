@@ -1,0 +1,505 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, viewport-fit=cover"
+    />
+    <title>16-0 — Global Leaderboard</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Anton&display=swap"
+      rel="stylesheet"
+    />
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="supabase_config.js"></script>
+    <style>
+      :root {
+        --bg-color: #000;
+        --panel-bg: rgba(255, 255, 255, 0.035);
+        --panel-border: rgba(255, 255, 255, 0.12);
+        --text-primary: #fff;
+        --text-secondary: #9a9a9a;
+        --text-muted: #5f5f5f;
+        --win-color: #5fce7e;
+        --loss-color: #ee6e6e;
+        --font-title: "Anton", Impact, "Arial Black", sans-serif;
+        --font-body: Arial, Helvetica, sans-serif;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        padding: 0;
+        width: 100%;
+        min-height: 100svh;
+        background-color: var(--bg-color);
+        color: var(--text-primary);
+        font-family: var(--font-body);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        overflow-y: auto;
+      }
+
+      .container {
+        width: min(94vw, 42rem);
+        margin: 0 auto;
+        padding: calc(env(safe-area-inset-top) + 2rem) 0 calc(env(safe-area-inset-bottom) + 3.5rem);
+        display: flex;
+        flex-direction: column;
+        gap: 1.5rem;
+      }
+
+      .top-nav {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 0.5rem;
+      }
+
+      .back-btn {
+        padding: 0.5rem 0.85rem;
+        border: 1px solid var(--panel-border);
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.04);
+        color: #cfcfcf;
+        font-size: 0.6rem;
+        font-weight: 700;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        text-decoration: none;
+        cursor: pointer;
+        transition: border-color 160ms ease, color 160ms ease, background-color 160ms ease;
+      }
+
+      .back-btn:hover {
+        border-color: var(--text-primary);
+        color: var(--text-primary);
+        background: rgba(255, 255, 255, 0.08);
+      }
+
+      .wordmark {
+        color: var(--text-primary);
+        font-family: var(--font-title);
+        font-size: 1.5rem;
+        letter-spacing: -0.02em;
+      }
+
+      .header-section {
+        text-align: center;
+      }
+
+      h1 {
+        margin: 0;
+        font-family: var(--font-title);
+        font-size: clamp(2.5rem, 8vw, 3.5rem);
+        font-weight: 400;
+        letter-spacing: -0.01em;
+        text-transform: uppercase;
+      }
+
+      .subtitle {
+        margin: 0.5rem 0 0;
+        color: var(--text-secondary);
+        font-size: 0.85rem;
+        font-weight: 600;
+        letter-spacing: 0.04em;
+      }
+
+      /* Filters */
+      .filters {
+        display: flex;
+        justify-content: center;
+        gap: 0.5rem;
+        margin: 0.5rem 0;
+      }
+
+      .filter-btn {
+        padding: 0.45rem 1rem;
+        border: 1px solid var(--panel-border);
+        border-radius: 999px;
+        background: transparent;
+        color: var(--text-secondary);
+        font-size: 0.65rem;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        cursor: pointer;
+        transition: border-color 160ms ease, background-color 160ms ease, color 160ms ease;
+      }
+
+      .filter-btn:hover {
+        border-color: rgba(255, 255, 255, 0.3);
+        color: var(--text-primary);
+      }
+
+      .filter-btn.is-active {
+        border-color: var(--text-primary);
+        background: rgba(255, 255, 255, 0.1);
+        color: var(--text-primary);
+      }
+
+      /* Leaderboard Panel */
+      .leaderboard-panel {
+        border: 1px solid var(--panel-border);
+        border-radius: 0.8rem;
+        background: var(--panel-bg);
+        overflow: hidden;
+        min-height: 20rem;
+        display: flex;
+        flex-direction: column;
+      }
+
+      .table-wrap {
+        width: 100%;
+        overflow-x: auto;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        text-align: left;
+      }
+
+      th, td {
+        padding: 0.85rem 1rem;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+        font-size: 0.82rem;
+      }
+
+      th {
+        background: rgba(0, 0, 0, 0.2);
+        color: var(--text-muted);
+        font-size: 0.65rem;
+        font-weight: 700;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        position: sticky;
+        top: 0;
+      }
+
+      td {
+        font-weight: 700;
+        color: #d7d7d7;
+      }
+
+      .col-rank {
+        width: 12%;
+        font-family: var(--font-title);
+        font-size: 1.1rem;
+        color: var(--text-secondary);
+      }
+
+      tr:nth-child(1) .col-rank { color: #f2cd5c; } /* Gold */
+      tr:nth-child(2) .col-rank { color: #cfcfcf; } /* Silver */
+      tr:nth-child(3) .col-rank { color: #d3a173; } /* Bronze */
+
+      .col-team {
+        width: 40%;
+        color: var(--text-primary);
+      }
+
+      .col-diff {
+        width: 15%;
+        text-transform: uppercase;
+        font-size: 0.72rem;
+      }
+
+      .col-wl {
+        width: 18%;
+        font-family: var(--font-title);
+        font-size: 1rem;
+        letter-spacing: 0.05em;
+      }
+
+      .col-nrr {
+        width: 15%;
+        text-align: right;
+        font-family: var(--font-title);
+        font-size: 1rem;
+      }
+
+      .nrr-pos { color: var(--win-color); }
+      .nrr-neg { color: var(--loss-color); }
+
+      /* Status Messages */
+      .status-container {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        flex: 1;
+        padding: 4rem 2rem;
+        text-align: center;
+        gap: 0.8rem;
+      }
+
+      .status-title {
+        font-family: var(--font-title);
+        font-size: 1.6rem;
+        text-transform: uppercase;
+        margin: 0;
+      }
+
+      .status-desc {
+        color: var(--text-secondary);
+        font-size: 0.8rem;
+        margin: 0;
+        max-width: 24rem;
+        line-height: 1.5;
+      }
+
+      /* RLS Warning / Setup Mode */
+      .config-warning {
+        border: 1px dashed rgba(242, 205, 92, 0.4);
+        border-radius: 0.6rem;
+        background: rgba(242, 205, 92, 0.04);
+        padding: 0.85rem 1rem;
+        display: flex;
+        align-items: center;
+        gap: 0.8rem;
+        font-size: 0.75rem;
+        color: #f2cd5c;
+        line-height: 1.4;
+      }
+
+      .config-warning-title {
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+      }
+
+      /* Animations (A11y friendly) */
+      @media (prefers-reduced-motion: no-preference) {
+        .back-btn, .filter-btn {
+          transition: border-color 160ms ease, background-color 160ms ease, color 160ms ease;
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        * {
+          animation-delay: 0s !important;
+          animation-duration: 0s !important;
+          animation-iteration-count: 1 !important;
+          transition-duration: 0s !important;
+          scroll-behavior: auto !important;
+        }
+      }
+
+      @media (max-width: 500px) {
+        th, td {
+          padding: 0.75rem 0.6rem;
+          font-size: 0.78rem;
+        }
+        .col-wl, .col-nrr {
+          font-size: 0.85rem;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <nav class="top-nav">
+        <a class="back-link back-btn" href="index.html">← Home</a>
+        <span class="wordmark" aria-hidden="true">16-0</span>
+        <span style="width: 4rem" aria-hidden="true"></span>
+      </nav>
+
+      <section class="header-section">
+        <h1 id="leaderboardTitle">Global Leaderboard</h1>
+        <p class="subtitle">Undefeated runs in the season simulation</p>
+      </section>
+
+      <!-- Warning if Supabase URL / Key is unconfigured -->
+      <div id="configWarning" class="config-warning" hidden>
+        <div>
+          <span class="config-warning-title">⚠️ Setup Required</span>
+          <span id="warningMsg">Leaderboard keys are unconfigured. Update supabase_config.js with your project details.</span>
+        </div>
+      </div>
+
+      <nav class="filters" aria-label="Leaderboard Filters">
+        <button class="filter-btn is-active" data-filter="all" type="button">All</button>
+        <button class="filter-btn" data-filter="easy" type="button">Easy</button>
+        <button class="filter-btn" data-filter="normal" type="button">Normal</button>
+        <button class="filter-btn" data-filter="hard" type="button">Hard</button>
+      </nav>
+
+      <main class="leaderboard-panel" id="leaderboardPanel">
+        <div class="table-wrap" id="tableWrap" hidden>
+          <table id="leaderboardTable">
+            <thead>
+              <tr>
+                <th class="col-rank">Rank</th>
+                <th class="col-team">Team</th>
+                <th class="col-diff">Difficulty</th>
+                <th class="col-wl">W - L</th>
+                <th class="col-nrr" style="text-align: right">NRR</th>
+              </tr>
+            </thead>
+            <tbody id="leaderboardBody">
+              <!-- Dynamically populated -->
+            </tbody>
+          </table>
+        </div>
+
+        <div class="status-container" id="statusContainer">
+          <div class="status-title" id="statusTitle">Loading...</div>
+          <div class="status-desc" id="statusDesc">Fetching rankings from Supabase database.</div>
+        </div>
+      </main>
+    </div>
+
+    <script>
+      let currentFilter = "all";
+      const elements = {
+        configWarning: document.getElementById("configWarning"),
+        tableWrap: document.getElementById("tableWrap"),
+        leaderboardBody: document.getElementById("leaderboardBody"),
+        statusContainer: document.getElementById("statusContainer"),
+        statusTitle: document.getElementById("statusTitle"),
+        statusDesc: document.getElementById("statusDesc"),
+        filterBtns: document.querySelectorAll(".filter-btn"),
+      };
+
+      function checkConfiguration() {
+        if (!supabaseClient) {
+          elements.configWarning.hidden = false;
+          elements.tableWrap.hidden = true;
+          showStatus(
+            "Leaderboard offline", 
+            "The Supabase Client has not been initialized. Enter your project keys in supabase_config.js to launch the database."
+          );
+          return false;
+        }
+        return true;
+      }
+
+      function showStatus(title, desc) {
+        elements.statusContainer.hidden = false;
+        elements.statusTitle.textContent = title;
+        elements.statusDesc.textContent = desc;
+      }
+
+      function hideStatus() {
+        elements.statusContainer.hidden = true;
+      }
+
+      function formatDate(dateString) {
+        try {
+          const date = new Date(dateString);
+          return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+        } catch (_) {
+          return "";
+        }
+      }
+
+      async function fetchLeaderboard() {
+        if (!checkConfiguration()) return;
+
+        hideStatus();
+        elements.tableWrap.hidden = true;
+        showStatus("Fetching...", "Reading records from the leaderboards table.");
+
+        try {
+          let query = supabaseClient
+            .from("leaderboards")
+            .select("*")
+            .order("wins", { ascending: false })
+            .order("nrr", { ascending: false })
+            .limit(100);
+
+          if (currentFilter !== "all") {
+            query = query.eq("difficulty", currentFilter);
+          }
+
+          const { data, error } = await query;
+          if (error) throw error;
+
+          if (!data || data.length === 0) {
+            elements.tableWrap.hidden = true;
+            showStatus(
+              "No scores yet", 
+              `Be the first to finish a season on ${currentFilter === "all" ? "" : currentFilter} difficulty and submit your squad to the board!`
+            );
+            return;
+          }
+
+          hideStatus();
+          elements.tableWrap.hidden = false;
+          renderLeaderboard(data);
+        } catch (err) {
+          console.error("Supabase fetch error:", err);
+          elements.tableWrap.hidden = true;
+          showStatus(
+            "Fetch Error", 
+            "Could not query the database. Make sure you ran the SQL Editor script in Supabase and enabled RLS/anonymous access."
+          );
+        }
+      }
+
+      function renderLeaderboard(scores) {
+        elements.leaderboardBody.innerHTML = scores
+          .map((score, index) => {
+            const nrrVal = Number(score.nrr || 0);
+            const nrrClass = nrrVal >= 0 ? "nrr-pos" : "nrr-neg";
+            const nrrSign = nrrVal > 0 ? "+" : "";
+            const diffLabel = score.difficulty || "normal";
+            const dateStr = formatDate(score.created_at);
+
+            return `
+              <tr>
+                <td class="col-rank">#${index + 1}</td>
+                <td class="col-team">
+                  <div style="font-weight: 800; color: #fff;">${escapeHtml(score.team_name)}</div>
+                  <div style="font-size: 0.65rem; color: var(--text-muted); margin-top: 0.2rem;">${dateStr}</div>
+                </td>
+                <td class="col-diff" style="color: ${difficultyColor(diffLabel)}">${diffLabel}</td>
+                <td class="col-wl">${score.wins} - ${score.losses}</td>
+                <td class="col-nrr ${nrrClass}">${nrrSign}${nrrVal.toFixed(3)}</td>
+              </tr>
+            `;
+          })
+          .join("");
+      }
+
+      function difficultyColor(diff) {
+        if (diff === "hard") return "#ee6e6e";
+        if (diff === "easy") return "#5fce7e";
+        return "#f2cd5c";
+      }
+
+      function escapeHtml(str) {
+        return String(str || "").replace(/[&<>"']/g, (ch) => ({
+          "&": "&amp;",
+          "<": "&lt;",
+          ">": "&gt;",
+          '"': "&quot;",
+          "'": "&#39;",
+        })[ch]);
+      }
+
+      // Filter handling
+      elements.filterBtns.forEach(btn => {
+        btn.addEventListener("click", () => {
+          if (btn.classList.contains("is-active")) return;
+
+          elements.filterBtns.forEach(b => b.classList.remove("is-active"));
+          btn.classList.add("is-active");
+
+          currentFilter = btn.dataset.filter;
+          fetchLeaderboard();
+        });
+      });
+
+      // Initial Fetch
+      window.addEventListener("DOMContentLoaded", fetchLeaderboard);
+    </script>
+  </body>
+</html>

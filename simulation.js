@@ -807,7 +807,9 @@ function buildOutcome(stage) {
       primaryRole: p.primaryRole,
       slot: i,
       fr: p.fr || "",
+      frFull: p.frFull || "",
       season: p.season || "",
+      isOverseas: Boolean(p.isOverseas),
     })),
   };
 }

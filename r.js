@@ -2,6 +2,25 @@
 (function() {
   const mainContent = document.getElementById("mainContent");
 
+  const FRANCHISE_NAMES = {
+    "CSK": "Chennai Super Kings",
+    "MI": "Mumbai Indians",
+    "RCB": "Royal Challengers Bangalore",
+    "KKR": "Kolkata Knight Riders",
+    "SRH": "Sunrisers Hyderabad",
+    "RR": "Rajasthan Royals",
+    "DC": "Delhi Capitals",
+    "DD": "Delhi Daredevils",
+    "KXIP": "Kings XI Punjab",
+    "PBKS": "Punjab Kings",
+    "GT": "Gujarat Titans",
+    "LSG": "Lucknow Super Giants",
+    "RPS": "Rising Pune Supergiant",
+    "GL": "Gujarat Lions",
+    "KTK": "Kochi Tuskers Kerala",
+    "PW": "Pune Warriors"
+  };
+
   // Helper functions
   function escapeHtml(str) {
     if (!str) return "";
@@ -39,6 +58,14 @@
       case "Lower Order": return { label: "LOW", cls: "badge-lower" };
       default: return { label: "MID", cls: "badge-middle" };
     }
+  }
+
+  function getFranchiseFullName(frCode) {
+    if (!frCode) return "";
+    const clean = frCode.trim().toUpperCase();
+    const mapped = FRANCHISE_NAMES[clean];
+    if (mapped) return mapped;
+    return frCode.toUpperCase();
   }
 
   function showError(title, message) {
@@ -158,21 +185,40 @@
       const rosterRowsHtml = (o.xi || []).map(p => {
         const roleInfo = rosterRoleInfo(p);
         let subText = "";
-        if (p.fr && p.season) {
-          subText = `${p.fr.toUpperCase()} ${p.season}`;
-        } else if (p.fr) {
-          subText = p.fr.toUpperCase();
+        
+        // Mention the team player came from: full name mapping or frFull
+        const teamName = p.frFull || getFranchiseFullName(p.fr);
+        if (teamName && p.season) {
+          subText = `${teamName} · ${p.season}`;
+        } else if (teamName) {
+          subText = teamName;
         } else if (p.season) {
           subText = p.season;
         } else {
           subText = "";
         }
 
+        // Determine correct PNG role icon
+        let roleIconSrc = "/pngs/bat.png"; // Default
+        if (p.primaryRole === "Bowler") {
+          roleIconSrc = "/pngs/ball.png";
+        } else if (p.primaryRole === "All-Rounder") {
+          roleIconSrc = "/pngs/batandball.png";
+        }
+
+        const isOverseas = Boolean(p.isOverseas);
+
         return `
           <article class="player-row">
             <span class="player-slot ${roleInfo.cls}">${roleInfo.label}</span>
             <div class="player-info">
-              <h4 class="player-name">${escapeHtml(p.name)}</h4>
+              <div style="display: flex; align-items: center; gap: var(--space-xs, 8px); min-width: 0;">
+                <h4 class="player-name" style="margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; flex: 0 1 auto;">${escapeHtml(p.name)}</h4>
+                <div style="display: flex; align-items: center; gap: 6px; flex-shrink: 0;">
+                  <img src="${roleIconSrc}" alt="${p.primaryRole}" style="height: 14px; width: 14px; object-fit: contain; opacity: 0.9;" />
+                  ${isOverseas ? `<img src="/pngs/plane.png" alt="Overseas" title="Overseas Player" style="height: 12px; width: 12px; object-fit: contain; opacity: 0.85;" />` : ''}
+                </div>
+              </div>
               <span class="player-sub">${escapeHtml(subText)}</span>
             </div>
             <span class="player-ovr ${ovrTierClass(p.ovr)}">${p.ovr}</span>

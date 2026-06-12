@@ -691,7 +691,7 @@ function renderXI() {
           <span class="slot-role">${label}</span>
           <span class="slot-player-row">
             <span class="slot-player">${name}${p.isWk ? " (wk)" : ""}</span>
-            <span class="slot-icons">${disciplineIcons(p)}</span>
+            <span class="slot-icons">${disciplineIcons(p)}${p.isOverseas ? IC_PLANE : ""}</span>
           </span>
           <span class="slot-origin">${origin}</span>
         </span>

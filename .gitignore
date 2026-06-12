@@ -2,3 +2,4 @@
 .vscode/
 node_modules/
 stress_test_results.json
+.vercel

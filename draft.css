@@ -575,6 +575,16 @@ body.hide-ratings .card-stats {
   line-height: 1;
 }
 
+/* Reorder hint — only surfaced on mobile (see media query), after first pick. */
+.xi-hint {
+  display: none;
+  font-size: 11px;
+  color: #666;
+  text-align: center;
+  letter-spacing: 0.08em;
+  margin: 4px 0 6px;
+}
+
 .xi-slots {
   flex: 1;
   min-height: 0;
@@ -891,6 +901,11 @@ body.hide-ratings .card-stats {
     overflow: visible;
     border-radius: 0.7rem;
     padding: 0.75rem;
+  }
+
+  /* Reorder hint visible on mobile once at least one player is picked */
+  .xi-hint:not([hidden]) {
+    display: block;
   }
 
   /* ---------- Rules bar ---------- */

@@ -715,6 +715,9 @@ function renderXI() {
   const picked = picks.length;
   pickCountEl.textContent = String(picked);
   overseasCountEl.textContent = String(overseasCount());
+
+  const xiHint = document.getElementById("xiHint");
+  if (xiHint) xiHint.hidden = picked < 1;
   completeBtn.hidden = picked !== SLOT_LABELS.length;
 
   const ovrDisplay = document.getElementById("xiOvrDisplay");

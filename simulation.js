@@ -877,13 +877,13 @@ function showResultCard(outcome, container) {
     <div class="result-card">${resultCardHtml(outcome)}</div>
     <div class="result-actions">
       <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.5rem; margin-top: 1rem;">
-        <button class="primary-btn ghost" style="border-radius: 0.5rem; justify-content: center; padding: 0; font-size: 0.85rem; height: 2.8rem; color: #25D366; border-color: rgba(37, 211, 102, 0.4);" type="button" data-act="wa">WhatsApp</button>
-        <button class="primary-btn ghost" style="border-radius: 0.5rem; justify-content: center; padding: 0; height: 2.8rem;" type="button" data-act="x">${X_LOGO}</button>
-        <button class="primary-btn ghost" style="border-radius: 0.5rem; justify-content: center; padding: 0; font-size: 0.85rem; height: 2.8rem;" type="button" data-act="copy">Copy</button>
+        <button class="primary-btn ghost" style="width: 100%; border-radius: 0.5rem; justify-content: center; padding: 0; font-size: 0.85rem; height: 2.8rem; color: #25D366; border-color: rgba(37, 211, 102, 0.4);" type="button" data-act="wa">WhatsApp</button>
+        <button class="primary-btn ghost" style="width: 100%; border-radius: 0.5rem; justify-content: center; padding: 0; height: 2.8rem;" type="button" data-act="x">${X_LOGO}</button>
+        <button class="primary-btn ghost" style="width: 100%; border-radius: 0.5rem; justify-content: center; padding: 0; font-size: 0.85rem; height: 2.8rem;" type="button" data-act="copy">Copy</button>
       </div>
       <div style="display: flex; gap: 0.5rem; margin-top: 0.5rem;">
-        <button class="primary-btn ghost" style="flex: 1; border-radius: 0.5rem; justify-content: center; height: 2.8rem; padding: 0;" type="button" data-act="download">⬇ Save image</button>
-        <a class="primary-btn ghost" style="flex: 1; border-radius: 0.5rem; justify-content: center; display: flex; align-items: center; height: 2.8rem; padding: 0;" href="leaderboard.html">Leaderboard</a>
+        <button class="primary-btn ghost" style="flex: 1; width: 100%; border-radius: 0.5rem; justify-content: center; height: 2.8rem; padding: 0;" type="button" data-act="download">⬇ Save image</button>
+        <a class="primary-btn ghost" style="flex: 1; width: 100%; border-radius: 0.5rem; justify-content: center; display: flex; align-items: center; height: 2.8rem; padding: 0;" href="leaderboard.html">Leaderboard</a>
       </div>
       <div style="margin-top: 0.5rem;">
         <button class="primary-btn" style="width: 100%; border-radius: 0.5rem; justify-content: center; height: 2.8rem; padding: 0; background: #fff; color: #000;" type="button" data-act="again">Close / Play Again</button>

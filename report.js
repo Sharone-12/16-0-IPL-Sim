@@ -59,14 +59,14 @@ async function submitBug() {
 
     status.hidden = false;
     status.style.color = "#4ade80";
-    status.textContent = "✅ Report sent! Thank you.";
-    submit.textContent = "Sent ✓";
+    status.textContent = "Report sent — thank you.";
+    submit.textContent = "Sent";
     setTimeout(closeBugModal, 2000);
   } catch (err) {
     console.error("Report send failed:", err);
     status.hidden = false;
     status.style.color = "#ef4444";
-    status.textContent = "❌ Failed to send. Try again.";
+    status.textContent = "Failed to send. Try again.";
     submit.textContent = "Send Report";
     submit.disabled = false;
   }

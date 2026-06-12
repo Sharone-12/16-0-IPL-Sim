@@ -153,7 +153,9 @@ let dragFrom = null;
 // Captain is tracked by player identity (name|fr|season) so the (C) follows the
 // player even when slots are dragged around.
 let captainKey = null;
+let captainMode = false; // true while the user is tapping a player to make captain
 const playerKey = (p) => `${p.name}|${p.fr}|${p.season}`;
+const captainOf = () => xi.find((p) => p && playerKey(p) === captainKey) || null;
 
 // ---------- elements ----------
 const spinBtn = document.getElementById("spinBtn");
@@ -766,7 +768,6 @@ function renderXI() {
           <span class="slot-origin">${origin}</span>
         </span>
         <span class="slot-ovr ${tierClass(ovr)}">${ovr}</span>
-        <button class="cap-toggle${isCap ? " is-captain" : ""}" type="button" data-cap="${i}" title="${isCap ? "Captain" : "Appoint captain"}" aria-label="${isCap ? "Captain" : "Appoint captain"}">C</button>
       `;
     } else {
       li.innerHTML = `
@@ -790,6 +791,7 @@ function renderXI() {
   const xiHint = document.getElementById("xiHint");
   if (xiHint) xiHint.hidden = picked < 1;
   completeBtn.hidden = picked !== SLOT_LABELS.length;
+  updateCaptainBtn();
 
   const ovrDisplay = document.getElementById("xiOvrDisplay");
   if (picked > 0 && config.showRatings !== "off") {
@@ -856,15 +858,40 @@ function addDragHandlers(li, index) {
 }
 
 // ---------- complete ----------
-// Appoint / un-appoint captain by tapping the C toggle on a filled slot.
+// ---------- captain ----------
+const captainBtn = document.getElementById("captainBtn");
+
+function updateCaptainBtn() {
+  const picked = xi.filter(Boolean).length;
+  captainBtn.hidden = picked === 0;
+  const cap = captainOf();
+  if (captainMode) {
+    captainBtn.textContent = "Tap a player to make captain · Cancel";
+    captainBtn.classList.add("is-picking");
+  } else {
+    captainBtn.classList.remove("is-picking");
+    captainBtn.textContent = cap
+      ? `(C) ${playerLabel(cap)} · Change`
+      : "+ Appoint Captain";
+  }
+  xiSlotsEl.classList.toggle("captain-picking", captainMode);
+}
+
+captainBtn.addEventListener("click", () => {
+  captainMode = !captainMode;
+  renderXI();
+});
+
+// While in captain mode, tapping a filled slot makes that player captain.
 xiSlotsEl.addEventListener("click", (e) => {
-  const btn = e.target.closest(".cap-toggle");
-  if (!btn) return;
-  e.stopPropagation();
-  const p = xi[Number(btn.dataset.cap)];
+  if (!captainMode) return;
+  const li = e.target.closest(".xi-slot.is-filled");
+  if (!li) return;
+  const p = xi[Number(li.dataset.idx)];
   if (!p) return;
   const key = playerKey(p);
-  captainKey = captainKey === key ? null : key;
+  captainKey = captainKey === key ? null : key; // tap current captain again to clear
+  captainMode = false;
   renderXI();
 });
 

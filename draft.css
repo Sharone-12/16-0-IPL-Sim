@@ -730,31 +730,38 @@ body.hide-ratings .card-stats {
   font-size: 0.96rem;
 }
 
-.cap-toggle {
-  flex-shrink: 0;
-  width: 1.35rem;
-  height: 1.35rem;
-  display: grid;
-  place-items: center;
-  border-radius: 50%;
-  border: 1px solid rgba(255, 255, 255, 0.22);
-  background: rgba(255, 255, 255, 0.04);
-  color: #8f8f8f;
-  font-size: 0.6rem;
-  font-weight: 800;
+/* Appoint-captain button in the XI header. */
+.captain-btn {
+  width: 100%;
+  margin-bottom: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid rgba(245, 196, 81, 0.4);
+  border-radius: 0.55rem;
+  background: rgba(245, 196, 81, 0.08);
+  color: #f5c451;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
   cursor: pointer;
   transition: all 140ms ease;
 }
 
-.cap-toggle:hover {
-  color: #f5c451;
-  border-color: rgba(245, 196, 81, 0.6);
+.captain-btn:hover {
+  background: rgba(245, 196, 81, 0.16);
 }
 
-.cap-toggle.is-captain {
+.captain-btn.is-picking {
   background: #f5c451;
   border-color: #f5c451;
   color: #1a1a1a;
+}
+
+/* While picking, filled slots glow gold to show they're tappable. */
+.xi-slots.captain-picking .xi-slot.is-filled {
+  border-style: solid;
+  border-color: rgba(245, 196, 81, 0.7);
+  cursor: pointer;
 }
 
 /* Gold (C) badge shown next to the captain's name across all renders. */

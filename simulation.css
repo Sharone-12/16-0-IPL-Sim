@@ -1989,6 +1989,16 @@ tr.is-user td:first-child {
   text-align: center;
 }
 
+.rc-rank {
+  margin: 0.1rem 0 0.5rem;
+  text-align: center;
+  color: #f5c451;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
 .rc-badge {
   display: inline-block;
   padding: 0.25rem 0.75rem;

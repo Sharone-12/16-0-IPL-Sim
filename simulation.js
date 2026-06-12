@@ -864,6 +864,11 @@ function resultCardHtml(o) {
     <div class="rc-wl">WON · LOST</div>
     <div class="rc-sub">${o.pts} pts · Finished ${ordinal(o.leagueFinish)}</div>
     <div class="rc-badge-wrap"><span class="rc-badge ${badge}">${escapeHtml(o.stage)}</span></div>
+    <div class="rc-rank" id="rcRank">${
+      o.leaderboardRank
+        ? `Leaderboard rank #${o.leaderboardRank} of ${o.leaderboardTotal}`
+        : "Calculating leaderboard rank…"
+    }</div>
     <div class="rc-xi">
       <div class="rc-col">${left}</div>
       <div class="rc-col">${right}</div>
@@ -904,6 +909,30 @@ function showResultCard(outcome, container) {
 
   const card = container.querySelector(".result-card");
   container.querySelector('[data-act="again"]').addEventListener("click", goToDraftFresh);
+
+  // Fill the leaderboard-rank line: prefer already-known values, otherwise wait
+  // on the in-flight submission, and hide the line if ranking is unavailable.
+  const rankEl = container.querySelector("#rcRank");
+  if (rankEl && !outcome.leaderboardRank) {
+    let savedRank = null, savedTotal = null;
+    try {
+      const saved = JSON.parse(localStorage.getItem("seasonState") || "{}");
+      savedRank = saved.completedData && saved.completedData.leaderboardRank;
+      savedTotal = saved.completedData && saved.completedData.leaderboardTotal;
+    } catch (_) {}
+    if (savedRank && savedTotal) {
+      rankEl.textContent = `Leaderboard rank #${savedRank} of ${savedTotal}`;
+    } else if (window.lastInsertedLeaderboardPromise) {
+      window.lastInsertedLeaderboardPromise
+        .then((res) => {
+          if (res && res.rank) rankEl.textContent = `Leaderboard rank #${res.rank} of ${res.total}`;
+          else rankEl.style.display = "none";
+        })
+        .catch(() => { rankEl.style.display = "none"; });
+    } else {
+      rankEl.style.display = "none";
+    }
+  }
 
   const shareText = `I went ${outcome.wins}-${outcome.losses} and got ${outcome.pts} pts with my drafted IPL XI! ${outcome.stage} Can you beat it? Play at https://16-0game.vercel.app`;
   
@@ -1300,6 +1329,25 @@ async function submitToLeaderboard(stageStr = "Unknown") {
          }
 
          console.log("Successfully posted to leaderboard with ID:", id, "Short Code:", shortCode);
+
+         // Compute this run's leaderboard rank (wins desc, then NRR desc — same
+         // ordering as leaderboard.html) now that the row exists.
+         let rank = null;
+         let total = null;
+         try {
+           const totalRes = await supabaseClient
+             .from("leaderboards")
+             .select("*", { count: "exact", head: true });
+           const aboveRes = await supabaseClient
+             .from("leaderboards")
+             .select("*", { count: "exact", head: true })
+             .or(`wins.gt.${finalWins},and(wins.eq.${finalWins},nrr.gt.${finalNrr})`);
+           if (typeof totalRes.count === "number") total = totalRes.count;
+           if (typeof aboveRes.count === "number") rank = aboveRes.count + 1;
+         } catch (e) {
+           console.warn("Could not compute leaderboard rank:", e);
+         }
+
          try {
            const saved = JSON.parse(localStorage.getItem("seasonState") || "{}");
            if (saved.completedData) {
@@ -1307,10 +1355,12 @@ async function submitToLeaderboard(stageStr = "Unknown") {
              if (shortCode) {
                saved.completedData.leaderboardShortCode = shortCode;
              }
+             if (rank) saved.completedData.leaderboardRank = rank;
+             if (total) saved.completedData.leaderboardTotal = total;
              localStorage.setItem("seasonState", JSON.stringify(saved));
            }
          } catch (_) {}
-         return { id, shortCode };
+         return { id, shortCode, rank, total };
        }
      } catch (err) {
        console.error("Error submitting to leaderboard:", err);

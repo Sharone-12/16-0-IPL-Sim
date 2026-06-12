@@ -630,7 +630,10 @@ function showTableScreen() {
     }
     elimInfo.innerHTML = `
       <p class="season-end-msg">You finished ${ordinal(rank)}. Top 4 qualify.</p>
-      <a class="primary-btn wide elim-back-btn" href="draft.html">Back to Draft</a>
+      <div class="btn-row" style="margin-top: 0.7rem; display: flex; gap: 0.5rem;">
+        <a class="primary-btn elim-back-btn" style="flex: 1; margin: 0; padding: 0.5rem 0.2rem; text-align: center; font-size: 0.58rem;" href="draft.html">Back to Draft</a>
+        <a class="primary-btn ghost" style="flex: 1; margin: 0; padding: 0.5rem 0.2rem; text-align: center; font-size: 0.58rem;" href="leaderboard.html">Leaderboard</a>
+      </div>
     `;
 
     // Right panel: result card only
@@ -1057,9 +1060,10 @@ function endPlayoffs(text, outcome) {
   els.playoffOutcome.textContent = labels[outcome] || "SEASON OVER";
   els.playoffResult.textContent = text;
   els.playoffLeaders.innerHTML = awardsHtml();
-  // Swap the single Play button for View Scorecard + Back to Draft + Play Again.
+  // Swap the single Play button for View Scorecard + Leaderboard + Back to Draft + Play Again.
   els.playoffActions.innerHTML = `
     <button class="primary-btn" type="button" id="viewScorecardInline">View Scorecard ↓</button>
+    <a class="primary-btn ghost" href="leaderboard.html">Leaderboard</a>
     <a class="primary-btn ghost" href="draft.html">Back to Draft</a>
     <button class="primary-btn ghost" type="button" id="playAgainBtn">Play Again</button>
   `;
@@ -1112,6 +1116,7 @@ function showUserEliminated(stageLabel) {
 
   els.playoffActions.innerHTML = `
     <button class="primary-btn" type="button" id="viewScorecardInline">View Scorecard ↓</button>
+    <a class="primary-btn ghost" href="leaderboard.html">Leaderboard</a>
     <button class="primary-btn ghost" type="button" id="tryAgainBtn">Try Again</button>
   `;
   document.getElementById("tryAgainBtn").addEventListener("click", goToDraftFresh);

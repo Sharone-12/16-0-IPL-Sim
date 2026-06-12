@@ -157,9 +157,16 @@ h1 {
   text-transform: uppercase;
 }
 
+.landing-actions {
+  display: flex;
+  gap: 1rem;
+  margin-top: clamp(1.25rem, 2vw, 1.65rem);
+  align-items: center;
+  justify-content: center;
+}
+
 .start-button {
   min-width: 10.5rem;
-  margin-top: clamp(1.25rem, 2vw, 1.65rem);
   padding: 0.78rem 1.45rem;
   border: 1px solid #fff;
   border-radius: 999px;
@@ -193,7 +200,6 @@ h1 {
   align-items: center;
   justify-content: center;
   min-width: 10.5rem;
-  margin-top: 0.75rem;
   padding: 0.78rem 1.45rem;
   border: 1px solid rgba(255, 255, 255, 0.4);
   border-radius: 999px;
@@ -273,10 +279,16 @@ h1 {
     letter-spacing: 0.12em;
   }
 
+  .landing-actions {
+    flex-direction: column;
+    width: 100%;
+    gap: 0.75rem;
+    margin-top: 1.25rem;
+  }
+
   .start-button {
     min-width: 10rem;
     min-height: 2.75rem;
-    margin-top: 1.25rem;
     padding: 0.8rem 1.35rem;
     font-size: 0.62rem;
     letter-spacing: 0.14em;
@@ -286,7 +298,6 @@ h1 {
   .leaderboard-landing-btn {
     min-width: 10rem;
     min-height: 2.75rem;
-    margin-top: 0.75rem;
     padding: 0.8rem 1.35rem;
     font-size: 0.62rem;
     letter-spacing: 0.14em;
@@ -810,11 +821,17 @@ h1 {
     margin-top: 0.3rem;
   }
 
+  .landing-actions {
+    flex-direction: column;
+    width: 100%;
+    gap: 0.75rem;
+    margin-top: 1.25rem;
+  }
+
   .start-button {
     width: 100%;
     min-height: 52px;
     height: 52px;
-    margin-top: 1.25rem;
     font-size: 0.68rem;
     letter-spacing: 0.14em;
     touch-action: manipulation;
@@ -824,7 +841,6 @@ h1 {
     width: 100%;
     min-height: 52px;
     height: 52px;
-    margin-top: 0.75rem;
     font-size: 0.68rem;
     letter-spacing: 0.14em;
     touch-action: manipulation;

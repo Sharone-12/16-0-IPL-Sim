@@ -125,22 +125,20 @@ function eligibleSlots(p) {
 
 function getTeamTier(avgOVR) {
   if (avgOVR >= 84) return 1;
-  if (avgOVR >= 80) return 2;
-  if (avgOVR >= 76) return 3;
-  return 4;
+  if (avgOVR >= 81) return 2;
+  return 3;
 }
 function getSpinWeights(state) {
-  let w1 = 42, w2 = 33, w3 = 20, w4 = 5;
+  let w1 = 42, w2 = 33, w3 = 25;
   const t1 = Math.max(0, state.tier1Hits - 1) * 5;
   w1 = Math.max(30, w1 - t1);
   const t2 = Math.max(0, state.tier2Hits - 2) * 2;
   w2 = Math.max(26, w2 - t2);
   const lost = t1 + t2;
-  w3 += lost * 0.75;
-  w4 += lost * 0.25;
-  return { w1, w2, w3, w4 };
+  w3 += lost;
+  return { w1, w2, w3 };
 }
-const tierWeight = (tier, w) => (tier === 1 ? w.w1 : tier === 2 ? w.w2 : tier === 3 ? w.w3 : w.w4);
+const tierWeight = (tier, w) => (tier === 1 ? w.w1 : tier === 2 ? w.w2 : w.w3);
 function weightedPick(items, weightOf) {
   const total = items.reduce((a, it) => a + weightOf(it), 0);
   let r = Math.random() * total;

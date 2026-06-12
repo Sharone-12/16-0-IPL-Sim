@@ -437,7 +437,7 @@ function updateControls() {
 // ---------- dynamic probability franchise+season pick ----------
 function getTeamTier(avgOVR) {
   if (avgOVR >= 84) return 1;
-  if (avgOVR >= 80) return 2;
+  if (avgOVR >= 81) return 2;
   return 3;
 }
 

@@ -262,14 +262,14 @@
         <section class="awards-grid" aria-label="Individual Awards">
           <div class="award-card">
             <span class="award-title orange">
-              ${capSvg}Your Top Scorer
+              Your Top Scorer
             </span>
             <h3 class="award-winner">${escapeHtml(orangeCapWinner)}</h3>
             <span class="award-detail orange">${escapeHtml(orangeCapDetail)}</span>
           </div>
           <div class="award-card">
             <span class="award-title purple">
-              ${capSvg}Your Top Wicket Taker
+              Your Top Wicket Taker
             </span>
             <h3 class="award-winner">${escapeHtml(purpleCapWinner)}</h3>
             <span class="award-detail purple">${escapeHtml(purpleCapDetail)}</span>

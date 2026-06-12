@@ -14,8 +14,20 @@
 /* Minimal footer bar for the full-screen app pages (draft / simulation) */
 .app-report-footer {
   display: flex;
-  justify-content: center;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.85rem;
   padding: 1rem 1rem calc(env(safe-area-inset-bottom) + 1.25rem);
+}
+
+.app-disclaimer {
+  max-width: 720px;
+  margin: 0;
+  text-align: center;
+  font-size: 10px;
+  line-height: 1.5;
+  letter-spacing: 0.02em;
+  color: #3a3a3a;
 }
 
 .bug-modal {

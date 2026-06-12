@@ -1016,8 +1016,9 @@ tr.is-user td:first-child {
 }
 
 /* Jump-to-scorecard button is mobile-only (see media query); hidden elsewhere. */
-.view-scorecard-btn {
-  display: none;
+.view-scorecard-btn,
+#viewScorecardInline {
+  display: none !important;
 }
 
 /* ---------- Scorecard ---------- */
@@ -1556,6 +1557,10 @@ tr.is-user td:first-child {
     font-weight: 700;
     letter-spacing: 0.08em;
     text-transform: uppercase;
+  }
+
+  #viewScorecardInline {
+    display: inline-flex !important;
   }
 
   .mini-pill {

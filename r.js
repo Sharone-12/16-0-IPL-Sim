@@ -73,6 +73,91 @@
     return frCode.toUpperCase();
   }
 
+  function parseCsvSimple(text) {
+    const lines = text.split('\n');
+    if (lines.length === 0) return [];
+    const headers = lines[0].split(',').map(h => h.trim());
+    const results = [];
+    for (let i = 1; i < lines.length; i++) {
+      const line = lines[i].trim();
+      if (!line) continue;
+      
+      const cols = line.split(',');
+      const obj = {};
+      headers.forEach((h, idx) => {
+        obj[h] = cols[idx] ? cols[idx].trim() : "";
+      });
+      results.push(obj);
+    }
+    return results;
+  }
+
+  async function resolveLegacyPlayers(xi) {
+    try {
+      const [masterRes, namesRes] = await Promise.all([
+        fetch('/ipl_master_calibrated.csv').then(r => r.text()),
+        fetch('/mapped_names.csv').then(r => r.text()).catch(() => "")
+      ]);
+
+      const players = parseCsvSimple(masterRes);
+      const nameRows = namesRes ? parseCsvSimple(namesRes) : [];
+
+      const nameMap = {};
+      nameRows.forEach(r => {
+        const master = (r.Master_DB_Name || "").trim();
+        const display = (r.Impact_CSV_Name || "").trim();
+        if (master && display) nameMap[master] = display;
+      });
+
+      const lookup = {};
+      players.forEach(r => {
+        const name = (r.Player_Name || "").trim();
+        const displayName = nameMap[name] || name;
+        const ovr = parseInt(r.OVR) || 70;
+        const key = `${displayName.toLowerCase()}|${ovr}`;
+        lookup[key] = {
+          fr: r.Franchise || "",
+          frFull: r.Franchise_Full || r.Franchise || "",
+          season: r.Season || "",
+          isOverseas: r.Nationality === "Overseas"
+        };
+      });
+
+      const fallbackLookup = {};
+      players.forEach(r => {
+        const name = (r.Player_Name || "").trim();
+        const displayName = nameMap[name] || name;
+        const key = displayName.toLowerCase();
+        const currentOvr = parseInt(r.OVR) || 70;
+        const existing = fallbackLookup[key];
+        if (!existing || currentOvr > existing.ovr) {
+          fallbackLookup[key] = {
+            ovr: currentOvr,
+            fr: r.Franchise || "",
+            frFull: r.Franchise_Full || r.Franchise || "",
+            season: r.Season || "",
+            isOverseas: r.Nationality === "Overseas"
+          };
+        }
+      });
+
+      xi.forEach(p => {
+        const key = `${p.name.toLowerCase()}|${parseInt(p.ovr)}`;
+        const found = lookup[key] || fallbackLookup[p.name.toLowerCase()];
+        if (found) {
+          p.fr = found.fr;
+          p.frFull = found.frFull;
+          p.season = found.season;
+          if (p.isOverseas === undefined) {
+            p.isOverseas = found.isOverseas;
+          }
+        }
+      });
+    } catch (e) {
+      console.error("Failed to resolve legacy players:", e);
+    }
+  }
+
   function showError(title, message) {
     if (mainContent) {
       mainContent.innerHTML = `
@@ -114,6 +199,12 @@
       }
 
       const o = data.payload;
+
+      // Resolve legacy roster team names/seasons in-place if missing
+      const isLegacy = o.xi && o.xi.length > 0 && !o.xi[0].fr;
+      if (isLegacy) {
+        await resolveLegacyPlayers(o.xi);
+      }
 
       const difficulty = o.mode || "Normal";
       const stageText = o.stage || "ELIMINATED";

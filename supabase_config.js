@@ -1,6 +1,6 @@
-// Supabase configuration - copy this file to supabase_config.js and enter your credentials
-const SUPABASE_URL = "YOUR_SUPABASE_URL";
-const SUPABASE_ANON_KEY = "YOUR_SUPABASE_ANON_KEY";
+// Supabase configuration - update with your credentials
+const SUPABASE_URL = "https://ojkejucmghtvmiesmsgt.supabase.co";
+const SUPABASE_ANON_KEY = "sb_publishable_VyhUW7-4PsyHqYIZm3cyIg_tgqd1zWq";
 
 let supabaseClient = null;
 

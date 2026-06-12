@@ -600,6 +600,12 @@ h3 {
   letter-spacing: 0.06em;
 }
 
+.cap-badge {
+  color: #f5c451;
+  font-weight: 800;
+  font-size: 0.88em;
+}
+
 .league-actions {
   flex: 0 0 auto;
   flex-wrap: nowrap;

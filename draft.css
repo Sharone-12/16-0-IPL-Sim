@@ -730,6 +730,41 @@ body.hide-ratings .card-stats {
   font-size: 0.96rem;
 }
 
+.cap-toggle {
+  flex-shrink: 0;
+  width: 1.35rem;
+  height: 1.35rem;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  background: rgba(255, 255, 255, 0.04);
+  color: #8f8f8f;
+  font-size: 0.6rem;
+  font-weight: 800;
+  cursor: pointer;
+  transition: all 140ms ease;
+}
+
+.cap-toggle:hover {
+  color: #f5c451;
+  border-color: rgba(245, 196, 81, 0.6);
+}
+
+.cap-toggle.is-captain {
+  background: #f5c451;
+  border-color: #f5c451;
+  color: #1a1a1a;
+}
+
+/* Gold (C) badge shown next to the captain's name across all renders. */
+.cap-badge {
+  color: #f5c451;
+  font-weight: 800;
+  font-size: 0.85em;
+  letter-spacing: 0.02em;
+}
+
 .slot-remove {
   flex-shrink: 0;
   padding: 0 0.15rem;

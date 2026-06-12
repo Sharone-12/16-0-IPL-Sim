@@ -325,6 +325,7 @@
               <div style="display: flex; align-items: center; gap: var(--space-xs, 8px); min-width: 0;">
                 <h4 class="player-name" style="margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; flex: 0 1 auto;">${escapeHtml(p.name)}</h4>
                 <div style="display: flex; align-items: center; gap: 6px; flex-shrink: 0;">
+                  ${p.isCaptain ? `<span class="cap-badge">(C)</span>` : ''}
                   <img src="${roleIconSrc}" alt="${p.primaryRole}" style="height: 14px; width: 14px; object-fit: contain; opacity: 0.9;" />
                   ${isOverseas ? `<img src="/pngs/plane.png" alt="Overseas" title="Overseas Player" style="height: 14px; width: 14px; object-fit: contain; opacity: 0.85;" />` : ''}
                 </div>

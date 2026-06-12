@@ -166,6 +166,7 @@ function normalizeSavedPlayer(p) {
     bat: Number(p.bat || p.ovr || 70),
     bowl: Number(p.bowl || p.ovr || 60),
     slot: Number(p.slot || 0),
+    isCaptain: Boolean(p.isCaptain),
   };
 }
 
@@ -280,7 +281,7 @@ function renderUserRoster() {
       return `
         <tr>
           <td class="r-slot">${i + 1}</td>
-          <td class="r-name">${escapeHtml(p.displayName)}${plane}${p.isWk ? ' <span class="wk-tag">WK</span>' : ""}</td>
+          <td class="r-name">${escapeHtml(p.displayName)}${p.isCaptain ? ' <span class="cap-badge">(C)</span>' : ""}${plane}${p.isWk ? ' <span class="wk-tag">WK</span>' : ""}</td>
           <td class="r-role"><span class="role-badge ${r.cls}">${r.label}</span></td>
           <td class="r-ovr ${ovrTierClass(p.ovr)}">${p.ovr}</td>
         </tr>`;
@@ -819,6 +820,7 @@ function buildOutcome(stage) {
       frFull: p.frFull || "",
       season: p.season || "",
       isOverseas: Boolean(p.isOverseas),
+      isCaptain: Boolean(p.isCaptain),
     })),
   };
 }

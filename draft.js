@@ -150,6 +150,10 @@ let currentTeam = null; // { fr, season }
 let respinsLeft = diff.respins;
 let spinning = false;
 let dragFrom = null;
+// Captain is tracked by player identity (name|fr|season) so the (C) follows the
+// player even when slots are dragged around.
+let captainKey = null;
+const playerKey = (p) => `${p.name}|${p.fr}|${p.season}`;
 
 // ---------- elements ----------
 const spinBtn = document.getElementById("spinBtn");
@@ -749,18 +753,20 @@ function renderXI() {
       const ovr = ovrOf(p);
       const name = escapeHtml(playerLabel(p));
       const origin = escapeHtml(`${p.fr} ${p.season}`);
+      const isCap = captainKey === playerKey(p);
       li.draggable = true;
       li.innerHTML = `
         <span class="slot-num">${i + 1}</span>
         <span class="slot-body">
           <span class="slot-role">${label}</span>
           <span class="slot-player-row">
-            <span class="slot-player">${name}${p.isWk ? " (wk)" : ""}</span>
+            <span class="slot-player">${name}${p.isWk ? " (wk)" : ""}${isCap ? ' <span class="cap-badge">(C)</span>' : ""}</span>
             <span class="slot-icons">${disciplineIcons(p)}${p.isOverseas ? IC_PLANE : ""}</span>
           </span>
           <span class="slot-origin">${origin}</span>
         </span>
         <span class="slot-ovr ${tierClass(ovr)}">${ovr}</span>
+        <button class="cap-toggle${isCap ? " is-captain" : ""}" type="button" data-cap="${i}" title="${isCap ? "Captain" : "Appoint captain"}" aria-label="${isCap ? "Captain" : "Appoint captain"}">C</button>
       `;
     } else {
       li.innerHTML = `
@@ -850,6 +856,18 @@ function addDragHandlers(li, index) {
 }
 
 // ---------- complete ----------
+// Appoint / un-appoint captain by tapping the C toggle on a filled slot.
+xiSlotsEl.addEventListener("click", (e) => {
+  const btn = e.target.closest(".cap-toggle");
+  if (!btn) return;
+  e.stopPropagation();
+  const p = xi[Number(btn.dataset.cap)];
+  if (!p) return;
+  const key = playerKey(p);
+  captainKey = captainKey === key ? null : key;
+  renderXI();
+});
+
 completeBtn.addEventListener("click", () => {
   if (diff.enforceWk) {
     const wkInTop7 = xi.slice(0, 7).some((p) => p && p.isWk);
@@ -867,6 +885,7 @@ completeBtn.addEventListener("click", () => {
           ...p,
           slot,
           simOvr: ovrOf(p),
+          isCaptain: captainKey === playerKey(p),
         })),
         createdAt: Date.now(),
       })

@@ -991,6 +991,11 @@ tr.is-user td:first-child {
   padding-top: 0.6rem;
 }
 
+/* Jump-to-scorecard button is mobile-only (see media query); hidden elsewhere. */
+.view-scorecard-btn {
+  display: none;
+}
+
 /* ---------- Scorecard ---------- */
 .scorecard {
   min-height: 0;
@@ -1508,6 +1513,25 @@ tr.is-user td:first-child {
   /* Collapse the empty share-card slot during a live playoff match */
   .playoff-info .result-slot:empty {
     display: none;
+  }
+
+  /* Mobile-only jump-to-scorecard button (the card sits below the fold) */
+  .view-scorecard-btn:not([hidden]) {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    width: 100%;
+    margin-top: 0.5rem;
+    padding: 0.7rem 1rem;
+    border: 1px solid rgba(255, 255, 255, 0.28);
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.06);
+    color: #fff;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
   }
 
   .mini-pill {

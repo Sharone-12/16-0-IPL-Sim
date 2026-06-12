@@ -1396,6 +1396,8 @@ function renderFullScorecard(match) {
   const otherScore = match.scoreFor(otherTeam.id);
   const focusWon = match.winner.id === focusTeam.id;
   els.scorecardPanel.hidden = false;
+  const viewBtn = document.getElementById("viewScorecardBtn");
+  if (viewBtn) viewBtn.hidden = false;
   els.resultBanner.className = `result-banner ${focusWon ? "is-win" : "is-loss"}`;
   els.resultBanner.textContent = `${focusTeam.short}: ${formatScore(focusScore)} vs ${otherTeam.short}: ${formatScore(otherScore)} — ${match.winner.short} won ${resultMargin(match)}`;
 
@@ -1544,6 +1546,9 @@ els.playPlayoffBtn.addEventListener("click", () => {
     return;
   }
   playPlayoffMatch();
+});
+document.getElementById("viewScorecardBtn").addEventListener("click", () => {
+  els.scorecardPanel.scrollIntoView({ behavior: "smooth", block: "start" });
 });
 
 boot();

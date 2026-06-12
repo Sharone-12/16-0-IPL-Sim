@@ -843,12 +843,16 @@ tr.is-user td:first-child {
 
 /* ---------- Cap awards (Orange / Purple) ---------- */
 .cap-awards {
-  display: grid;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: stretch;
   gap: 0.55rem;
   margin: 0.4rem 0 0.85rem;
 }
 
 .cap-award {
+  flex: 1 1 0;
+  min-width: 0;
   display: flex;
   align-items: center;
   gap: 0.7rem;
@@ -857,6 +861,27 @@ tr.is-user td:first-child {
   border-left-width: 3px;
   border-radius: 0.55rem;
   background: rgba(255, 255, 255, 0.04);
+}
+
+/* Play Again button sitting to the right of the cap awards. */
+.cap-again {
+  flex: 0 0 auto;
+  align-self: stretch;
+  padding: 0 1.1rem;
+  border: 1px solid rgba(255, 255, 255, 0.85);
+  border-radius: 0.55rem;
+  background: #fff;
+  color: #111;
+  font-family: "Anton", Impact, sans-serif;
+  font-size: 0.85rem;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  transition: opacity 140ms ease;
+  white-space: nowrap;
+}
+
+.cap-again:hover {
+  opacity: 0.85;
 }
 
 .cap-award.is-orange {
@@ -963,7 +988,8 @@ tr.is-user td:first-child {
   display: flex;
   flex-direction: column;
   gap: 0.55rem;
-  overflow: hidden;
+  overflow-y: auto;
+  padding-bottom: 0.75rem;
 }
 
 .mini-pill {
@@ -1822,10 +1848,17 @@ tr.is-user td:first-child {
     min-height: 40px;
   }
 
-  /* Cap awards on mobile: compact */
+  /* Cap awards on mobile: stacked + full-width Play Again */
   .cap-awards {
+    flex-direction: column;
     gap: 0.4rem;
     margin: 0.3rem 0 0.65rem;
+  }
+
+  .cap-again {
+    align-self: stretch;
+    padding: 0.6rem;
+    font-size: 0.95rem;
   }
 
   .cap-award {

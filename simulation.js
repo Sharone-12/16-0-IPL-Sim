@@ -772,6 +772,7 @@ function awardsHtml() {
           <em>${escapeHtml(purple.team)} · ${w} wkts</em>
         </div>
       </div>
+      <button class="cap-again" type="button" onclick="goToDraftFresh()">Play Again →</button>
     </div>
   `;
 }

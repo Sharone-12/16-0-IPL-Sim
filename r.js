@@ -165,7 +165,7 @@
         } else if (p.season) {
           subText = p.season;
         } else {
-          subText = "Legacy Player";
+          subText = "";
         }
 
         return `

@@ -43,6 +43,7 @@ const els = {
   matchLabel: document.getElementById("matchLabel"),
   fixtureStatus: document.getElementById("fixtureStatus"),
   vsRow: document.getElementById("vsRow"),
+  userVsName: document.getElementById("userVsName"),
   userVsStats: document.getElementById("userVsStats"),
   oppName: document.getElementById("oppName"),
   oppVsStats: document.getElementById("oppVsStats"),
@@ -226,6 +227,7 @@ function initSeason() {
     }))
   );
   renderStrengthReadout();
+  if (els.userVsName) els.userVsName.textContent = USER_NAME;
   renderUserRoster();
   renderLeagueFixture();
 }

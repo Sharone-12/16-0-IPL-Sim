@@ -882,6 +882,21 @@ completeBtn.addEventListener("click", () => {
 function initUI() {
   if (config.showRatings === "off") body.classList.add("hide-ratings");
   const customName = (config.teamName || "").trim();
+  if (customName.toLowerCase() === "test") {
+    const randomPlayers = [...allPlayers].sort(() => Math.random() - 0.5).slice(0, 11);
+    try {
+      localStorage.setItem(
+        "seasonState",
+        JSON.stringify({
+          config,
+          xi: randomPlayers.map((p, slot) => ({ ...p, slot, simOvr: ovrOf(p) })),
+          createdAt: Date.now(),
+        })
+      );
+    } catch (_) {}
+    window.location.href = "simulation.html";
+    return;
+  }
   if (customName) {
     const titleEl = document.querySelector(".xi-title");
     if (titleEl) titleEl.textContent = customName;

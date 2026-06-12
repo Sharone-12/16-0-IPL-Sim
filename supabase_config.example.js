@@ -1,4 +1,4 @@
-// Supabase configuration - update with your credentials
+// Supabase configuration - copy this file to supabase_config.js and enter your credentials
 const SUPABASE_URL = "YOUR_SUPABASE_URL";
 const SUPABASE_ANON_KEY = "YOUR_SUPABASE_ANON_KEY";
 

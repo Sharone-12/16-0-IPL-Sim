@@ -905,6 +905,14 @@ completeBtn.addEventListener("click", () => {
       return;
     }
   }
+  if (!captainOf()) {
+    showToast("Appoint a captain before continuing", "error");
+    if (!captainMode) {
+      captainMode = true;
+      renderXI();
+    }
+    return;
+  }
   try {
     localStorage.setItem(
       "seasonState",

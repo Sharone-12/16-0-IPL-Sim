@@ -87,7 +87,7 @@ function loadCsv(path) {
 function boot() {
   const saved = loadSeasonState();
   if (!saved || saved.xi.length !== 11) {
-    showMissingDraft();
+    window.location.href = "draft.html";
     return;
   }
 
@@ -632,6 +632,10 @@ function showTableScreen() {
     els.seasonEnd.innerHTML = `<div class="result-slot" id="seasonResultSlot"></div>`;
     showResultCard(buildOutcome("ELIMINATED — LEAGUE"), els.seasonEnd.querySelector("#seasonResultSlot"));
     document.body.classList.add("is-endgame");
+
+    try {
+      localStorage.removeItem("seasonState");
+    } catch (_) {}
   }
 }
 
@@ -798,12 +802,14 @@ function buildOutcome(stage) {
   };
 }
 
-// Slot-number badge colour mapped to the draft setup colors: red=Opener, green=Middle, gold=WK/Finisher, blue=Bowler.
+// Slot-number badge colour mapped to the draft colors: red=Opener, green=Middle, gold=All-Rounder/Finisher, blue=Bowler/Lower.
 function slotBadgeClass(p) {
-  if (p.isWk || p.battingOrder === "Finisher") return "pos-gold";
-  if (p.primaryRole === "Bowler" || p.battingOrder === "Lower Order") return "pos-blue";
-  if (p.battingOrder === "Opener") return "pos-red";
-  return "pos-green"; // Middle Order / All-Rounder
+  const r = rosterRole(p);
+  if (r.cls === "role-opener") return "pos-red";
+  if (r.cls === "role-middle") return "pos-green";
+  if (r.cls === "role-finisher") return "pos-gold";
+  if (r.cls === "role-lower") return "pos-blue";
+  return "pos-green";
 }
 
 function badgeStyle(stage) {
@@ -1048,6 +1054,10 @@ function endPlayoffs(text, outcome) {
   const cardStage = outcome === "champion" ? "CHAMPIONS"
     : outcome === "runnerup" ? "RUNNERS-UP" : "ELIMINATED";
   showResultCard(buildOutcome(cardStage), els.resultSlot);
+
+  try {
+    localStorage.removeItem("seasonState");
+  } catch (_) {}
 }
 
 // User XI lost a knockout (Eliminator, Q2, or Final) — show a dedicated
@@ -1076,6 +1086,10 @@ function showUserEliminated(stageLabel) {
   wireViewScorecard("viewScorecardInline");
 
   showResultCard(buildOutcome(`ELIMINATED — ${stageLabel.toUpperCase()}`), els.resultSlot);
+
+  try {
+    localStorage.removeItem("seasonState");
+  } catch (_) {}
 }
 
 function goToDraftFresh() {

@@ -914,6 +914,7 @@ function showResultCard(outcome, container) {
     shareLinkBtn.disabled = true;
 
     let id = window.restoredLeaderboardId || null;
+    let shortCode = window.restoredLeaderboardShortCode || null;
 
     if (!id && !window.lastInsertedLeaderboardPromise) {
       const stageStr = outcome.stage || "Group Stage";
@@ -922,14 +923,21 @@ function showResultCard(outcome, container) {
 
     if (!id && window.lastInsertedLeaderboardPromise) {
       try {
-        id = await window.lastInsertedLeaderboardPromise;
+        const res = await window.lastInsertedLeaderboardPromise;
+        if (res && typeof res === "object") {
+          id = res.id;
+          shortCode = res.shortCode;
+        } else {
+          id = res;
+        }
       } catch (err) {
         console.error("Failed to retrieve leaderboard ID:", err);
       }
     }
 
     if (id) {
-      const shareUrl = `${window.location.origin}/r/${id}`;
+      const code = shortCode || id;
+      const shareUrl = `${window.location.origin}/r/${code}`;
       const clipboardText = `Check out my team on 16-0! 🏏 ${shareUrl}`;
       navigator.clipboard.writeText(clipboardText)
         .then(() => {
@@ -1257,28 +1265,45 @@ async function submitToLeaderboard(stageStr = "Unknown") {
             stage: stageStr,
             wins: finalWins,
             losses: finalLosses,
-            nrr: finalNrr,
-            difficulty: config.difficulty,
-            payload: buildOutcome(stageStr),
-          },
-        ])
-        .select("id");
-      if (error) throw error;
-      if (data && data[0]) {
-        const id = data[0].id;
-        console.log("Successfully posted to leaderboard with ID:", id);
-        try {
-          const saved = JSON.parse(localStorage.getItem("seasonState") || "{}");
-          if (saved.completedData) {
-            saved.completedData.leaderboardId = id;
-            localStorage.setItem("seasonState", JSON.stringify(saved));
-          }
-        } catch (_) {}
-        return id;
-      }
-    } catch (err) {
-      console.error("Error submitting to leaderboard:", err);
-    }
+             nrr: finalNrr,
+             difficulty: config.difficulty,
+             payload: buildOutcome(stageStr),
+           },
+         ])
+         .select("id");
+       if (error) throw error;
+       if (data && data[0]) {
+         const id = data[0].id;
+         let shortCode = null;
+         try {
+           const { data: codeData } = await supabaseClient
+             .from("leaderboards")
+             .select("short_code")
+             .eq("id", id)
+             .single();
+           if (codeData && codeData.short_code) {
+             shortCode = codeData.short_code;
+           }
+         } catch (e) {
+           console.warn("short_code column might not exist in leaderboards yet:", e);
+         }
+
+         console.log("Successfully posted to leaderboard with ID:", id, "Short Code:", shortCode);
+         try {
+           const saved = JSON.parse(localStorage.getItem("seasonState") || "{}");
+           if (saved.completedData) {
+             saved.completedData.leaderboardId = id;
+             if (shortCode) {
+               saved.completedData.leaderboardShortCode = shortCode;
+             }
+             localStorage.setItem("seasonState", JSON.stringify(saved));
+           }
+         } catch (_) {}
+         return { id, shortCode };
+       }
+     } catch (err) {
+       console.error("Error submitting to leaderboard:", err);
+     }
   } else {
     console.warn("Supabase is not configured yet. Skipping leaderboard submission.");
   }
@@ -1315,6 +1340,7 @@ function restoreCompletedSeason(data) {
   state.totalLosses = data.totalLosses;
   state.roundIndex = data.roundIndex;
   window.restoredLeaderboardId = data.leaderboardId || null;
+  window.restoredLeaderboardShortCode = data.leaderboardShortCode || null;
 
   // Restore results panel HTML
   els.leagueResults.innerHTML = data.leagueResultsHtml || "";

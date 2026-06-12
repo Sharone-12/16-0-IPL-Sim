@@ -185,11 +185,15 @@
     }
 
     try {
-      const { data, error } = await client
-        .from("leaderboards")
-        .select("payload")
-        .eq("id", id)
-        .single();
+      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+      let query = client.from("leaderboards").select("payload");
+      if (isUuid) {
+        query = query.eq("id", id);
+      } else {
+        query = query.eq("short_code", id);
+      }
+      
+      const { data, error } = await query.single();
 
       if (error) throw error;
 

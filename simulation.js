@@ -875,17 +875,17 @@ function showResultCard(outcome, container) {
   if (!container) return;
   container.innerHTML = `
     <div class="result-card">${resultCardHtml(outcome)}</div>
-    <div style="display: flex; gap: 0.5rem; margin-top: 0.8rem;">
-      <button class="primary-btn ghost" style="flex: 1; padding: 0.6rem 0; color: #25D366; border-color: rgba(37, 211, 102, 0.4);" type="button" data-act="wa">WhatsApp</button>
-      <button class="primary-btn ghost" style="flex: 1; padding: 0.6rem 0;" type="button" data-act="x">${X_LOGO}</button>
-      <button class="primary-btn ghost" style="flex: 1; padding: 0.6rem 0;" type="button" data-act="copy">Copy</button>
+    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.5rem; margin-top: 1rem;">
+      <button class="primary-btn ghost" style="border-radius: 0.5rem; justify-content: center; padding: 0; font-size: 0.85rem; height: 2.8rem; color: #25D366; border-color: rgba(37, 211, 102, 0.4);" type="button" data-act="wa">WhatsApp</button>
+      <button class="primary-btn ghost" style="border-radius: 0.5rem; justify-content: center; padding: 0; height: 2.8rem;" type="button" data-act="x">${X_LOGO}</button>
+      <button class="primary-btn ghost" style="border-radius: 0.5rem; justify-content: center; padding: 0; font-size: 0.85rem; height: 2.8rem;" type="button" data-act="copy">Copy</button>
     </div>
     <div style="display: flex; gap: 0.5rem; margin-top: 0.5rem;">
-      <button class="primary-btn ghost" style="flex: 1; justify-content: center;" type="button" data-act="download">⬇ Save image</button>
-      <a class="primary-btn ghost" style="flex: 1; justify-content: center; display: flex; align-items: center;" href="leaderboard.html">Leaderboard</a>
+      <button class="primary-btn ghost" style="flex: 1; border-radius: 0.5rem; justify-content: center; height: 2.8rem; padding: 0;" type="button" data-act="download">⬇ Save image</button>
+      <a class="primary-btn ghost" style="flex: 1; border-radius: 0.5rem; justify-content: center; display: flex; align-items: center; height: 2.8rem; padding: 0;" href="leaderboard.html">Leaderboard</a>
     </div>
-    <div style="display: flex; gap: 0.5rem; margin-top: 0.5rem;">
-      <button class="primary-btn play-again-btn" style="flex: 1; display: flex; justify-content: center;" type="button" data-act="again">Close / Play Again</button>
+    <div style="margin-top: 0.5rem;">
+      <button class="primary-btn" style="width: 100%; border-radius: 0.5rem; justify-content: center; height: 2.8rem; padding: 0; background: #fff; color: #000;" type="button" data-act="again">Close / Play Again</button>
     </div>`;
 
   const card = container.querySelector(".result-card");

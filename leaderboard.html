@@ -167,7 +167,7 @@
 
       th {
         background: rgba(0, 0, 0, 0.2);
-        color: var(--text-muted);
+        color: #ffffff;
         font-size: 0.65rem;
         font-weight: 700;
         letter-spacing: 0.1em;
@@ -459,8 +459,8 @@
               <tr>
                 <td class="col-rank">#${index + 1}</td>
                 <td class="col-team">
-                  <div style="font-weight: 800; color: #fff;">${escapeHtml(score.team_name)}</div>
-                  <div style="font-size: 0.65rem; color: var(--text-muted); margin-top: 0.2rem;">${dateStr}</div>
+                  <div style="font-family: var(--font-title); font-size: 1.15rem; font-weight: 400; color: #fff; text-transform: uppercase; letter-spacing: 0.05em;">${escapeHtml(score.team_name)}</div>
+                  <div style="font-size: 0.65rem; color: #fff; margin-top: 0.2rem;">${dateStr}</div>
                 </td>
                 <td class="col-diff" style="color: ${difficultyColor(diffLabel)}">${diffLabel}</td>
                 <td class="col-wl">${score.wins} - ${score.losses}</td>

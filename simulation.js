@@ -911,6 +911,11 @@ function showResultCard(outcome, container) {
 
     let id = window.restoredLeaderboardId || null;
 
+    if (!id && !window.lastInsertedLeaderboardPromise) {
+      const stageStr = outcome.stage || "Group Stage";
+      window.lastInsertedLeaderboardPromise = submitToLeaderboard(stageStr);
+    }
+
     if (!id && window.lastInsertedLeaderboardPromise) {
       try {
         id = await window.lastInsertedLeaderboardPromise;

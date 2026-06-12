@@ -876,8 +876,7 @@ function showResultCard(outcome, container) {
   container.innerHTML = `
     <div class="result-card">${resultCardHtml(outcome)}</div>
     <div style="display: flex; gap: 0.5rem; margin-top: 0.8rem;">
-      <button class="primary-btn" style="flex: 1; justify-content: center;" type="button" data-act="download">Download</button>
-      <button class="primary-btn ghost" style="flex: 1; justify-content: center;" type="button" data-act="x">${X_LOGO} Share</button>
+      <button class="primary-btn" style="flex: 1; justify-content: center;" type="button" data-act="share">Share Result</button>
     </div>
     <div style="display: flex; gap: 0.5rem; margin-top: 0.5rem;">
       <a class="primary-btn ghost" style="flex: 1; margin: 0; display: flex; justify-content: center;" href="leaderboard.html">Leaderboard</a>
@@ -885,26 +884,58 @@ function showResultCard(outcome, container) {
     </div>`;
 
   const card = container.querySelector(".result-card");
-  
   container.querySelector('[data-act="again"]').addEventListener("click", goToDraftFresh);
-
-  container.querySelector('[data-act="download"]').onclick = () => {
-    html2canvas(card, {
-      backgroundColor: "#0f0f0f",
-      scale: 2,
-      useCORS: true,
-    }).then((canvas) => {
-      const link = document.createElement("a");
-      link.download = `16-0-result-${Date.now()}.png`;
-      link.href = canvas.toDataURL("image/png");
-      link.click();
-    });
-  };
 
   const shareText = `I went ${outcome.wins}-${outcome.losses} and got ${outcome.pts} pts with my drafted IPL XI! ${outcome.stage} Can you beat it? Play at https://16-0game.vercel.app`;
   
-  container.querySelector('[data-act="x"]').onclick = () =>
-    window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}`, "_blank");
+  const shareBtn = container.querySelector('[data-act="share"]');
+  shareBtn.onclick = async () => {
+    const originalText = shareBtn.textContent;
+    shareBtn.textContent = "Generating...";
+    shareBtn.style.opacity = "0.7";
+    shareBtn.style.pointerEvents = "none";
+
+    try {
+      const canvas = await html2canvas(card, {
+        backgroundColor: "#0f0f0f",
+        scale: 2,
+        useCORS: true,
+      });
+
+      canvas.toBlob(async (blob) => {
+        const file = new File([blob], `16-0-result-${Date.now()}.png`, { type: "image/png" });
+        
+        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+          try {
+            await navigator.share({
+              title: "16-0 IPL Simulator",
+              text: shareText,
+              files: [file]
+            });
+          } catch (e) {
+            // User likely cancelled share
+          }
+        } else {
+          // Fallback: Copy text and download image
+          navigator.clipboard.writeText(shareText).catch(() => {});
+          showToast("Score copied! Downloading image...");
+          const link = document.createElement("a");
+          link.download = file.name;
+          link.href = URL.createObjectURL(blob);
+          link.click();
+        }
+
+        shareBtn.textContent = originalText;
+        shareBtn.style.opacity = "1";
+        shareBtn.style.pointerEvents = "auto";
+      }, "image/png");
+    } catch (err) {
+      console.error("Error generating share image:", err);
+      shareBtn.textContent = originalText;
+      shareBtn.style.opacity = "1";
+      shareBtn.style.pointerEvents = "auto";
+    }
+  };
 }
 
 function tableRows() {

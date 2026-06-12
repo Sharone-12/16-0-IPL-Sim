@@ -26,6 +26,7 @@ const MAX_OVERSEAS = 4;
 let ERA_FROM = 2008;
 let ERA_TO = 2026;
 let DIFFICULTY = "normal";
+let IS_PRIME = false;
 
 let PICK_STRATEGY = "greedy"; // 'greedy' | 'random'
 
@@ -257,7 +258,7 @@ function teamStrength(players, isUser = false) {
   const chemistry = chemistryScore(players);
   let total = batting * 0.46 + bowling * 0.42 + depth * 0.08 + chemistry * 0.04;
   if (isUser) {
-    const base = 0.95;
+    const base = IS_PRIME ? 0.92 : 0.95;
     const dFactor = DIFFICULTY === "hard" ? 0.95 : DIFFICULTY === "easy" ? 1.02 : 1.0;
     total *= base * dFactor;
   }
@@ -667,13 +668,35 @@ function analyze(label, results) {
 
 // expose engine for extra analyses
 function setStrategy(s) { PICK_STRATEGY = s; }
+function setDifficulty(d) { DIFFICULTY = d; }
+function setIsPrime(p) { IS_PRIME = p; }
+function applyPrimeRatings() {
+  IS_PRIME = true;
+  const primeObjByName = {};
+  for (const p of allPlayers) {
+    const prev = primeObjByName[p.name];
+    if (!prev || p.ovrRaw > prev.ovrRaw) {
+      primeObjByName[p.name] = p;
+    }
+  }
+  for (const p of allPlayers) {
+    const prime = primeObjByName[p.name];
+    if (prime) {
+      p.ovr = prime.ovr;
+      p.bat = prime.bat;
+      p.bowl = prime.bowl;
+      p.ovrRaw = prime.ovrRaw;
+    }
+  }
+}
 const SLOTS = SLOT_LABELS;
 module.exports = {
   allPlayers, spinPool, byTeamSeason, SLOTS,
   simulateDraft, runSeason, runN, analyze, setStrategy,
   eligibleSlots, pickTeam, GROUPS, ERA_FROM, ERA_TO, MAX_OVERSEAS,
   evaluatePlayerForStrategy, evaluateOptimalPlayer, runDraftWithStrategy,
-  simulateDraftNoChemistry, runComprehensiveStressTest
+  simulateDraftNoChemistry, runComprehensiveStressTest,
+  setDifficulty, setIsPrime, applyPrimeRatings
 };
 
 /**

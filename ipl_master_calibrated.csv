@@ -1874,7 +1874,7 @@ m-vijay,M Vijay,4b57e452,2019,CSK,Chennai Super Kings,Indian,Batsman,Opener,0,2.
 mj-santner,MJ Santner,e4a0deae,2019,CSK,Chennai Super Kings,Overseas,Bowler,Lower Order,0,8.0,28,4,1,0,32,23,139.13,32.0,1,4,84,94,6.71,21.0,23.5,0,0,82,69,83,fallback
 mm-sharma,MM Sharma,759ac88f,2019,CSK,Chennai Super Kings,Indian,Bowler,Lower Order,0,10.0,28,1,0,0,0,2,0.0,0.0,0,1,18,27,9.0,18.0,27.0,0,0,69,69,69,fallback
 ms-dhoni,MS Dhoni,4a8a2e3b,2019,CSK,Chennai Super Kings,Indian,Wicketkeeper,Middle Order,1,5.08,28,15,0,0,416,309,134.63,83.2,5,0,0,0,0.0,0.0,0.0,11,5,83,85,55,impact
-ra-jadeja,RA Jadeja,fe93fd9d,2019,CSK,Chennai Super Kings,Indian,Bowler,Lower Order,0,6.44,28,16,9,0,106,88,120.45,35.33,3,15,324,343,6.35,21.6,22.87,0,0,76,69,77,impact
+ra-jadeja,RA Jadeja,fe93fd9d,2019,CSK,Chennai Super Kings,Indian,Bowler,Lower Order,0,6.44,28,16,9,0,106,88,120.45,35.33,3,15,324,343,6.35,21.6,22.87,0,0,82,69,82,impact
 sc-kuggeleijn,SC Kuggeleijn,fef92afc,2019,CSK,Chennai Super Kings,Overseas,Bowler,Lower Order,0,0.0,28,2,0,0,0,0,0.0,0.0,0,2,48,71,8.88,24.0,35.5,0,0,67,69,67,fallback
 sk-raina,SK Raina,1dc12ab9,2019,CSK,Chennai Super Kings,Indian,Batsman,Middle Order,0,3.0,28,17,7,0,383,314,121.97,23.94,16,0,6,6,6.0,0.0,0.0,0,0,80,81,55,impact
 sn-thakur,SN Thakur,1abb78f8,2019,CSK,Chennai Super Kings,Indian,Bowler,Lower Order,0,8.67,28,10,4,0,14,7,200.0,7.0,2,8,180,281,9.37,22.5,35.12,0,0,69,69,76,impact
@@ -2184,7 +2184,7 @@ km-asif,KM Asif,798cc28e,2021,CSK,Chennai Super Kings,Indian,Bowler,Lower Order,
 l-ngidi,L Ngidi,f834dcfc,2021,CSK,Chennai Super Kings,Overseas,Bowler,Lower Order,0,0.0,28,3,1,0,0,0,0.0,0.0,0,5,72,125,10.42,14.4,25.0,0,0,82,69,82,fallback
 mm-ali,MM Ali,bb351c23,2021,CSK,Chennai Super Kings,Overseas,All-Rounder,Middle Order,0,3.4,28,15,6,0,357,260,137.31,25.5,14,6,152,161,6.36,25.33,26.83,0,0,73,87,74,impact
 ms-dhoni,MS Dhoni,4a8a2e3b,2021,CSK,Chennai Super Kings,Indian,Wicketkeeper,Middle Order,1,6.09,28,16,13,1,114,107,106.54,16.29,7,0,0,0,0.0,0.0,0.0,0,0,66,80,55,impact
-ra-jadeja,RA Jadeja,fe93fd9d,2021,CSK,Chennai Super Kings,Indian,All-Rounder,Middle Order,0,6.17,28,16,13,0,227,156,145.51,75.67,3,13,294,346,7.06,22.62,26.62,0,0,76,90,79,impact
+ra-jadeja,RA Jadeja,fe93fd9d,2021,CSK,Chennai Super Kings,Indian,All-Rounder,Middle Order,0,6.17,28,16,13,0,227,156,145.51,75.67,3,13,294,346,7.06,22.62,26.62,0,0,84,90,84,impact
 rd-gaikwad,RD Gaikwad,45a43fe2,2021,CSK,Chennai Super Kings,Indian,Batsman,Opener,0,1.0,28,16,6,0,635,466,136.27,45.36,14,0,0,0,0.0,0.0,0.0,0,0,87,90,55,impact
 rv-uthappa,RV Uthappa,1c17e270,2021,CSK,Chennai Super Kings,Indian,Wicketkeeper,Middle Order,1,3.25,28,4,0,0,115,84,136.9,28.75,4,0,0,0,0.0,0.0,0.0,0,0,82,86,55,fallback
 sk-raina,SK Raina,1dc12ab9,2021,CSK,Chennai Super Kings,Indian,Batsman,Middle Order,0,4.18,28,12,7,0,160,128,125.0,17.78,9,0,0,0,0.0,0.0,0.0,0,0,70,72,55,impact
@@ -2233,7 +2233,7 @@ af-milne,AF Milne,350bb1b1,2021,MI,Mumbai Indians,Overseas,Bowler,Lower Order,0,
 anmolpreet-singh,Anmolpreet Singh,1399b39c,2021,MI,Mumbai Indians,Indian,Batsman,Opener,0,2.0,28,1,0,0,16,14,114.29,16.0,1,0,0,0,0.0,0.0,0.0,0,0,69,69,55,fallback
 ca-lynn,CA Lynn,45eda7c8,2021,MI,Mumbai Indians,Overseas,Batsman,Opener,0,2.0,28,1,2,0,49,35,140.0,49.0,1,0,0,0,0.0,0.0,0.0,0,0,75,75,55,fallback
 ds-kulkarni,DS Kulkarni,d2a989fc,2021,MI,Mumbai Indians,Indian,Bowler,Lower Order,0,8.0,28,1,0,0,0,0,0.0,0.0,0,0,24,48,12.0,0.0,0.0,0,0,65,69,55,fallback
-hh-pandya,HH Pandya,dbe50b21,2021,MI,Mumbai Indians,Indian,Batsman,Middle Order,0,5.27,28,12,4,0,127,112,113.39,14.11,9,0,0,0,0.0,0.0,0.0,0,0,75,79,55,impact
+hh-pandya,HH Pandya,dbe50b21,2021,MI,Mumbai Indians,Indian,Batsman,Middle Order,0,5.27,28,12,4,0,127,112,113.39,14.11,9,0,0,0,0.0,0.0,0.0,0,0,75,74,55,impact
 ishan-kishan,Ishan Kishan,752f7486,2021,MI,Mumbai Indians,Indian,Wicketkeeper,Middle Order,1,3.4,28,10,3,0,241,180,133.89,26.78,9,0,0,0,0.0,0.0,0.0,0,0,77,79,55,impact
 j-yadav,J Yadav,81049310,2021,MI,Mumbai Indians,Indian,Bowler,Lower Order,0,8.33,28,5,1,0,34,26,130.77,17.0,2,2,102,130,7.65,51.0,65.0,0,0,72,69,68,impact
 jds-neesham,JDS Neesham,9219eff0,2021,MI,Mumbai Indians,Overseas,Bowler,Lower Order,0,6.5,28,3,0,0,0,2,0.0,0.0,2,5,54,66,7.33,10.8,13.2,0,0,78,69,78,fallback
@@ -2289,7 +2289,7 @@ navdeep-saini,Navdeep Saini,21d4e29b,2021,RCB,Royal Challengers Bangalore,Indian
 pwh-de-silva,PWH de Silva,a97c8ec2,2021,RCB,Royal Challengers Bangalore,Overseas,Bowler,Lower Order,0,7.0,28,2,0,0,1,2,50.0,1.0,1,0,36,60,10.0,0.0,0.0,0,0,65,69,55,fallback
 rm-patidar,RM Patidar,c740ea83,2021,RCB,Royal Challengers Bangalore,Indian,Batsman,Middle Order,0,3.0,28,4,1,0,71,62,114.52,17.75,4,0,0,0,0.0,0.0,0.0,0,0,72,72,55,fallback
 sachin-baby,Sachin Baby,dc9dd038,2021,RCB,Royal Challengers Bangalore,Indian,Batsman,Middle Order,0,6.0,28,1,0,0,7,17,41.18,7.0,1,0,0,0,0.0,0.0,0.0,0,0,69,69,55,fallback
-shahbaz-ahmed,Shahbaz Ahmed,f9e6e7ef,2021,RCB,Royal Challengers Bangalore,Indian,Batsman,Middle Order,0,5.86,28,11,3,0,59,53,111.32,8.43,7,7,84,92,6.57,12.0,13.14,0,0,80,83,69,impact
+shahbaz-ahmed,Shahbaz Ahmed,f9e6e7ef,2021,RCB,Royal Challengers Bangalore,Indian,Batsman,Middle Order,0,5.86,28,11,3,0,59,53,111.32,8.43,7,7,84,92,6.57,12.0,13.14,0,0,73,72,72,impact
 th-david,TH David,f1f99156,2021,RCB,Royal Challengers Bangalore,Overseas,Batsman,Middle Order,0,5.0,28,1,0,0,1,3,33.33,1.0,1,0,0,0,0.0,0.0,0.0,0,0,71,71,55,fallback
 v-kohli,V Kohli,ba607b88,2021,RCB,Royal Challengers Bangalore,Indian,Batsman,Opener,0,1.13,28,15,8,0,405,339,119.47,28.93,14,0,0,0,0.0,0.0,0.0,0,0,72,85,55,impact
 washington-sundar,Washington Sundar,f19ccfad,2021,RCB,Royal Challengers Bangalore,Indian,Bowler,Lower Order,0,4.0,28,6,1,0,31,47,65.96,7.75,4,3,96,118,7.38,32.0,39.33,0,0,67,69,71,impact
@@ -2454,7 +2454,7 @@ r-sanjay-yadav,R Sanjay Yadav,33ffc3dd,2022,MI,Mumbai Indians,Indian,Batsman,Mid
 rg-sharma,RG Sharma,740742ef,2022,MI,Mumbai Indians,Indian,Batsman,Opener,0,1.5,28,14,7,0,268,223,120.18,19.14,14,0,0,0,0.0,0.0,0.0,0,0,68,82,55,impact
 rp-meredith,RP Meredith,64775749,2022,MI,Mumbai Indians,Overseas,Bowler,Lower Order,0,11.0,28,8,1,0,0,1,0.0,0.0,0,8,168,236,8.43,21.0,29.5,0,0,73,69,79,impact
 ramandeep-singh,Ramandeep Singh,be24ead0,2022,MI,Mumbai Indians,Indian,Batsman,Middle Order,0,6.0,28,5,0,1,45,40,112.5,22.5,2,6,36,54,9.0,6.0,9.0,0,0,79,78,69,impact
-sa-yadav,SA Yadav,271f83cd,2022,MI,Mumbai Indians,Indian,Batsman,Middle Order,0,3.88,28,8,3,0,303,208,145.67,43.29,7,0,0,0,0.0,0.0,0.0,0,0,86,71,55,impact
+sa-yadav,SA Yadav,271f83cd,2022,MI,Mumbai Indians,Indian,Batsman,Middle Order,0,3.88,28,8,3,0,303,208,145.67,43.29,7,0,0,0,0.0,0.0,0.0,0,0,86,84,55,impact
 t-stubbs,T Stubbs,85b3fab2,2022,MI,Mumbai Indians,Overseas,Wicketkeeper,Middle Order,1,5.5,28,2,0,0,2,4,50.0,1.0,2,0,0,0,0.0,0.0,0.0,0,0,70,70,55,fallback
 th-david,TH David,f1f99156,2022,MI,Mumbai Indians,Overseas,Batsman,Finisher,0,5.75,28,8,6,0,186,86,216.28,37.2,5,0,0,0,0.0,0.0,0.0,0,0,86,90,55,impact
 ts-mills,TS Mills,245c97cb,2022,MI,Mumbai Indians,Overseas,Bowler,Lower Order,0,10.5,28,5,0,0,0,3,0.0,0.0,1,6,102,190,11.18,17.0,31.67,0,0,69,69,75,impact
@@ -2522,7 +2522,7 @@ j-suchith,J Suchith,4125d931,2022,SRH,Sunrisers Hyderabad,Indian,Bowler,Lower Or
 ks-williamson,KS Williamson,d027ba9f,2022,SRH,Sunrisers Hyderabad,Overseas,Batsman,Opener,0,2.23,28,13,10,0,216,231,93.51,19.64,11,0,0,0,0.0,0.0,0.0,0,0,65,67,55,impact
 kartik-tyagi,Kartik Tyagi,5d2eea49,2022,SRH,Sunrisers Hyderabad,Indian,Bowler,Lower Order,0,8.5,28,2,0,0,7,6,116.67,3.5,2,1,48,79,9.88,48.0,79.0,0,0,68,69,68,fallback
 m-jansen,M Jansen,81c36ee9,2022,SRH,Sunrisers Hyderabad,Overseas,Bowler,Lower Order,0,8.0,28,8,3,0,9,7,128.57,9.0,1,7,192,274,8.56,27.43,39.14,0,0,77,69,81,impact
-n-pooran,N Pooran,3241e3fd,2022,SRH,Sunrisers Hyderabad,Overseas,Wicketkeeper,Middle Order,1,4.69,28,14,0,3,306,212,144.34,38.25,8,0,0,0,0.0,0.0,0.0,8,1,72,76,55,impact
+n-pooran,N Pooran,3241e3fd,2022,SRH,Sunrisers Hyderabad,Overseas,Wicketkeeper,Middle Order,1,4.69,28,14,0,3,306,212,144.34,38.25,8,0,0,0,0.0,0.0,0.0,8,1,82,83,55,impact
 pk-garg,PK Garg,bb965e9a,2022,SRH,Sunrisers Hyderabad,Indian,Batsman,Opener,0,1.5,28,2,3,0,46,33,139.39,23.0,2,0,0,0,0.0,0.0,0.0,0,0,74,74,55,fallback
 r-shepherd,R Shepherd,c5aef772,2022,SRH,Sunrisers Hyderabad,Overseas,All-Rounder,Finisher,0,7.33,28,3,0,1,58,41,141.46,29.0,2,3,54,98,10.89,18.0,32.67,0,0,78,83,73,fallback
 ra-tripathi,RA Tripathi,77255a9e,2022,SRH,Sunrisers Hyderabad,Indian,Batsman,Middle Order,0,3.0,28,14,6,0,413,261,158.24,37.55,11,0,0,0,0.0,0.0,0.0,0,0,89,86,55,impact
@@ -2884,7 +2884,7 @@ rd-chahar,RD Chahar,2ed569a0,2024,PBKS,Punjab Kings,Indian,Bowler,Lower Order,0,
 rr-rossouw,RR Rossouw,cad00a4d,2024,PBKS,Punjab Kings,Overseas,Batsman,Middle Order,0,3.0,28,8,4,0,211,116,181.9,26.38,8,0,0,0,0.0,0.0,0.0,0,0,86,85,55,impact
 s-dhawan,S Dhawan,0a476045,2024,PBKS,Punjab Kings,Indian,Batsman,Opener,0,1.0,28,5,3,0,152,121,125.62,30.4,5,0,0,0,0.0,0.0,0.0,0,0,71,77,55,impact
 sm-curran,SM Curran,e94915e6,2024,PBKS,Punjab Kings,Overseas,All-Rounder,Middle Order,0,4.25,28,13,7,0,270,219,123.29,27.0,10,16,246,416,10.15,15.38,26.0,0,0,81,91,80,impact
-shashank-singh,Shashank Singh,26989d80,2024,PBKS,Punjab Kings,Indian,Batsman,Middle Order,0,5.36,28,14,7,1,354,215,164.65,44.25,8,1,6,5,5.0,6.0,5.0,0,0,88,71,69,impact
+shashank-singh,Shashank Singh,26989d80,2024,PBKS,Punjab Kings,Indian,Batsman,Middle Order,0,5.36,28,14,7,1,354,215,164.65,44.25,8,1,6,5,5.0,6.0,5.0,0,0,88,84,69,impact
 shivam-singh,Shivam Singh,e1d9ae9c,2024,PBKS,Punjab Kings,Indian,Batsman,Middle Order,0,7.0,28,1,2,0,2,3,66.67,0.0,0,0,0,0,0.0,0.0,0.0,0,0,65,55,55,fallback
 sikandar-raza,Sikandar Raza,26d041c4,2024,PBKS,Punjab Kings,Overseas,Batsman,Middle Order,0,5.0,28,2,0,0,43,38,113.16,21.5,2,0,12,22,11.0,0.0,0.0,0,0,71,71,55,fallback
 v-kaverappa,V Kaverappa,d4d929b0,2024,PBKS,Punjab Kings,Indian,Bowler,Lower Order,0,0.0,28,1,0,0,0,0,0.0,0.0,0,2,24,36,9.0,12.0,18.0,0,0,78,69,78,fallback
@@ -2893,7 +2893,7 @@ akash-deep,Akash Deep,0a67aec0,2024,RCB,Royal Challengers Bengaluru,Indian,Bowle
 anuj-rawat,Anuj Rawat,c8f5f961,2024,RCB,Royal Challengers Bengaluru,Indian,Batsman,Middle Order,0,6.4,28,5,5,0,98,77,127.27,24.5,4,0,0,0,0.0,0.0,0.0,0,0,70,72,55,impact
 c-green,C Green,eaa76d3c,2024,RCB,Royal Challengers Bengaluru,Overseas,All-Rounder,Middle Order,0,4.5,28,13,5,2,255,178,143.26,31.88,8,10,211,303,8.62,21.1,30.3,0,0,75,87,76,impact
 f-du-plessis,F du Plessis,3355b542,2024,RCB,Royal Challengers Bengaluru,Overseas,Batsman,Opener,0,2.0,28,15,8,0,438,271,161.62,29.2,15,0,0,0,0.0,0.0,0.0,0,0,77,82,55,impact
-gj-maxwell,GJ Maxwell,b681e71e,2024,RCB,Royal Challengers Bengaluru,Overseas,Batsman,Middle Order,0,4.56,28,10,3,0,52,43,120.93,5.78,9,6,96,129,8.06,16.0,21.5,0,0,79,80,69,impact
+gj-maxwell,GJ Maxwell,b681e71e,2024,RCB,Royal Challengers Bengaluru,Overseas,Batsman,Middle Order,0,4.56,28,10,3,0,52,43,120.93,5.78,9,6,96,129,8.06,16.0,21.5,0,0,72,70,69,impact
 h-sharma,H Sharma,52294a79,2024,RCB,Royal Challengers Bengaluru,Indian,Bowler,Lower Order,0,0.0,28,1,0,0,0,0,0.0,0.0,0,0,12,29,14.5,0.0,0.0,0,0,65,69,55,fallback
 kd-karthik,KD Karthik,c03f1114,2024,RCB,Royal Challengers Bengaluru,Indian,Wicketkeeper,Finisher,1,6.77,28,15,0,2,326,174,187.36,36.22,9,0,0,0,0.0,0.0,0.0,4,1,74,83,55,impact
 kv-sharma,KV Sharma,119678fd,2024,RCB,Royal Challengers Bengaluru,Indian,Bowler,Lower Order,0,9.0,28,9,5,0,31,15,206.67,10.33,3,7,144,254,10.58,20.57,36.29,0,0,70,69,71,impact
@@ -3031,7 +3031,7 @@ vr-iyer,VR Iyer,a24be938,2025,KKR,Kolkata Knight Riders,Indian,Batsman,Middle Or
 a-badoni,A Badoni,872b03f7,2025,LSG,Lucknow Super Giants,Indian,Batsman,Middle Order,0,5.09,28,14,4,0,329,222,148.2,32.9,10,2,10,13,7.8,5.0,6.5,0,0,73,76,66,impact
 ak-markram,AK Markram,6a26221c,2025,LSG,Lucknow Super Giants,Overseas,Batsman,Opener,0,1.38,28,13,7,0,445,299,148.83,34.23,13,4,66,102,9.27,16.5,25.5,0,0,78,84,69,impact
 abdul-samad,Abdul Samad,8e514b4c,2025,LSG,Lucknow Super Giants,Indian,Batsman,Finisher,0,6.08,28,13,4,0,164,93,176.34,20.5,8,0,2,6,18.0,0.0,0.0,0,0,70,72,55,impact
-akash-deep,Akash Deep,0a67aec0,2025,LSG,Lucknow Super Giants,Indian,Bowler,Lower Order,0,9.0,28,6,0,0,6,2,300.0,6.0,1,3,114,229,12.05,38.0,76.33,0,0,84,69,75,impact
+akash-deep,Akash Deep,0a67aec0,2025,LSG,Lucknow Super Giants,Indian,Bowler,Lower Order,0,9.0,28,6,0,0,6,2,300.0,6.0,1,3,114,229,12.05,38.0,76.33,0,0,72,69,69,impact
 akash-singh,Akash Singh,b483905d,2025,LSG,Lucknow Super Giants,Indian,Bowler,Lower Order,0,0.0,28,3,0,0,0,0,0.0,0.0,0,4,67,99,8.87,16.75,24.75,0,0,82,69,88,fallback
 avesh-khan,Avesh Khan,eef2536f,2025,LSG,Lucknow Super Giants,Indian,Bowler,Lower Order,0,9.0,28,13,2,0,21,12,175.0,21.0,1,13,284,487,10.29,21.85,37.46,0,0,76,69,82,impact
 da-miller,DA Miller,d67d5f00,2025,LSG,Lucknow Super Giants,Overseas,Batsman,Middle Order,0,5.73,28,11,5,0,153,120,127.5,30.6,5,0,0,0,0.0,0.0,0.0,0,0,66,67,55,impact
@@ -3086,7 +3086,7 @@ p-dubey,P Dubey,ed5a5510,2025,PBKS,Punjab Kings,Indian,Bowler,Lower Order,0,0.0,
 p-simran-singh,P Simran Singh,9418198b,2025,PBKS,Punjab Kings,Indian,Wicketkeeper,Opener,1,2.0,28,18,0,0,599,370,161.89,35.24,17,0,0,0,0.0,0.0,0.0,2,1,85,83,55,impact
 priyansh-arya,Priyansh Arya,b5797845,2025,PBKS,Punjab Kings,Indian,Batsman,Opener,0,1.0,28,18,8,0,545,299,182.27,30.28,18,0,0,0,0.0,0.0,0.0,0,0,80,86,55,impact
 ss-iyer,SS Iyer,85ec8e33,2025,PBKS,Punjab Kings,Indian,Batsman,Middle Order,0,3.47,28,18,7,0,604,345,175.07,50.33,12,0,0,0,0.0,0.0,0.0,0,0,88,90,55,impact
-shashank-singh,Shashank Singh,26989d80,2025,PBKS,Punjab Kings,Indian,Batsman,Middle Order,0,6.29,28,18,7,0,350,228,153.51,50.0,7,0,12,27,13.5,0.0,0.0,0,0,86,77,55,impact
+shashank-singh,Shashank Singh,26989d80,2025,PBKS,Punjab Kings,Indian,Batsman,Middle Order,0,6.29,28,18,7,0,350,228,153.51,50.0,7,0,12,27,13.5,0.0,0.0,0,0,86,82,55,impact
 suryansh-shedge,Suryansh Shedge,970ddd24,2025,PBKS,Punjab Kings,Indian,Batsman,Middle Order,0,7.33,28,5,1,0,7,11,63.64,2.33,3,0,18,40,13.33,0.0,0.0,0,0,70,70,55,fallback
 vijaykumar-vyshak,Vijaykumar Vyshak,54e52590,2025,PBKS,Punjab Kings,Indian,Bowler,Lower Order,0,0.0,28,5,1,0,0,0,0.0,0.0,0,4,102,181,10.65,25.5,45.25,0,0,78,69,81,impact
 xc-bartlett,XC Bartlett,3b53243a,2025,PBKS,Punjab Kings,Overseas,Bowler,Lower Order,0,10.0,28,4,5,0,11,15,73.33,11.0,1,2,60,96,9.6,30.0,48.0,0,0,67,69,67,fallback

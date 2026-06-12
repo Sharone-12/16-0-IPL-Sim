@@ -652,7 +652,7 @@ function showTableScreen() {
         roundIndex: state.roundIndex,
         leagueResultsHtml: els.leagueResults.innerHTML,
       });
-      submitToLeaderboard();
+      submitToLeaderboard("Group Stage");
     }
   }
 }
@@ -1095,7 +1095,7 @@ function endPlayoffs(text, outcome) {
       motmHtml: els.motm.innerHTML,
       playoffLeadersHtml: els.playoffLeaders.innerHTML,
     });
-    submitToLeaderboard();
+    submitToLeaderboard("Champion");
   }
 }
 
@@ -1144,7 +1144,7 @@ function showUserEliminated(stageLabel) {
       motmHtml: els.motm.innerHTML,
       playoffLeadersHtml: els.playoffLeaders.innerHTML,
     });
-    submitToLeaderboard();
+    submitToLeaderboard(stageLabel === "Final" ? "Runner Up" : stageLabel);
   }
 }
 
@@ -1157,7 +1157,7 @@ function goToDraftFresh() {
   window.location.href = "draft.html";
 }
 
-async function submitToLeaderboard() {
+async function submitToLeaderboard(stageStr = "Unknown") {
   const youRow = state.standings[USER_ID];
   if (!youRow) return;
 
@@ -1179,6 +1179,8 @@ async function submitToLeaderboard() {
         .insert([
           {
             team_name: config.teamName,
+            ovr: config.teamOvr || 0,
+            stage: stageStr,
             wins: finalWins,
             losses: finalLosses,
             nrr: finalNrr,

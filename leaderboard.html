@@ -198,8 +198,15 @@
         color: var(--text-primary);
       }
 
+      .col-ovr {
+        width: 10%;
+        font-family: var(--font-title);
+        font-size: 1.05rem;
+        color: #f2cd5c;
+      }
+
       .col-diff {
-        width: 15%;
+        width: 12%;
         text-transform: uppercase;
         font-family: var(--font-title);
         font-size: 0.95rem;
@@ -207,21 +214,21 @@
       }
 
       .col-wl {
-        width: 18%;
+        width: 13%;
         font-family: var(--font-title);
         font-size: 1rem;
         letter-spacing: 0.05em;
       }
 
-      .col-nrr {
-        width: 15%;
+      .col-stage {
+        width: 13%;
         text-align: right;
-        font-family: var(--font-title);
-        font-size: 1rem;
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        color: var(--text-secondary);
+        font-weight: 700;
+        letter-spacing: 0.05em;
       }
-
-      .nrr-pos { color: var(--win-color); }
-      .nrr-neg { color: var(--loss-color); }
 
       /* Status Messages */
       .status-container {
@@ -340,9 +347,10 @@
               <tr>
                 <th class="col-rank">Rank</th>
                 <th class="col-team">Team</th>
+                <th class="col-ovr">OVR</th>
                 <th class="col-diff">Difficulty</th>
                 <th class="col-wl">W - L</th>
-                <th class="col-nrr" style="text-align: right">NRR</th>
+                <th class="col-stage" style="text-align: right">Stage</th>
               </tr>
             </thead>
             <tbody id="leaderboardBody">
@@ -452,11 +460,9 @@
       function renderLeaderboard(scores) {
         elements.leaderboardBody.innerHTML = scores
           .map((score, index) => {
-            const nrrVal = Number(score.nrr || 0);
-            const nrrClass = nrrVal >= 0 ? "nrr-pos" : "nrr-neg";
-            const nrrSign = nrrVal > 0 ? "+" : "";
             const diffLabel = score.difficulty || "normal";
             const dateStr = formatDate(score.created_at);
+            const stageStr = score.stage || "League Phase";
 
             return `
               <tr>
@@ -465,9 +471,10 @@
                   <div style="font-family: var(--font-title); font-size: 1.15rem; font-weight: 400; color: #fff; text-transform: uppercase; letter-spacing: 0.05em;">${escapeHtml(score.team_name)}</div>
                   <div style="font-size: 0.65rem; color: #fff; margin-top: 0.2rem;">${dateStr}</div>
                 </td>
+                <td class="col-ovr">${score.ovr || 0}</td>
                 <td class="col-diff" style="color: ${difficultyColor(diffLabel)}">${diffLabel}</td>
                 <td class="col-wl">${score.wins} - ${score.losses}</td>
-                <td class="col-nrr ${nrrClass}">${nrrSign}${nrrVal.toFixed(3)}</td>
+                <td class="col-stage">${escapeHtml(stageStr)}</td>
               </tr>
             `;
           })

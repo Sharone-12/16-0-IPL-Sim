@@ -240,7 +240,7 @@ function teamStrength(players, isUser = false) {
   const depth = average(players.slice(6).map((p) => p.ovr));
   const chemistry = chemistryScore(players);
   let total = batting * 0.46 + bowling * 0.42 + depth * 0.08 + chemistry * 0.04;
-  if (isUser) total *= 0.925;
+  if (isUser) total *= 0.95; // mirrors career/normal handicap in simulation.js
   return { batting, bowling, depth, chemistry, total };
 }
 function selectBalancedXI(squad) {

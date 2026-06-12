@@ -385,8 +385,17 @@ function teamStrength(players, isUser = false) {
   const chemistry = chemistryScore(players);
   let total = batting * 0.46 + bowling * 0.42 + depth * 0.08 + chemistry * 0.04;
   // User XI reality check — a drafted all-time XI faces modern AI opposition.
-  // Slight era penalty keeps the title a genuine challenge.
-  if (isUser) total *= 0.925;
+  // Handicap is mode- and difficulty-aware: Prime (everyone at peak) lets the
+  // user stack a stronger team than the balanced AI, so it needs a bigger penalty
+  // than Career. Difficulty now bites the match sim too (it used to only affect
+  // the draft), so Hard is genuinely harder and Easy genuinely easier.
+  if (isUser) {
+    const prime = state.config && state.config.playerRatings === "prime";
+    const d = (state.config && state.config.difficulty) || "normal";
+    const base = prime ? 0.92 : 0.95;
+    const dFactor = d === "hard" ? 0.95 : d === "easy" ? 1.02 : 1.0;
+    total *= base * dFactor;
+  }
   return { batting, bowling, depth, chemistry, total };
 }
 

@@ -3,58 +3,75 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <title>16-0 — Verifiable Result</title>
+  <title>16-0 — Verified Result</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Anton&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="simulation.css" />
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="supabase_config.js"></script>
   <style>
+    :root {
+      /* Colors */
+      --color-bg: #060606;
+      --color-card-bg: #111111;
+      --color-border: rgba(255, 255, 255, 0.08);
+      --color-text: #ffffff;
+      --color-text-muted: #7a7a7a;
+      --color-brand-green: #5fce7e;
+      --color-brand-purple: #c269ff;
+      --color-brand-orange: #ff914d;
+      
+      /* OVR tier colors */
+      --color-ovr-gold: #ffd700;
+      --color-ovr-blue: #5fa8ee;
+      --color-ovr-green: #5fce7e;
+      --color-ovr-white: #ffffff;
+
+      /* Spacing (8px grid) */
+      --space-xxs: 4px;
+      --space-xs: 8px;
+      --space-sm: 12px;
+      --space-md: 16px;
+      --space-lg: 24px;
+      --space-xl: 32px;
+    }
+
     body {
+      margin: 0;
+      padding: var(--space-xl, 32px) var(--space-md, 16px);
+      background: var(--color-bg);
+      color: var(--color-text);
+      font-family: system-ui, -apple-system, sans-serif;
       display: flex;
-      flex-direction: column;
-      align-items: center;
       justify-content: center;
       min-height: 100vh;
       min-height: 100svh;
-      background: var(--color-bg, #0a0a0a);
-      color: var(--color-text, #ffffff);
-      margin: 0;
-      padding: var(--space-lg, 24px);
       box-sizing: border-box;
-      overflow-y: auto;
     }
 
     .verification-container {
+      width: 100%;
+      max-width: 520px;
       display: flex;
       flex-direction: column;
+      gap: var(--space-lg, 24px);
+    }
+
+    /* Header */
+    .header-row {
+      display: flex;
       align-items: center;
-      gap: var(--space-md, 16px);
+      justify-content: space-between;
       width: 100%;
-      max-width: 420px;
     }
 
-    .verification-header {
-      text-align: center;
-      margin-bottom: var(--space-xs, 8px);
-    }
-
-    .verification-header h1 {
+    .logo-text {
       font-family: "Anton", Impact, sans-serif;
-      font-size: 1.8rem;
-      margin: 0 0 var(--space-xxs, 4px) 0;
-      letter-spacing: 0.05em;
+      font-size: 1.6rem;
+      letter-spacing: 0.04em;
       text-transform: uppercase;
-    }
-
-    .verification-header p {
-      font-size: 0.8rem;
-      color: var(--color-text-muted, #7a7a7a);
       margin: 0;
     }
 
-    .verification-badge {
+    .verified-pill {
       display: inline-flex;
       align-items: center;
       gap: var(--space-xxs, 4px);
@@ -62,26 +79,236 @@
       color: var(--color-brand-green, #5fce7e);
       padding: 6px 12px;
       border-radius: 999px;
-      font-size: 0.72rem;
+      font-size: 0.7rem;
       font-weight: 700;
       text-transform: uppercase;
       letter-spacing: 0.06em;
       border: 1px solid rgba(95, 206, 126, 0.2);
     }
 
+    /* Main Titles */
+    .titles-section {
+      text-align: center;
+      margin-top: var(--space-xs, 8px);
+    }
+
+    .titles-section h1 {
+      font-family: "Anton", Impact, sans-serif;
+      font-size: 2.2rem;
+      margin: 0;
+      letter-spacing: 0.02em;
+      text-transform: uppercase;
+    }
+
+    .titles-section p {
+      color: var(--color-text-muted);
+      font-size: 0.85rem;
+      margin: var(--space-xxs, 4px) 0 0 0;
+      font-weight: 500;
+      letter-spacing: 0.04em;
+    }
+
+    /* Stats Grid */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: var(--space-xs, 8px);
+      width: 100%;
+    }
+
+    .stat-card {
+      background: var(--color-card-bg);
+      border: 1px solid var(--color-border);
+      border-radius: 12px;
+      padding: var(--space-sm, 12px) var(--space-xxs, 4px);
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .stat-value {
+      font-family: "Anton", Impact, sans-serif;
+      font-size: 1.6rem;
+      margin: 0;
+      line-height: 1.1;
+    }
+
+    .stat-label {
+      font-size: 0.58rem;
+      color: var(--color-text-muted);
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-top: var(--space-xxs, 4px);
+    }
+
+    /* Awards Row */
+    .awards-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: var(--space-xs, 8px);
+      width: 100%;
+    }
+
+    .award-card {
+      background: var(--color-card-bg);
+      border: 1px solid var(--color-border);
+      border-radius: 12px;
+      padding: var(--space-sm, 12px) var(--space-md, 16px);
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-xxs, 4px);
+    }
+
+    .award-title {
+      font-size: 0.58rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      display: flex;
+      align-items: center;
+      gap: var(--space-xxs, 4px);
+    }
+
+    .award-title.orange {
+      color: var(--color-brand-orange);
+    }
+
+    .award-title.purple {
+      color: var(--color-brand-purple);
+    }
+
+    .award-winner {
+      font-size: 0.85rem;
+      font-weight: 700;
+      margin: 0;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .award-detail {
+      font-size: 0.72rem;
+      font-weight: 600;
+    }
+
+    .award-detail.orange {
+      color: var(--color-brand-orange);
+    }
+
+    .award-detail.purple {
+      color: var(--color-brand-purple);
+    }
+
+    /* Roster list */
+    .roster-list {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-xs, 8px);
+      width: 100%;
+    }
+
+    .player-row {
+      background: var(--color-card-bg);
+      border: 1px solid var(--color-border);
+      border-radius: 12px;
+      padding: var(--space-sm, 12px) var(--space-md, 16px);
+      display: flex;
+      align-items: center;
+      gap: var(--space-md, 16px);
+    }
+
+    .player-slot {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      width: 28px;
+      height: 28px;
+      border-radius: 6px;
+      font-size: 0.68rem;
+      font-weight: 800;
+    }
+
+    /* Role Slot badge colors */
+    .badge-opener {
+      background: rgba(239, 107, 107, 0.12);
+      color: #ef6b6b;
+      border: 1px solid rgba(239, 107, 107, 0.2);
+    }
+    .badge-middle {
+      background: rgba(95, 206, 126, 0.12);
+      color: #5fce7e;
+      border: 1px solid rgba(95, 206, 126, 0.2);
+    }
+    .badge-finisher {
+      background: rgba(242, 205, 92, 0.12);
+      color: #f2cd5c;
+      border: 1px solid rgba(242, 205, 92, 0.2);
+    }
+    .badge-lower {
+      background: rgba(95, 168, 238, 0.12);
+      color: #5fa8ee;
+      border: 1px solid rgba(95, 168, 238, 0.2);
+    }
+
+    .player-info {
+      flex: 1 1 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      min-width: 0;
+    }
+
+    .player-name {
+      font-size: 0.9rem;
+      font-weight: 700;
+      margin: 0;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .player-sub {
+      font-size: 0.68rem;
+      color: var(--color-text-muted);
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .player-ovr {
+      flex-shrink: 0;
+      font-family: "Anton", Impact, sans-serif;
+      font-size: 1.15rem;
+      letter-spacing: 0.02em;
+    }
+
+    .ovr-gold { color: var(--color-ovr-gold); }
+    .ovr-blue { color: var(--color-ovr-blue); }
+    .ovr-green { color: var(--color-ovr-green); }
+    .ovr-white { color: var(--color-ovr-white); }
+
+    /* Action Play Button */
+    .play-btn-container {
+      width: 100%;
+      margin-top: var(--space-sm, 12px);
+    }
+
     .play-btn {
       width: 100%;
-      height: var(--btn-height, 44px);
-      border-radius: var(--btn-radius, 8px);
-      font-family: Arial, Helvetica, sans-serif;
-      font-size: var(--btn-font-size, 0.68rem);
+      height: 48px;
+      border-radius: 12px;
+      font-size: 0.8rem;
       font-weight: 700;
-      letter-spacing: var(--btn-letter-spacing, 0.08em);
+      letter-spacing: 0.08em;
       text-transform: uppercase;
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      background: var(--color-brand-green, #5fce7e);
+      background: var(--color-brand-green);
       color: #000000;
       border: none;
       cursor: pointer;
@@ -97,27 +324,37 @@
       transform: translateY(1px);
     }
 
+    /* Error and Loading elements */
     .error-msg {
       text-align: center;
-      padding: var(--space-lg, 24px);
+      padding: var(--space-xl, 32px);
       border: 1px dashed rgba(255, 255, 255, 0.15);
-      border-radius: var(--btn-radius, 8px);
-      background: var(--color-card-bg, #0f0f0f);
+      border-radius: 12px;
+      background: var(--color-card-bg);
       width: 100%;
       box-sizing: border-box;
     }
 
     .error-msg h2 {
       font-family: "Anton", Impact, sans-serif;
-      font-size: 1.4rem;
+      font-size: 1.6rem;
       margin: 0 0 var(--space-xs, 8px) 0;
       color: #ff4a4a;
+      text-transform: uppercase;
     }
 
     .error-msg p {
-      font-size: 0.8rem;
-      color: var(--color-text-muted, #7a7a7a);
-      margin: 0 0 var(--space-md, 16px) 0;
+      font-size: 0.85rem;
+      color: var(--color-text-muted);
+      margin: 0;
+    }
+
+    .loader {
+      text-align: center;
+      padding: var(--space-xl, 32px);
+      color: var(--color-text-muted);
+      font-weight: 500;
+      font-size: 0.9rem;
     }
 
     @media (prefers-reduced-motion: reduce) {
@@ -126,27 +363,50 @@
         transform: none !important;
       }
     }
+
+    @media (max-width: 480px) {
+      .stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: var(--space-xs, 8px);
+      }
+      .stat-card {
+        padding: var(--space-sm, 12px);
+      }
+      .stat-value {
+        font-size: 1.4rem;
+      }
+      .awards-grid {
+        grid-template-columns: 1fr;
+      }
+      .titles-section h1 {
+        font-size: 1.8rem;
+      }
+    }
   </style>
 </head>
 <body>
   <div class="verification-container" id="container">
-    <header class="verification-header">
-      <h1>16-0 Verifiable Score</h1>
-      <div class="verification-badge">
-        <svg width="12" height="12" viewBox="0 0 12 12" fill="none" style="flex-shrink:0;">
-          <path d="M10 3L4.5 8.5L2 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    <header class="header-row">
+      <h2 class="logo-text">16-0</h2>
+      <div class="verified-pill">
+        <svg width="10" height="10" viewBox="0 0 12 12" fill="none" style="flex-shrink:0;">
+          <path d="M10 3L4.5 8.5L2 6" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
-        Verified by Supabase
+        Verified Result
       </div>
     </header>
 
-    <div id="cardSlot" style="width: 100%;">
-      <p style="text-align: center; color: var(--color-text-muted, #7a7a7a);">Loading score details...</p>
-    </div>
+    <main id="mainContent" style="width: 100%; display: flex; flex-direction: column; gap: var(--space-lg, 24px);">
+      <div class="loader">Loading verified results...</div>
+    </main>
 
-    <a href="draft.html" class="play-btn">Can you go unbeaten? Play 16-0 ➔</a>
+    <div class="play-btn-container">
+      <a href="draft.html" class="play-btn">Can you go unbeaten? Play 16-0 ➔</a>
+    </div>
   </div>
 
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="supabase_config.js"></script>
   <script src="r.js"></script>
 </body>
 </html>

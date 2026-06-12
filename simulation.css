@@ -1500,8 +1500,14 @@ tr.is-user td:first-child {
 
   .playoff-info {
     overflow: visible;
-    gap: 0.4rem;
-    padding: 0.65rem 0.75rem;
+    gap: 0.3rem;
+    padding: 0.7rem 0.9rem;
+    min-height: unset;
+  }
+
+  /* Collapse the empty share-card slot during a live playoff match */
+  .playoff-info .result-slot:empty {
+    display: none;
   }
 
   .mini-pill {
@@ -1541,7 +1547,9 @@ tr.is-user td:first-child {
     font-size: 0.76rem;
   }
 
-  .playoff-info {
+  /* Button clearance goes on the LAST element (scorecard), not the info card,
+     so the info card shrinks to fit its content with no empty gap. */
+  #scorecardPanel {
     padding-bottom: 4rem;
   }
 

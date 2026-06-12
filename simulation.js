@@ -929,8 +929,9 @@ function showResultCard(outcome, container) {
     }
 
     if (id) {
-      const shareUrl = `${window.location.origin}/r.html?id=${id}`;
-      navigator.clipboard.writeText(shareUrl)
+      const shareUrl = `${window.location.origin}/r/${id}`;
+      const clipboardText = `Check out my team on 16-0! 🏏 ${shareUrl}`;
+      navigator.clipboard.writeText(clipboardText)
         .then(() => {
           shareLinkBtn.textContent = "Copied Verified Link! 🔗";
           showToast("Copied verified link to clipboard!");

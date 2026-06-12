@@ -1709,9 +1709,14 @@ tr.is-user td:first-child {
     font-size: 1.1rem;
   }
 
+  .rc-team {
+    font-size: 1.35rem;
+    margin-top: 0.65rem;
+  }
+
   .rc-record {
     font-size: 56px;
-    margin-top: 0.65rem;
+    margin-top: 0.4rem;
   }
 
   .rc-wl {
@@ -1914,8 +1919,20 @@ tr.is-user td:first-child {
   border-color: rgba(255, 255, 255, 0.35);
 }
 
-.rc-record {
+.rc-team {
   margin-top: 0.9rem;
+  font-family: "Anton", Impact, sans-serif;
+  font-size: 1.7rem;
+  line-height: 1;
+  text-align: center;
+  text-transform: uppercase;
+  letter-spacing: -0.01em;
+  color: #ffffff;
+  word-break: break-word;
+}
+
+.rc-record {
+  margin-top: 0.5rem;
   font-family: "Anton", Impact, sans-serif;
   font-size: 72px;
   font-weight: 700;

@@ -793,6 +793,7 @@ function buildOutcome(stage) {
     leagueFinish: rank,
     stage,
     mode,
+    teamName: USER_NAME,
     teamOvr: Math.round(you.strength.total),
     topScorer: bat ? { name: bat.name, runs: bat.runs } : null,
     topWicketer: bowl ? { name: bowl.name, wickets: bowl.wickets } : null,
@@ -841,6 +842,7 @@ function resultCardHtml(o) {
         <span class="rc-tag rc-ovr-tag">OVR ${o.teamOvr}</span>
       </span>
     </div>
+    <div class="rc-team">${escapeHtml(o.teamName)}</div>
     <div class="rc-record">${o.wins} - ${o.losses}</div>
     <div class="rc-wl">WON · LOST</div>
     <div class="rc-sub">${o.pts} pts · Finished ${ordinal(o.leagueFinish)}</div>

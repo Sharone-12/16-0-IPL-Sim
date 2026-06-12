@@ -202,11 +202,30 @@ function overseasCount() {
 
 const MAX_OVERSEAS = 4;
 
+// When a keeper is required (Normal/Hard) and none sits in the top 7 yet, reserve
+// the LAST remaining top-7 slot for a wicketkeeper — returns that slot, else -1.
+function reservedWkSlot() {
+  if (!diff.enforceWk) return -1;
+  if (xi.slice(0, 7).some((p) => p && p.isWk)) return -1; // already have a keeper
+  const emptyTop7 = [];
+  for (let i = 0; i < 7; i++) if (xi[i] === null) emptyTop7.push(i);
+  return emptyTop7.length === 1 ? emptyTop7[0] : -1;
+}
+
+// The slot a player would actually take, honouring the reserved keeper slot:
+// non-keepers may not occupy the reserved slot.
+function slotFor(p) {
+  const reserved = reservedWkSlot();
+  return eligibleSlots(p).find(
+    (i) => xi[i] === null && (p.isWk || i !== reserved)
+  );
+}
+
 // Can this player be drafted into the current XI right now?
 function canDraft(p) {
   if (inXi(p.name)) return false;
   if (p.isOverseas && overseasCount() >= MAX_OVERSEAS) return false;
-  return eligibleSlots(p).some((i) => xi[i] === null);
+  return slotFor(p) !== undefined;
 }
 
 let toastTimer;
@@ -648,10 +667,12 @@ function draftPlayer(p) {
     return;
   }
 
-  const slot = eligibleSlots(p).find((i) => xi[i] === null);
+  const slot = slotFor(p);
   if (slot === undefined) {
     if (xi.every((x) => x !== null)) {
       showToast("Your XI is already full", "error");
+    } else if (reservedWkSlot() !== -1 && !p.isWk) {
+      showToast("Last spot is reserved — pick a wicketkeeper", "error");
     } else {
       showToast(`No open ${slotRole(p)} position left`, "error");
     }

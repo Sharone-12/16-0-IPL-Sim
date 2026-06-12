@@ -45,8 +45,8 @@ try {
 const SLOT_LABELS = [
   "Opener", "Opener",
   "Opener / Middle Order", "Middle Order", "Middle Order", "Middle Order",
-  "Finisher / All-Rounder",
-  "Bowler / All-Rounder", "Bowler", "Bowler", "Bowler",
+  "Finisher",
+  "Bowler / Finisher", "Bowler", "Bowler", "Bowler",
 ];
 // Slots (0-indexed): 0,1 Opener · 2 Opener/Mid · 3,4,5 Mid · 6 Finisher · 7-10 Bowler.
 // Batting_Order decides WHERE a player bats. Primary_Role only confines specialist

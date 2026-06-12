@@ -231,26 +231,35 @@ h1 {
   outline-offset: 4px;
 }
 
-/* How to Play — subtle text-style button under the main actions */
+/* How to Play — outlined pill, matches the Leaderboard button */
 .how-to-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   min-width: 10.5rem;
-  padding: 0.6rem 1.45rem;
-  border: none;
+  padding: 0.78rem 1.45rem;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  border-radius: 999px;
   background: transparent;
-  color: #9a9a9a;
+  color: #fff;
   font-family: Arial, Helvetica, sans-serif;
-  font-size: 0.62rem;
+  font-size: 0.68rem;
   font-weight: 700;
   letter-spacing: 0.16em;
   text-transform: uppercase;
-  text-decoration: underline;
-  text-underline-offset: 4px;
   cursor: pointer;
-  transition: color 180ms ease;
+  transition:
+    border-color 180ms ease,
+    background-color 180ms ease,
+    color 180ms ease,
+    transform 180ms ease;
 }
 
 .how-to-btn:hover {
-  color: #fff;
+  border-color: #fff;
+  background: #fff;
+  color: #000;
+  transform: translateY(-2px);
 }
 
 .how-to-btn:focus-visible {
@@ -478,7 +487,8 @@ h1 {
     touch-action: manipulation;
   }
 
-  .leaderboard-landing-btn {
+  .leaderboard-landing-btn,
+  .how-to-btn {
     min-width: 10rem;
     min-height: 2.75rem;
     padding: 0.8rem 1.35rem;
@@ -1020,7 +1030,8 @@ h1 {
     touch-action: manipulation;
   }
 
-  .leaderboard-landing-btn {
+  .leaderboard-landing-btn,
+  .how-to-btn {
     width: 100%;
     min-height: 52px;
     height: 52px;

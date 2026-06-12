@@ -386,7 +386,7 @@ function teamStrength(players, isUser = false) {
   let total = batting * 0.46 + bowling * 0.42 + depth * 0.08 + chemistry * 0.04;
   // User XI reality check — a drafted all-time XI faces modern AI opposition.
   // Slight era penalty keeps the title a genuine challenge.
-  if (isUser) total *= 0.975;
+  if (isUser) total *= 0.955;
   return { batting, bowling, depth, chemistry, total };
 }
 
@@ -806,6 +806,8 @@ function buildOutcome(stage) {
       battingOrder: p.battingOrder,
       primaryRole: p.primaryRole,
       slot: i,
+      fr: p.fr || "",
+      season: p.season || "",
     })),
   };
 }

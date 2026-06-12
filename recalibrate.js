@@ -64,14 +64,41 @@ function overall(bat, bowl, role) {
   return bat; // Batsman, Wicketkeeper
 }
 
-function recalc(r) {
+// Raw performance ratings for one season (no reputation floor yet).
+function perf(r) {
   const role = r.Primary_Role;
-  let bat = batRating(r);
-  let bowl = bowlRating(r);
+  const bat = batRating(r);
+  const bowl = bowlRating(r);
   const batFinal = bat == null ? defaultBat(r) : bat;
   const bowlFinal = bowl == null ? defaultBowl() : bowl;
   const ovr = overall(batFinal, bowlFinal, role);
   return { bat: batFinal, bowl: bowlFinal, ovr };
+}
+
+// Career-best OVR per player (identity = Registry_ID, falls back to name).
+const REP_MARGIN = 4; // a player never drops more than this below their peak...
+const REP_CAP = 82;   // ...but reputation alone never lifts a season above this
+const careerBest = {};
+function pid(r) { return r.Registry_ID || r.Player_Name; }
+rows.forEach((r) => {
+  const o = perf(r).ovr;
+  const k = pid(r);
+  if (!careerBest[k] || o > careerBest[k]) careerBest[k] = o;
+});
+
+// Final rating: performance, lifted by the reputation floor.
+function recalc(r) {
+  const role = r.Primary_Role;
+  const p = perf(r);
+  const floor = Math.min(careerBest[pid(r)] - REP_MARGIN, REP_CAP);
+  if (p.ovr >= floor) return p;
+  // Lift the season toward the reputation floor by raising the dominant skill.
+  const ovr = Math.round(floor);
+  let { bat, bowl } = p;
+  if (role === "Bowler") bowl = Math.max(bowl, ovr);
+  else if (role === "All-Rounder") { bat = Math.max(bat, ovr - 3); bowl = Math.max(bowl, ovr - 6); }
+  else bat = Math.max(bat, ovr); // Batsman / Wicketkeeper
+  return { bat, bowl, ovr };
 }
 
 const mode = process.argv[2] || "preview";

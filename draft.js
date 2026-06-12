@@ -756,7 +756,9 @@ function renderXI() {
       const name = escapeHtml(playerLabel(p));
       const origin = escapeHtml(`${p.fr} ${p.season}`);
       const isCap = captainKey === playerKey(p);
-      li.draggable = true;
+      // Disable dragging while picking a captain so a tap reliably registers as a
+      // click on touch devices (draggable elements often swallow taps on mobile).
+      li.draggable = !captainMode;
       li.innerHTML = `
         <span class="slot-num">${i + 1}</span>
         <span class="slot-body">

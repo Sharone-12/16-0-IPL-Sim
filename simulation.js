@@ -796,11 +796,11 @@ function buildOutcome(stage) {
   };
 }
 
-// Slot-number badge colour: blue=Opener, green=Middle, gold=WK/Finisher, red=Bowler.
+// Slot-number badge colour mapped to the draft setup colors: red=Opener, green=Middle, gold=WK/Finisher, blue=Bowler.
 function slotBadgeClass(p) {
   if (p.isWk || p.battingOrder === "Finisher") return "pos-gold";
-  if (p.primaryRole === "Bowler" || p.battingOrder === "Lower Order") return "pos-red";
-  if (p.battingOrder === "Opener") return "pos-blue";
+  if (p.primaryRole === "Bowler" || p.battingOrder === "Lower Order") return "pos-blue";
+  if (p.battingOrder === "Opener") return "pos-red";
   return "pos-green"; // Middle Order / All-Rounder
 }
 

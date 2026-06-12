@@ -581,16 +581,21 @@ function analyze(label, results) {
     .filter((p) => p.apps >= 8)
     .map((p) => ({ ...p, avg: p.wins / p.apps }))
     .sort((a, b) => b.avg - a.avg);
-  console.log("\nTop 15 players by avg wins/appearance (min 8 drafts):");
-  best.slice(0, 15).forEach((p, i) =>
+  console.log("\nTop 20 players by avg wins/appearance (min 8 drafts):");
+  best.slice(0, 20).forEach((p, i) =>
     console.log(`  ${String(i + 1).padStart(2)}. ${p.name} (${p.fr} ${p.season}, OVR ${p.ovr}) — ${p.avg.toFixed(2)} avg wins, ${p.apps} drafts`)
   );
 
   if (perfect.length) {
-    console.log(`\nSample 16-0 XI:`);
-    perfect[0].xi.forEach((p, i) =>
-      console.log(`  ${i + 1}. ${p.name} ${p.fr} ${p.season} OVR:${p.ovr}`)
-    );
+    console.log(`\nAll ${perfect.length} perfect 16-0 team(s) found:`);
+    perfect.forEach((t, ti) => {
+      console.log(`\n  --- 16-0 team #${ti + 1} (OVR ${t.result.teamOvr ?? "?"}) ---`);
+      t.xi.forEach((p, i) =>
+        console.log(`    ${i + 1}. ${p.name} ${p.fr} ${p.season} OVR:${p.ovr}`)
+      );
+    });
+  } else {
+    console.log(`\nNo perfect 16-0 teams found in ${n} drafts.`);
   }
   return { label, champRate, perfectRate: perfect.length / n, top4Rate, avgWins, best: best.slice(0, 50), dist };
 }
@@ -602,22 +607,199 @@ module.exports = {
   allPlayers, spinPool, byTeamSeason, SLOTS,
   simulateDraft, runSeason, runN, analyze, setStrategy,
   eligibleSlots, pickTeam, GROUPS, ERA_FROM, ERA_TO, MAX_OVERSEAS,
+  evaluatePlayerForStrategy, evaluateOptimalPlayer, runDraftWithStrategy, runDeeperStressTest
 };
 
-// ======================= MAIN =======================
-if (require.main === module) {
-  const RUNS = parseInt(process.argv[2], 10) || 2500;
-  console.log(`Stress test — ${RUNS} drafts per strategy. Loaded ${allPlayers.length} player-seasons, ${spinPool.length} draftable squads.`);
+/**
+ * Evaluates a player option based on the chosen drafting strategy.
+ * @param {Object} player - The player object (contains ratings like bat, bowl, ovr).
+ * @param {string} strategy - 'batting_heavy' | 'bowling_heavy'
+ * @returns {number} The calculated score/value of this player for the draft.
+ */
+function evaluatePlayerForStrategy(player, strategy) {
+  let baseValue = player.ovr || 50;
+  if (strategy === 'batting_heavy') {
+    const batRating = player.bat || 0;
+    const bowlRating = player.bowl || 0;
+    if (batRating > bowlRating) {
+      return baseValue + (batRating * 0.3);
+    }
+    return baseValue - 10;
+  }
+  if (strategy === 'bowling_heavy') {
+    const batRating = player.bat || 0;
+    const bowlRating = player.bowl || 0;
+    if (bowlRating > batRating) {
+      return baseValue + (bowlRating * 0.3);
+    }
+    return baseValue - 10;
+  }
+  return baseValue;
+}
 
-  PICK_STRATEGY = "greedy";
-  const greedy = analyze("GREEDY DRAFT", runN(RUNS));
+/**
+ * Evaluates a player based on projected team rating, enforcing roster rules.
+ */
+function evaluateOptimalPlayer(player, currentRoster, pickNumber) {
+  // 1. Enforce Overseas Limit (Max 4)
+  const overseasCount = currentRoster.filter(p => p && p.isOverseas).length;
+  if (player.isOverseas && overseasCount >= 4) {
+    return -9999; // Block pick
+  }
+  // 2. Enforce Wicketkeeper Rule
+  // If we are late in the draft (e.g., pick 8+) and don't have a WK in slots 1-7,
+  // we must aggressively prioritize Wicketkeepers.
+  const hasWK = currentRoster.some((p, idx) => idx <= 6 && p && p.isWk);
+  if (!hasWK && pickNumber >= 8) {
+    if (player.isWk) {
+      return player.ovr + 50; // Massively prioritize
+    } else {
+      return player.ovr - 50; // Deprioritize non-WKs
+    }
+  }
+  // 3. Find the best slot for this player to avoid Chemistry Penalties
+  let bestSlotScore = -9999;
+  
+  // Constrain by eligible slots
+  const allowedSlots = eligibleSlots(player);
+  for (let slot = 0; slot < 11; slot++) {
+    if (!allowedSlots.includes(slot)) continue;
+    if (currentRoster[slot] !== null) continue; // Already filled
+    let score = player.ovr;
+    let penalty = 0;
+    // Apply chemistry penalties based on slot
+    const isBowler = player.primaryRole === 'Bowler' || player.battingOrder === 'Lower Order';
+    const isOpener = player.battingOrder === 'Opener';
+    
+    if (slot <= 6 && isBowler) penalty += 7; // Specialist bowler in slots 1-7
+    if (slot >= 3 && isOpener) penalty += 3; // Opener in slots 4-11
+    if (slot <= 5 && player.battingOrder === 'Lower Order') penalty += 3; // Lower order in slots 1-6
+    score -= penalty;
+    // Weight the score by the importance of the slot
+    // Batting weights for top 6: [1.25, 1.18, 1.1, 1.0, 0.92, 0.85]
+    if (slot === 0) score += (player.bat * 0.25);
+    if (slot === 1) score += (player.bat * 0.18);
+    if (slot === 2) score += (player.bat * 0.10);
+    
+    // Bowling weights for bowlers (slots 7-10)
+    if (slot >= 7) {
+      score += (player.bowl * 0.20);
+    }
+    if (score > bestSlotScore) {
+      bestSlotScore = score;
+    }
+  }
+  return bestSlotScore;
+}
 
-  PICK_STRATEGY = "random";
-  const random = analyze("RANDOM DRAFT", runN(RUNS));
+/**
+ * Runs a draft simulation utilizing a specific drafting strategy.
+ */
+function runDraftWithStrategy(strategy) {
+  if (strategy === 'batting_heavy' || strategy === 'bowling_heavy') {
+    return simulateDraft((legal) => {
+      const sorted = [...legal].sort((a, b) => {
+        return evaluatePlayerForStrategy(b, strategy) - evaluatePlayerForStrategy(a, strategy);
+      });
+      return sorted[0];
+    });
+  } else if (strategy === 'optimal') {
+    return simulateDraft((legal, xi, picked) => {
+      const sorted = [...legal].sort((a, b) => {
+        return evaluateOptimalPlayer(b, xi, picked) - evaluateOptimalPlayer(a, xi, picked);
+      });
+      return sorted[0];
+    });
+  } else {
+    return simulateDraft();
+  }
+}
+
+/**
+ * Runs the deep stress test with 10,000 total drafts split across the 3 strategies.
+ */
+async function runDeeperStressTest() {
+  const strategies = ['batting_heavy', 'bowling_heavy', 'optimal'];
+  const results = {
+    batting_heavy: { wins: [], championships: 0, perfectSeasons: 0, avgWins: 0, perfectTeams: [] },
+    bowling_heavy: { wins: [], championships: 0, perfectSeasons: 0, avgWins: 0, perfectTeams: [] },
+    optimal:       { wins: [], championships: 0, perfectSeasons: 0, avgWins: 0, perfectTeams: [] }
+  };
+  
+  console.log(`Starting deep stress test (10,000 total drafts). Loaded ${allPlayers.length} player-seasons, ${spinPool.length} draftable squads.`);
+  
+  for (const strategy of strategies) {
+    console.log(`Running drafts for strategy: ${strategy.toUpperCase()}...`);
+    const count = strategy === 'optimal' ? 3334 : 3333;
+    
+    for (let i = 0; i < count; i++) {
+      const team = runDraftWithStrategy(strategy); 
+      const seasonResult = runSeason(team); 
+      
+      const wins = seasonResult.wins;
+      results[strategy].wins.push(wins);
+      
+      if (seasonResult.champion) {
+        results[strategy].championships++;
+      }
+      if (wins === 16) {
+        results[strategy].perfectSeasons++;
+        results[strategy].perfectTeams.push(team);
+      }
+    }
+    
+    const totalWins = results[strategy].wins.reduce((sum, w) => sum + w, 0);
+    results[strategy].avgWins = totalWins / count;
+  }
+  
+  // --- PRINT COMPARISON REPORT ---
+  console.log("\n================ STRESS TEST COMPARISON REPORT ================");
+  console.log(`Total Drafts Simulated: 10,000`);
+  console.log("---------------------------------------------------------------");
+  
+  for (const strategy of strategies) {
+    const count = strategy === 'optimal' ? 3334 : 3333;
+    const stats = results[strategy];
+    const winPct = ((stats.wins.reduce((sum, w) => sum + w, 0) / (count * 16)) * 100).toFixed(2);
+    const champPct = ((stats.championships / count) * 100).toFixed(2);
+    const perfectPct = ((stats.perfectSeasons / count) * 100).toFixed(4);
+    
+    console.log(`\nStrategy: ${strategy.toUpperCase()}`);
+    console.log(`- Avg Total Wins: ${stats.avgWins.toFixed(2)} / 16 (Win %: ${winPct}%)`);
+    console.log(`- Championship Rate: ${champPct}%`);
+    console.log(`- 16-0 Rate: ${perfectPct}% (${stats.perfectSeasons} perfect seasons)`);
+    
+    // Print basic distribution histogram
+    const dist = {};
+    stats.wins.forEach(w => dist[w] = (dist[w] || 0) + 1);
+    console.log("- Win Distribution:");
+    for (let w = 0; w <= 16; w++) {
+      const winCount = dist[w] || 0;
+      if (winCount > 0) {
+        const pct = ((winCount / count) * 100).toFixed(1);
+        const bar = "█".repeat(Math.round(pct / 2));
+        console.log(`   ${w.toString().padStart(2)} wins: ${bar} ${pct}%`);
+      }
+    }
+    
+    if (stats.perfectSeasons > 0) {
+      console.log("🏆 PERFECT TEAMS FOUND:");
+      stats.perfectTeams.forEach((team, idx) => {
+        console.log(`  Team #${idx + 1}: ${team.map(p => `${p.name} (${p.season})`).join(', ')}`);
+      });
+    }
+  }
+  console.log("===============================================================");
 
   fs.writeFileSync(
     `${__dirname}/stress_test_results.json`,
-    JSON.stringify({ runs: RUNS, greedy, random }, null, 2)
+    JSON.stringify({ totalRuns: 10000, results }, null, 2)
   );
   console.log("\nResults saved to stress_test_results.json");
 }
+
+// ======================= MAIN =======================
+if (require.main === module) {
+  runDeeperStressTest().catch(console.error);
+}
+

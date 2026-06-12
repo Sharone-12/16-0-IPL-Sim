@@ -877,8 +877,7 @@ function showResultCard(outcome, container) {
     <div class="result-card">${resultCardHtml(outcome)}</div>
     <div style="display: flex; gap: 0.5rem; margin-top: 0.8rem;">
       <button class="primary-btn" style="flex: 1; justify-content: center;" type="button" data-act="download">Download</button>
-      <button class="primary-btn ghost" style="flex: 1; justify-content: center;" type="button" data-act="share">Share</button>
-      <button class="primary-btn ghost" style="padding: 0 0.8rem;" type="button" data-act="x" aria-label="Share to X">${X_LOGO}</button>
+      <button class="primary-btn ghost" style="flex: 1; justify-content: center;" type="button" data-act="x">${X_LOGO} Share</button>
     </div>
     <div style="display: flex; gap: 0.5rem; margin-top: 0.5rem;">
       <a class="primary-btn ghost" style="flex: 1; margin: 0; display: flex; justify-content: center;" href="leaderboard.html">Leaderboard</a>
@@ -906,21 +905,6 @@ function showResultCard(outcome, container) {
   
   container.querySelector('[data-act="x"]').onclick = () =>
     window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}`, "_blank");
-
-  container.querySelector('[data-act="share"]').onclick = async () => {
-    if (navigator.share) {
-      try {
-        await navigator.share({
-          title: "16-0 IPL Simulator",
-          text: shareText
-        });
-      } catch (err) {}
-    } else {
-      navigator.clipboard.writeText(shareText).then(() => {
-        showToast("Copied to clipboard!");
-      });
-    }
-  };
 }
 
 function tableRows() {

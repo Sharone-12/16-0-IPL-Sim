@@ -1033,12 +1033,14 @@ function endPlayoffs(text, outcome) {
   els.playoffOutcome.textContent = labels[outcome] || "SEASON OVER";
   els.playoffResult.textContent = text;
   els.playoffLeaders.innerHTML = awardsHtml();
-  // Swap the single Play button for Back to Draft + Play Again.
+  // Swap the single Play button for View Scorecard + Back to Draft + Play Again.
   els.playoffActions.innerHTML = `
-    <a class="primary-btn" href="draft.html">Back to Draft</a>
+    <button class="primary-btn" type="button" id="viewScorecardInline">View Scorecard ↓</button>
+    <a class="primary-btn ghost" href="draft.html">Back to Draft</a>
     <button class="primary-btn ghost" type="button" id="playAgainBtn">Play Again</button>
   `;
   document.getElementById("playAgainBtn").addEventListener("click", goToDraftFresh);
+  wireViewScorecard("viewScorecardInline");
 
   const cardStage = outcome === "champion" ? "CHAMPIONS"
     : outcome === "runnerup" ? "RUNNERS-UP" : "ELIMINATED";
@@ -1064,9 +1066,11 @@ function showUserEliminated(stageLabel) {
   els.playoffLeaders.innerHTML = awardsHtml();
 
   els.playoffActions.innerHTML = `
-    <button class="primary-btn" type="button" id="tryAgainBtn">Try Again</button>
+    <button class="primary-btn" type="button" id="viewScorecardInline">View Scorecard ↓</button>
+    <button class="primary-btn ghost" type="button" id="tryAgainBtn">Try Again</button>
   `;
   document.getElementById("tryAgainBtn").addEventListener("click", goToDraftFresh);
+  wireViewScorecard("viewScorecardInline");
 
   showResultCard(buildOutcome(`ELIMINATED — ${stageLabel.toUpperCase()}`), els.resultSlot);
 }
@@ -1552,8 +1556,16 @@ els.playPlayoffBtn.addEventListener("click", () => {
   }
   playPlayoffMatch();
 });
-document.getElementById("viewScorecardBtn").addEventListener("click", () => {
+function scrollToScorecard() {
   els.scorecardPanel.scrollIntoView({ behavior: "smooth", block: "start" });
-});
+}
+function wireViewScorecard(id) {
+  const btn = document.getElementById(id);
+  if (btn) btn.addEventListener("click", scrollToScorecard);
+  // the standalone button is redundant once an inline one exists
+  const standalone = document.getElementById("viewScorecardBtn");
+  if (standalone) standalone.hidden = true;
+}
+document.getElementById("viewScorecardBtn").addEventListener("click", scrollToScorecard);
 
 boot();

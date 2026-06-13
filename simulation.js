@@ -425,7 +425,7 @@ function teamStrength(players, isUser = false) {
   if (isUser) {
     const prime = state.config && state.config.playerRatings === "prime";
     const d = (state.config && state.config.difficulty) || "normal";
-    const base = prime ? 0.92 : 0.95;
+    const base = prime ? 0.86 : 0.95;
     const dFactor = d === "hard" ? 0.95 : d === "easy" ? 1.02 : 1.0;
     total *= base * dFactor;
   }

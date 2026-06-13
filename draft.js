@@ -991,6 +991,42 @@ completeBtn.addEventListener("click", () => {
 function initUI() {
   if (config.showRatings === "off") body.classList.add("hide-ratings");
   const customName = (config.teamName || "").trim();
+  if (customName.toLowerCase() === "csk2013test") {
+    const cskNames = [
+      "MEK Hussey",
+      "M Vijay",
+      "SK Raina",
+      "MS Dhoni",
+      "RA Jadeja",
+      "JA Morkel",
+      "R Ashwin",
+      "DJ Bravo",
+      "CH Morris",
+      "MM Sharma",
+      "DP Nannes"
+    ];
+    const cskPlayers = [];
+    for (const name of cskNames) {
+      const p = allPlayers.find(pl => pl.name === name && pl.season === "2013" && pl.fr === "CSK");
+      if (p) cskPlayers.push(p);
+    }
+    if (cskPlayers.length < 11) {
+      const cskAll = allPlayers.filter(pl => pl.season === "2013" && pl.fr === "CSK");
+      cskPlayers.push(...cskAll.slice(0, 11 - cskPlayers.length));
+    }
+    try {
+      localStorage.setItem(
+        "seasonState",
+        JSON.stringify({
+          config,
+          xi: cskPlayers.map((p, slot) => ({ ...p, slot, simOvr: ovrOf(p) })),
+          createdAt: Date.now(),
+        })
+      );
+    } catch (_) {}
+    window.location.href = "simulation.html";
+    return;
+  }
   if (customName.toLowerCase() === "haaarcbxi") {
     const rcbNames = [
       "V Kohli",

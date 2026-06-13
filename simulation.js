@@ -440,7 +440,10 @@ function teamStrength(players, isUser = false) {
     // Prime brutal. Difficulty factor still applies (easy ~52% / normal ~46% /
     // hard ~18% champ for an optimal draft, per Prime stress-test sweep).
     const base = prime ? 1.0 : 0.95;
-    const dFactor = d === "hard" ? 0.95 : d === "easy" ? 1.01 : 1.0;
+    // Hard's real challenge is the blind, no-reroll draft — so keep the match-sim
+    // penalty light (0.98), otherwise it's double jeopardy and you can't escape
+    // the group stage even with a strong XI.
+    const dFactor = d === "hard" ? 0.98 : d === "easy" ? 1.01 : 1.0;
     total *= base * dFactor;
   }
   return { batting, bowling, depth, chemistry, overall, total };

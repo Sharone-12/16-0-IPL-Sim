@@ -105,6 +105,26 @@ function boot() {
       state.players = playerRows
         .filter((r) => r.Player_Name && r.Franchise && r.Season)
         .map((r) => normalizeCsvPlayer(r, names));
+
+      if (state.config && state.config.playerRatings === "prime") {
+        const primeObjByName = {};
+        for (const p of state.players) {
+          const prev = primeObjByName[p.name];
+          if (!prev || p.ovr > prev.ovr) {
+            primeObjByName[p.name] = p;
+          }
+        }
+        for (const p of state.players) {
+          const prime = primeObjByName[p.name];
+          if (prime) {
+            p.ovr = prime.ovr;
+            p.bat = prime.bat;
+            p.bowl = prime.bowl;
+            p.season = prime.season;
+          }
+        }
+      }
+
       if (saved.completed && saved.completedData) {
         restoreCompletedSeason(saved.completedData);
       } else {

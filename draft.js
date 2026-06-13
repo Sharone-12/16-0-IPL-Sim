@@ -344,6 +344,7 @@ function buildData(rows) {
         p.sr = prime.sr;
         p.econ = prime.econ;
         p.matches = prime.matches;
+        p.season = prime.season;
       }
     }
   }

@@ -14,7 +14,7 @@
 
 ## About
 
-**16-0** drops you into the GM chair. Spin a slot machine of real IPL franchise-seasons (2008–2026), draft one player per spin into a structured XI, appoint a captain, then simulate a full league campaign + playoff bracket against the rest of the league. Win all 16 and you've gone **16-0** — a feat that, across tens of thousands of simulated seasons with *optimal* drafting, has **never** happened. It's the unicorn the whole game is named after.
+**16-0** drops you into the GM chair. Spin a slot machine of real IPL franchise-seasons (2008–2026), draft one player per spin into a structured XI, appoint a captain, then simulate a full league campaign + playoff bracket against the rest of the league. Win all 16 and you've gone **16-0** — a feat that, across **100,000 simulated seasons**, happened just **11 times (0.011%)**. It's the unicorn the whole game is named after.
 
 No accounts. No installs. Pure vanilla JS, deployed on Vercel, backed by Supabase for a global leaderboard and verifiable share links.
 
@@ -113,7 +113,7 @@ A full season is **14 league games + playoff bracket** (Qualifiers / Eliminator 
 
 - **Team strength** = weighted batting (46%) + bowling (42%) + depth (8%) + chemistry (4%), with a chemistry penalty for misused players (bowlers shoved up the order, openers buried, etc.).
 - **Per-match pitch** (flat / balanced / bowling) shifts totals and strike rates for *both* innings.
-- **Run distribution** spreads an innings total across the order by rating × position × variance, with hero-knock guarantees and a realistic per-batter innings cap — so the **Orange Cap lands around a believable ~700**, not 1,000+.
+- **Run distribution** spreads an innings total across the order by rating × position × variance, with hero-knock guarantees and a per-batter innings cap. (Award totals are a live tuning target — the 100k report below is what drove the ongoing single-season scoring re-calibration toward more realistic Orange/Purple Cap numbers.)
 - **Dynamic catch-up:** weaker AI sides get a rank-based buff so the league stays competitive.
 - **Awards & stats:** NRR, Man of the Match, Orange Cap (runs), Purple Cap (wickets), and a full downloadable/shareable result card.
 
@@ -121,32 +121,42 @@ A full season is **14 league games + playoff bracket** (Qualifiers / Eliminator 
 
 ## 🧪 Simulation & balance testing
 
-The headline number this whole project is tuned around: the engine is **ported 1:1 to Node** so the draft + season can run **headless, tens of thousands of times**, to measure championship rates, win distributions, and player win-contribution — then feed difficulty tuning.
+The headline number this whole project is tuned around: the engine is **ported 1:1 to Node** so the draft + season can run **headless, hundreds of thousands of times**, to measure championship rates, win distributions, and award calibration — then feed difficulty tuning.
 
-**Representative run — 1,000 optimal ("greedy") drafts, full season each:**
-
-| Metric | Result |
-|---|---|
-| Championship rate | **~25%** |
-| Top-4 rate | **~67%** |
-| Average wins | **8.9 / 16** |
-| Perfect **16-0** | **0 in 1,000** (and 0 across 50k+) |
+**Deep run — 100,000 full seasons in 68 seconds:**
 
 ```
-Win distribution (greedy, 1,000 seasons):
-  7  wins ██████ 16%
-  10 wins █████  14%
-  11 wins ██████ 15%
-  15 wins        0.3%   ← best anyone managed
-  16 wins        0.0%   ← the unicorn
+===========================================================================
+      16-0 IPL SIMULATOR — 100,000 SEASONS DEEP SIMULATION REPORT
+===========================================================================
+Total Seasons Simulated: 100,000
+Total Execution Time:    68.2 seconds
+---------------------------------------------------------------------------
+🏆 TEAM MILESTONES & RATIOS:
+  Championships:          15,502   | Rate: 15.50%
+  Playoff Qualifications: 52,191   | Rate: 52.19%
+  Missed Playoffs:        47,809   | Rate: 47.81%
+---------------------------------------------------------------------------
+🔥 WIN RECORD FREQUENCIES:
+  Perfect Seasons (16-0):  11      | Rate: 0.0110%
+  Near-Perfect  (15-1):    174     | Rate: 0.1740%
+  Strong        (14-2):    809     | Rate: 0.8090%
+---------------------------------------------------------------------------
+👑 INDIVIDUAL AWARD CALIBRATION:
+  Orange Cap (Runs):    Avg 942.5 | Min 627 | Max 2035
+  Purple Cap (Wickets): Avg 23.7  | Min 16  | Max 53
+===========================================================================
 ```
 
-This harness is what surfaced and fixed real balance bugs — e.g. the **Prime-mode opponent bug** (a season-field rewrite was silently gutting the AI squads, making Prime trivially winnable) and the inflated Orange Cap totals. Run it yourself:
+A **15.5% title rate** and a **0.011% perfect-season rate** — going 16-0 is roughly a **1-in-9,000** event even before you account for human (sub-optimal) drafting. The whole game is named after a milestone almost nobody will ever hit.
+
+This harness is also what surfaces and fixes real balance bugs — e.g. the **Prime-mode opponent bug** (a season-field rewrite was silently gutting the AI squads, making Prime trivially winnable) and run-away award totals that drove later scoring re-calibration. Run it yourself:
 
 ```bash
 node stress_test.js 1000        # 1,000 greedy + random drafts, full reporting
 node run_50k_test.js            # 50,000 Career seasons
 node run_50k_prime_easy.js      # 50,000 Prime / Easy seasons
+node run_100k_test.js           # the 100,000-season deep run above
 ```
 
 ---

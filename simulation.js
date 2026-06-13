@@ -392,7 +392,19 @@ function selectBalancedXI(squad) {
   const bowlers = take(4, (p) => p.primaryRole === "Bowler");
   const result = [...openers, ...middle, ...finisher, ...bowlers];
   result.push(...take(11 - result.length, () => true));
-  return result.slice(0, 11);
+  const finalXI = result.slice(0, 11);
+  
+  if (finalXI.length > 0) {
+    let best = finalXI[0];
+    for (const p of finalXI) {
+      if (p.ovr > best.ovr) best = p;
+    }
+    // Deep clone the best player so we don't accidentally mutate the master pool's isCaptain flag
+    const capIndex = finalXI.indexOf(best);
+    finalXI[capIndex] = { ...best, isCaptain: true };
+  }
+  
+  return finalXI;
 }
 
 function teamStrength(players, isUser = false) {
@@ -437,7 +449,21 @@ function chemistryScore(players) {
     if (p.battingOrder === "Lower Order" && i < 6) return sum + 3;
     return sum;
   }, 0);
-  return Math.max(55, 92 - penalties);
+  
+  let score = Math.max(55, 92 - penalties);
+  
+  const cap = players.find((p) => p.isCaptain);
+  if (cap) {
+    // Elite captains provide more chemistry boost with tighter ranges
+    let bonus = 1;
+    if (cap.ovr >= 93) bonus = 5;
+    else if (cap.ovr >= 90) bonus = 4;
+    else if (cap.ovr >= 87) bonus = 3;
+    else if (cap.ovr >= 83) bonus = 2;
+    score += bonus;
+  }
+  
+  return Math.min(100, score);
 }
 
 // IPL group-stage fixtures (2 groups of 5). Each team plays its 4 group rivals

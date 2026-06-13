@@ -798,11 +798,47 @@ function renderXI() {
 
   const ovrDisplay = document.getElementById("xiOvrDisplay");
   if (picked > 0 && config.showRatings !== "off") {
-    const avg = Math.round(picks.reduce((a, p) => a + ovrOf(p), 0) / picked);
-    const topBat = [...picks].sort((a, b) => (b.bat || b.ovr) - (a.bat || a.ovr)).slice(0, Math.min(6, picked));
-    const topBowl = [...picks].sort((a, b) => (b.bowl || b.ovr) - (a.bowl || a.ovr)).slice(0, Math.min(5, picked));
-    const bat = Math.round(topBat.reduce((a, p) => a + (p.bat || p.ovr), 0) / topBat.length);
-    const bowl = Math.round(topBowl.reduce((a, p) => a + (p.bowl || p.ovr), 0) / topBowl.length);
+    let bat, bowl, avg;
+    if (picked === 11) {
+      const wAvg = (vals, wts) => {
+        const tw = wts.slice(0, vals.length).reduce((sum, w) => sum + w, 0);
+        return vals.reduce((s, v, i) => s + v * wts[i], 0) / tw;
+      };
+      const topSix = xi.slice(0, 6);
+      const bowlers = [...xi]
+        .sort((a, b) => (b.bowl || b.ovr) - (a.bowl || a.ovr))
+        .slice(0, 5);
+
+      const batting = wAvg(topSix.map((p) => p.bat || p.ovr), [1.25, 1.18, 1.1, 1, 0.92, 0.85]);
+      const bowling = wAvg(bowlers.map((p) => p.bowl || p.ovr), [1.22, 1.12, 1.04, 0.96, 0.88]);
+      const depth = xi.slice(6).reduce((s, p) => s + p.ovr, 0) / 5;
+
+      const pen = xi.reduce((sum, p, i) => {
+        if (p.primaryRole === "Bowler" && i < 7) return sum + 7;
+        if (p.battingOrder === "Opener" && i > 2) return sum + 3;
+        if (p.battingOrder === "Lower Order" && i < 6) return sum + 3;
+        return sum;
+      }, 0);
+      const chemistry = Math.max(55, 92 - pen);
+
+      let total = batting * 0.46 + bowling * 0.42 + depth * 0.08 + chemistry * 0.04;
+
+      const prime = config.playerRatings === "prime";
+      const d = config.difficulty || "normal";
+      const base = prime ? 0.92 : 0.95;
+      const dFactor = d === "hard" ? 0.95 : d === "easy" ? 1.02 : 1.0;
+      total *= base * dFactor;
+
+      bat = Math.round(batting);
+      bowl = Math.round(bowling);
+      avg = Math.round(total);
+    } else {
+      avg = Math.round(picks.reduce((a, p) => a + ovrOf(p), 0) / picked);
+      const topBat = [...picks].sort((a, b) => (b.bat || b.ovr) - (a.bat || a.ovr)).slice(0, Math.min(6, picked));
+      const topBowl = [...picks].sort((a, b) => (b.bowl || b.ovr) - (a.bowl || a.ovr)).slice(0, Math.min(5, picked));
+      bat = Math.round(topBat.reduce((a, p) => a + (p.bat || p.ovr), 0) / topBat.length);
+      bowl = Math.round(topBowl.reduce((a, p) => a + (p.bowl || p.ovr), 0) / topBowl.length);
+    }
 
     const batVal = document.getElementById("xiBatVal");
     const bowlVal = document.getElementById("xiBowlVal");

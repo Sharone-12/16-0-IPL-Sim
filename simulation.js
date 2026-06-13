@@ -762,8 +762,8 @@ function renderLeaders() {
 function leadersSummaryHtml() {
   const leaders = Object.values(state.leaders);
   if (!leaders.length) return "";
-  const topRun = [...leaders].sort((a, b) => b.runs - a.runs)[0];
-  const topWk = [...leaders].sort((a, b) => b.wickets - a.wickets)[0];
+  const topRun = [...leaders].sort((a, b) => b.runs - a.runs || a.name.localeCompare(b.name))[0];
+  const topWk = [...leaders].sort((a, b) => b.wickets - a.wickets || a.name.localeCompare(b.name))[0];
   if (topRun.runs > 920) console.warn(`Suspicious runs: ${topRun.name} ${topRun.runs}`);
   if (topWk.wickets > 32) console.warn(`Suspicious wickets: ${topWk.name} ${topWk.wickets}`);
   const r = Math.min(topRun.runs, RUNS_CAP);
@@ -792,8 +792,8 @@ function renderPlayoffLeaders() {
 function awardsHtml() {
   const leaders = Object.values(state.leaders);
   if (!leaders.length) return "";
-  const orange = [...leaders].sort((a, b) => b.runs - a.runs)[0];
-  const purple = [...leaders].sort((a, b) => b.wickets - a.wickets)[0];
+  const orange = [...leaders].sort((a, b) => b.runs - a.runs || a.name.localeCompare(b.name))[0];
+  const purple = [...leaders].sort((a, b) => b.wickets - a.wickets || a.name.localeCompare(b.name))[0];
   const r = Math.min(orange.runs, RUNS_CAP);
   const w = Math.min(purple.wickets, WKTS_CAP);
   const rTier = runsTier(r);
@@ -828,8 +828,8 @@ function userBests() {
   const mine = Object.values(state.leaders).filter((l) => l.team === USER_NAME);
   if (!mine.length) return { bat: null, bowl: null };
   return {
-    bat: [...mine].sort((a, b) => b.runs - a.runs)[0],
-    bowl: [...mine].sort((a, b) => b.wickets - a.wickets)[0],
+    bat: [...mine].sort((a, b) => b.runs - a.runs || a.name.localeCompare(b.name))[0],
+    bowl: [...mine].sort((a, b) => b.wickets - a.wickets || a.name.localeCompare(b.name))[0],
   };
 }
 

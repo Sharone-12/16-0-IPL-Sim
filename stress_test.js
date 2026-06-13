@@ -594,8 +594,8 @@ function runSeason(userXi) {
   }
 
   const leadersList = Object.values(leaders);
-  const orangeCapRaw = [...leadersList].sort((a, b) => b.runs - a.runs)[0];
-  const purpleCapRaw = [...leadersList].sort((a, b) => b.wickets - a.wickets)[0];
+  const orangeCapRaw = [...leadersList].sort((a, b) => b.runs - a.runs || a.name.localeCompare(b.name))[0];
+  const purpleCapRaw = [...leadersList].sort((a, b) => b.wickets - a.wickets || a.name.localeCompare(b.name))[0];
 
   const orangeCap = orangeCapRaw ? { name: orangeCapRaw.name, year: orangeCapRaw.year, runs: orangeCapRaw.runs } : null;
   const purpleCap = purpleCapRaw ? { name: purpleCapRaw.name, year: purpleCapRaw.year, wickets: purpleCapRaw.wickets } : null;

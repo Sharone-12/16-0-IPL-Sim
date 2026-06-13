@@ -263,7 +263,7 @@ function renderStrengthReadout() {
     <span class="sr-label">${escapeHtml(USER_NAME)}</span>
     <span class="sr-stat ${you.batting < 80 ? "is-weak" : ""}">BAT ${you.batting.toFixed(1)}</span>
     <span class="sr-stat ${you.bowling < 80 ? "is-weak" : ""}">BOWL ${you.bowling.toFixed(1)}</span>
-    <span class="sr-stat">OVR ${you.total.toFixed(1)}</span>
+    <span class="sr-stat">OVR ${you.overall.toFixed(1)}</span>
   `;
 }
 
@@ -320,7 +320,7 @@ function renderFixtureMatchup(opp) {
   els.userVsStats.innerHTML = `
     <span class="vs-stat"><b>BAT</b> ${you.batting.toFixed(1)}</span>
     <span class="vs-stat"><b>BOWL</b> ${you.bowling.toFixed(1)}</span>
-    <span class="vs-stat"><b>OVR</b> ${you.total.toFixed(1)}</span>`;
+    <span class="vs-stat"><b>OVR</b> ${you.overall.toFixed(1)}</span>`;
   els.oppName.textContent = opp.name;
   els.oppVsStats.innerHTML = "";
 }
@@ -421,7 +421,12 @@ function teamStrength(players, isUser = false) {
   const bowling = weightedAverage(bowlers.map((p) => p.bowl || p.ovr), [1.22, 1.12, 1.04, 0.96, 0.88]);
   const depth = average(players.slice(6).map((p) => p.ovr));
   const chemistry = chemistryScore(players);
-  let total = batting * 0.46 + bowling * 0.42 + depth * 0.08 + chemistry * 0.04;
+  // `overall` is the true team rating shown in the UI (no handicap). `total` is
+  // the same number with the difficulty/mode handicap folded in — used ONLY for
+  // the match-sim win math, never displayed (otherwise OVR reads lower than the
+  // BAT/BOWL it's built from).
+  const overall = batting * 0.46 + bowling * 0.42 + depth * 0.08 + chemistry * 0.04;
+  let total = overall;
   // User XI reality check — a drafted all-time XI faces modern AI opposition.
   // Handicap is mode- and difficulty-aware: Prime (everyone at peak) lets the
   // user stack a stronger team than the balanced AI, so it needs a bigger penalty
@@ -438,7 +443,7 @@ function teamStrength(players, isUser = false) {
     const dFactor = d === "hard" ? 0.95 : d === "easy" ? 1.01 : 1.0;
     total *= base * dFactor;
   }
-  return { batting, bowling, depth, chemistry, total };
+  return { batting, bowling, depth, chemistry, overall, total };
 }
 
 function weightedAverage(values, weights) {
@@ -862,7 +867,7 @@ function buildOutcome(stage) {
     stage,
     mode,
     teamName: USER_NAME,
-    teamOvr: Math.round(you.strength.total),
+    teamOvr: Math.round(you.strength.overall),
     topScorer: bat ? { name: bat.name, runs: bat.runs } : null,
     topWicketer: bowl ? { name: bowl.name, wickets: bowl.wickets } : null,
     xi: you.players.map((p, i) => ({
@@ -1357,7 +1362,7 @@ async function submitToLeaderboard(stageStr = "Unknown") {
         .insert([
           {
             team_name: config.teamName,
-            ovr: Math.round(state.teams[0].strength.total) || 0,
+            ovr: Math.round(state.teams[0].strength.overall) || 0,
             stage: stageStr,
             wins: finalWins,
             losses: finalLosses,

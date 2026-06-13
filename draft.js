@@ -838,13 +838,9 @@ function renderXI() {
       }, 0);
       const chemistry = Math.max(55, 92 - pen);
 
-      let total = batting * 0.46 + bowling * 0.42 + depth * 0.08 + chemistry * 0.04;
-
-      const prime = config.playerRatings === "prime";
-      const d = config.difficulty || "normal";
-      const base = prime ? 1.0 : 0.95;
-      const dFactor = d === "hard" ? 0.95 : d === "easy" ? 1.01 : 1.0;
-      total *= base * dFactor;
+      // Displayed OVR is the true team rating (no difficulty/mode handicap —
+      // that's a sim-only knob, kept out of the visible rating).
+      const total = batting * 0.46 + bowling * 0.42 + depth * 0.08 + chemistry * 0.04;
 
       bat = Math.round(batting);
       bowl = Math.round(bowling);

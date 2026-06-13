@@ -332,6 +332,13 @@ function buildData(rows) {
     }
   }
 
+  for (const p of allPlayers) {
+    const key = `${p.fr}|${p.season}`;
+    if (!byTeamSeason.has(key)) byTeamSeason.set(key, []);
+    byTeamSeason.get(key).push(p);
+    fullNames[p.fr] = p.frFull;
+  }
+
   if (isPrime) {
     for (const p of allPlayers) {
       const prime = primeObjByName[p.name];
@@ -347,13 +354,6 @@ function buildData(rows) {
         p.season = prime.season;
       }
     }
-  }
-
-  for (const p of allPlayers) {
-    const key = `${p.fr}|${p.season}`;
-    if (!byTeamSeason.has(key)) byTeamSeason.set(key, []);
-    byTeamSeason.get(key).push(p);
-    fullNames[p.fr] = p.frFull;
   }
 
   // seasons per franchise where the squad can field an XI (>= 11 players)

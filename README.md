@@ -4,7 +4,7 @@
 
 ### Can you draft an IPL XI and go a perfect season unbeaten?
 
-**[▶ Play live → 16-0game.vercel.app](https://16-0game.vercel.app)**
+**[Play live -> 16-0game.vercel.app](https://16-0game.vercel.app)**
 
 *A fantasy IPL draft-and-simulate game built on a hand-calibrated ratings engine, a tier-weighted draft wheel, and a ball-by-ball-flavoured match simulator — tuned against 50,000+ headless simulated seasons.*
 
@@ -20,59 +20,59 @@ No accounts. No installs. Pure vanilla JS, deployed on Vercel, backed by Supabas
 
 ---
 
-## ✨ Feature highlights
+## Feature highlights
 
-- **🎰 Tier-weighted draft wheel** — a "gambler's curve" probability engine that dynamically re-weights franchise tiers as you hit them, so you can't just farm elite squads.
-- **📊 Custom player ratings engine** — every one of **808 players across 3,353 player-seasons** carries a hand-calibrated **OVR / Batting / Bowling** rating derived from real per-season stats, with a reputation floor and seasonal-realism overrides.
-- **🧮 Structured XI builder** — 11 role-locked slots (openers, middle order, finisher, bowlers), a reserved-keeper rule, a 4-overseas cap, and drag-to-reorder. Illegal placements are rejected with contextual toasts.
-- **👑 Captaincy** — appoint a captain in the draft; the **(C)** badge follows the player through every roster, result card, and shared link.
-- **⚙️ Two rating modes × three difficulties** — **Career** (each player's real season ratings) vs **Prime** (everyone at their peak season), each across **Easy / Normal / Hard** with a mode- *and* difficulty-aware handicap.
-- **🏟️ Match simulator** — per-match pitch types (flat / balanced / bowling tracks), positional run distribution, realistic strike rates, hero-knock guarantees, NRR, Man of the Match, and end-of-season **Orange Cap / Purple Cap** awards.
-- **🥇 Global leaderboard** — every completed season is ranked (wins → NRR) in Supabase; the result card shows your live **"rank #N of M."**
-- **🔗 Verified share links** — a short-code permalink (`/v/<code>`) renders a tamper-evident card of your exact XI, record, and awards for anyone to view.
-- **🧪 Headless simulation harness** — the entire draft + sim engine is ported to Node for **50k/100k-run** balance testing (see below).
+- **Tier-weighted draft wheel** — a "gambler's curve" probability engine that dynamically re-weights franchise tiers as you hit them, so you can't just farm elite squads.
+- **Custom player ratings engine** — every one of **808 players across 3,353 player-seasons** carries a hand-calibrated **OVR / Batting / Bowling** rating derived from real per-season stats, with a reputation floor and seasonal-realism overrides.
+- **Structured XI builder** — 11 role-locked slots (openers, middle order, finisher, bowlers), a reserved-keeper rule, a 4-overseas cap, and drag-to-reorder. Illegal placements are rejected with contextual toasts.
+- **Captaincy** — appoint a captain in the draft; the **(C)** badge follows the player through every roster, result card, and shared link.
+- **Two rating modes × three difficulties** — **Career** (each player's real season ratings) vs **Prime** (everyone at their peak season), each across **Easy / Normal / Hard** with a mode- *and* difficulty-aware handicap.
+- **Match simulator** — per-match pitch types (flat / balanced / bowling tracks), positional run distribution, realistic strike rates, hero-knock guarantees, NRR, Man of the Match, and end-of-season **Orange Cap / Purple Cap** awards.
+- **Global leaderboard** — every completed season is ranked (wins -> NRR) in Supabase; the result card shows your live **"rank #N of M."**
+- **Verified share links** — a short-code permalink (`/v/<code>`) renders a tamper-evident card of your exact XI, record, and awards for anyone to view.
+- **Headless simulation harness** — the entire draft + sim engine is ported to Node for **50k/100k-run** balance testing (see below).
 
 ---
 
-## 🏗️ Architecture
+## Architecture
 
 A deliberately dependency-light **multi-page vanilla JS** app — no framework, no build step, no bundler. Each phase of the game is its own page with a focused script:
 
 ```
-index.html        → Landing / mode + difficulty + era setup
-  └ script.js
+index.html         -> Landing / mode + difficulty + era setup
+  - script.js
 
-draft.html        → The draft: slot-machine spin, squad view, XI builder, captain
-  └ draft.js       (tier-weighted spin engine, slot eligibility, drag-and-drop)
+draft.html         -> The draft: slot-machine spin, squad view, XI builder, captain
+  - draft.js          (tier-weighted spin engine, slot eligibility, drag-and-drop)
 
-simulation.html   → Season sim: league table, fixtures, scorecards, playoffs, result card
-  └ simulation.js  (match engine, standings, NRR, awards, leaderboard submit)
+simulation.html    -> Season sim: league table, fixtures, scorecards, playoffs, result card
+  - simulation.js     (match engine, standings, NRR, awards, leaderboard submit)
 
-leaderboard.html  → Global rankings (Supabase, wins → NRR)
+leaderboard.html   -> Global rankings (Supabase, wins -> NRR)
 
-r.html            → Verified shared-result viewer (renders any /v/<short_code>)
-  └ r.js
+r.html             -> Verified shared-result viewer (renders any /v/<short_code>)
+  - r.js
 
-supabase_config.js → Supabase client (anon key)
-report.js          → Shared "Report an Issue" modal
+supabase_config.js -> Supabase client (anon key)
+report.js          -> Shared "Report an Issue" modal
 ```
 
 **Data layer:** `ipl_master_calibrated.csv` (the calibrated ratings database) + `mapped_names.csv` (display-name mapping for overseas players).
 
 **Tooling / offline scripts:**
 ```
-stress_test.js          → Faithful Node port of draft.js + simulation.js (no DOM)
-stress_test_extra.js    → Extra strategy harnesses
-run_50k_test.js         → 50,000-season Career balance run
-run_50k_prime_easy.js   → 50,000-season Prime/Easy run
-run_100k_test.js        → 100,000-season run
-recalibrate.js          → Ratings recalibration pipeline
-apply_overrides.py      → Manual per-player rating overrides
+stress_test.js         -> Faithful Node port of draft.js + simulation.js (no DOM)
+stress_test_extra.js   -> Extra strategy harnesses
+run_50k_test.js        -> 50,000-season Career balance run
+run_50k_prime_easy.js  -> 50,000-season Prime/Easy run
+run_100k_test.js       -> 100,000-season run
+recalibrate.js         -> Ratings recalibration pipeline
+apply_overrides.py     -> Manual per-player rating overrides
 ```
 
 ---
 
-## 📐 The ratings engine
+## The ratings engine
 
 Ratings aren't pulled from anywhere — they're **computed and calibrated from real per-season performance**. Each player-season row carries batting/bowling/fielding/keeping stats, which feed a weighted model producing:
 
@@ -87,17 +87,17 @@ Ratings aren't pulled from anywhere — they're **computed and calibrated from r
 The calibration is intentionally **top-heavy and scarce** — of 3,353 player-seasons, only a handful crack the top tier:
 
 ```
-OVR 92+  ████ ~13 player-seasons   (the genuine GOATs — gold tier)
-OVR 89+  ████████ tier             (elite — blue tier)
-OVR 85+  ███████████ tier          (very good — green tier)
-OVR 60   ████████████████████████  (the floor — most journeymen)
+OVR 92+ ████ ~13 player-seasons (the genuine GOATs — gold tier)
+OVR 89+ ████████ tier (elite — blue tier)
+OVR 85+ ███████████ tier (very good — green tier)
+OVR 60 ████████████████████████ (the floor — most journeymen)
 ```
 
 A **reputation floor** keeps legends from cratering on an off-season, and per-player overrides fix edge cases the pure-stats model gets wrong. Drafting tiers (84 / 81 thresholds) drive the spin-wheel weighting.
 
 ---
 
-## 🎰 Draft mechanics
+## Draft mechanics
 
 - **Slot-machine spin** picks a `franchise × season`, weighted by a 3-tier system (`getSpinWeights`).
 - **Gambler's curve:** every time you land a Tier-1 or Tier-2 squad, its weight decays — the wheel actively pushes back so you can't repeatedly spin the same elite teams.
@@ -107,7 +107,7 @@ A **reputation floor** keeps legends from cratering on an off-season, and per-pl
 
 ---
 
-## ⚔️ Simulation engine
+## Simulation engine
 
 A full season is **14 league games + playoff bracket** (Qualifiers / Eliminator / Final) across two groups of five, with Your XI replacing one franchise.
 
@@ -119,7 +119,7 @@ A full season is **14 league games + playoff bracket** (Qualifiers / Eliminator 
 
 ---
 
-## 🧪 Simulation & balance testing
+## Simulation & balance testing
 
 The headline number this whole project is tuned around: the engine is **ported 1:1 to Node** so the draft + season can run **headless, hundreds of thousands of times**, to measure championship rates, win distributions, and award calibration — then feed difficulty tuning.
 
@@ -127,24 +127,24 @@ The headline number this whole project is tuned around: the engine is **ported 1
 
 ```
 ===========================================================================
-      16-0 IPL SIMULATOR — 100,000 SEASONS DEEP SIMULATION REPORT
+ 16-0 IPL SIMULATOR — 100,000 SEASONS DEEP SIMULATION REPORT
 ===========================================================================
 Total Seasons Simulated: 100,000
-Total Execution Time:    68.2 seconds
+Total Execution Time: 68.2 seconds
 ---------------------------------------------------------------------------
-🏆 TEAM MILESTONES & RATIOS:
-  Championships:          15,502   | Rate: 15.50%
-  Playoff Qualifications: 52,191   | Rate: 52.19%
-  Missed Playoffs:        47,809   | Rate: 47.81%
+ TEAM MILESTONES & RATIOS:
+ Championships: 15,502 | Rate: 15.50%
+ Playoff Qualifications: 52,191 | Rate: 52.19%
+ Missed Playoffs: 47,809 | Rate: 47.81%
 ---------------------------------------------------------------------------
-🔥 WIN RECORD FREQUENCIES:
-  Perfect Seasons (16-0):  11      | Rate: 0.0110%
-  Near-Perfect  (15-1):    174     | Rate: 0.1740%
-  Strong        (14-2):    809     | Rate: 0.8090%
+ WIN RECORD FREQUENCIES:
+ Perfect Seasons (16-0): 11 | Rate: 0.0110%
+ Near-Perfect (15-1): 174 | Rate: 0.1740%
+ Strong (14-2): 809 | Rate: 0.8090%
 ---------------------------------------------------------------------------
-👑 INDIVIDUAL AWARD CALIBRATION:
-  Orange Cap (Runs):    Avg 942.5 | Min 627 | Max 2035
-  Purple Cap (Wickets): Avg 23.7  | Min 16  | Max 53
+ INDIVIDUAL AWARD CALIBRATION:
+ Orange Cap (Runs): Avg 942.5 | Min 627 | Max 2035
+ Purple Cap (Wickets): Avg 23.7 | Min 16 | Max 53
 ===========================================================================
 ```
 
@@ -153,15 +153,15 @@ A **15.5% title rate** and a **0.011% perfect-season rate** — going 16-0 is ro
 This harness is also what surfaces and fixes real balance bugs — e.g. the **Prime-mode opponent bug** (a season-field rewrite was silently gutting the AI squads, making Prime trivially winnable) and run-away award totals that drove later scoring re-calibration. Run it yourself:
 
 ```bash
-node stress_test.js 1000        # 1,000 greedy + random drafts, full reporting
-node run_50k_test.js            # 50,000 Career seasons
-node run_50k_prime_easy.js      # 50,000 Prime / Easy seasons
-node run_100k_test.js           # the 100,000-season deep run above
+node stress_test.js 1000 # 1,000 greedy + random drafts, full reporting
+node run_50k_test.js # 50,000 Career seasons
+node run_50k_prime_easy.js # 50,000 Prime / Easy seasons
+node run_100k_test.js # the 100,000-season deep run above
 ```
 
 ---
 
-## 🛠️ Tech stack
+## Tech stack
 
 - **Frontend:** Vanilla HTML / CSS / JavaScript (zero framework, zero build)
 - **Data:** CSV ratings database parsed client-side with PapaParse
@@ -171,7 +171,7 @@ node run_100k_test.js           # the 100,000-season deep run above
 
 ---
 
-## 🚀 Running locally
+## Running locally
 
 It's a static site — serve the folder with anything:
 
@@ -181,10 +181,10 @@ python3 -m http.server 8000
 # open http://localhost:8000
 ```
 
-For the leaderboard/share features, copy `supabase_config.example.js` → `supabase_config.js` and add your Supabase URL + anon key.
+For the leaderboard/share features, copy `supabase_config.example.js` `supabase_config.js` and add your Supabase URL + anon key.
 
 ---
 
-## ⚖️ Disclaimer
+## Disclaimer
 
 16-0 is an independent, fan-made game inspired by **38-0.app**. It is not affiliated with, endorsed by, or associated with any cricket team, franchise, league, governing body, or ratings provider. All team names, player names, ratings, statistics and season data are used for informational, descriptive and editorial purposes only. No official logos, crests, player images, likenesses, or branding are used. All trademarks and intellectual property remain the property of their respective owners.

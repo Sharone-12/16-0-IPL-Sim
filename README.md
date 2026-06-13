@@ -1,6 +1,6 @@
 <div align="center">
 
-# 🏏 16-0
+# 16-0
 
 ### Can you draft an IPL XI and go a perfect season unbeaten?
 

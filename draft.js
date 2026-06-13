@@ -324,6 +324,7 @@ function buildData(rows) {
       name: r.Player_Name,
       displayName: mappedNames[(r.Player_Name || "").trim()] || r.Player_Name,
       season: r.Season,
+      origSeason: r.Season,
       fr: r.Franchise,
       frFull: r.Franchise_Full || r.Franchise,
       primaryRole: r.Primary_Role,
@@ -996,22 +997,22 @@ function initUI() {
       "MEK Hussey",
       "M Vijay",
       "SK Raina",
+      "S Badrinath",
       "MS Dhoni",
       "RA Jadeja",
       "JA Morkel",
-      "R Ashwin",
       "DJ Bravo",
       "CH Morris",
-      "MM Sharma",
-      "DP Nannes"
+      "R Ashwin",
+      "MM Sharma"
     ];
     const cskPlayers = [];
     for (const name of cskNames) {
-      const p = allPlayers.find(pl => pl.name === name && pl.season === "2013" && pl.fr === "CSK");
+      const p = allPlayers.find(pl => pl.name === name && pl.origSeason === "2013" && pl.fr === "CSK");
       if (p) cskPlayers.push(p);
     }
     if (cskPlayers.length < 11) {
-      const cskAll = allPlayers.filter(pl => pl.season === "2013" && pl.fr === "CSK");
+      const cskAll = allPlayers.filter(pl => pl.origSeason === "2013" && pl.fr === "CSK");
       cskPlayers.push(...cskAll.slice(0, 11 - cskPlayers.length));
     }
     try {
@@ -1043,11 +1044,11 @@ function initUI() {
     ];
     const rcbPlayers = [];
     for (const name of rcbNames) {
-      const p = allPlayers.find(pl => pl.name === name && pl.season === "2016" && pl.fr === "RCB");
+      const p = allPlayers.find(pl => pl.name === name && pl.origSeason === "2016" && pl.fr === "RCB");
       if (p) rcbPlayers.push(p);
     }
     if (rcbPlayers.length < 11) {
-      const rcbAll = allPlayers.filter(pl => pl.season === "2016" && pl.fr === "RCB");
+      const rcbAll = allPlayers.filter(pl => pl.origSeason === "2016" && pl.fr === "RCB");
       rcbPlayers.push(...rcbAll.slice(0, 11 - rcbPlayers.length));
     }
     try {

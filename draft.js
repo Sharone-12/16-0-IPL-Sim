@@ -157,6 +157,22 @@ let captainMode = false; // true while the user is tapping a player to make capt
 const playerKey = (p) => `${p.name}|${p.fr}|${p.season}`;
 const captainOf = () => xi.find((p) => p && playerKey(p) === captainKey) || null;
 
+// Era-correct franchise naming: `fr` is the current short code, but a few clubs
+// rebranded mid-history. Show the name the club actually used that season.
+function eraAbbr(fr, season) {
+  const y = +season || 0;
+  if (fr === "PBKS") return y <= 2020 ? "KXIP" : "PBKS"; // Kings XI Punjab -> Punjab Kings (2021)
+  if (fr === "DC") return y <= 2018 ? "DD" : "DC";        // Delhi Daredevils -> Delhi Capitals (2019)
+  return fr;
+}
+function eraFull(fr, season) {
+  const y = +season || 0;
+  if (fr === "PBKS") return y <= 2020 ? "Kings XI Punjab" : "Punjab Kings";
+  if (fr === "DC") return y <= 2018 ? "Delhi Daredevils" : "Delhi Capitals";
+  if (fr === "RCB") return y <= 2023 ? "Royal Challengers Bangalore" : "Royal Challengers Bengaluru";
+  return null;
+}
+
 // ---------- elements ----------
 const spinBtn = document.getElementById("spinBtn");
 const rerollBtn = document.getElementById("rerollBtn");
@@ -634,7 +650,7 @@ async function doSpin() {
   const seasonPool2 = seasonsByFranchise[target.fr];
 
   await Promise.all([
-    rollReel(reelClub, clubPool2, fullNames[target.fr], 2200),
+    rollReel(reelClub, clubPool2, eraFull(target.fr, target.season) || fullNames[target.fr], 2200),
     rollReel(reelSeason, seasonPool2, target.season, 2900),
   ]);
 
@@ -755,7 +771,7 @@ function renderXI() {
     if (p) {
       const ovr = ovrOf(p);
       const name = escapeHtml(playerLabel(p));
-      const origin = escapeHtml(`${p.fr} ${p.season}`);
+      const origin = escapeHtml(`${eraAbbr(p.fr, p.season)} ${p.season}`);
       const isCap = captainKey === playerKey(p);
       // Disable dragging while picking a captain so a tap reliably registers as a
       // click on touch devices (draggable elements often swallow taps on mobile).

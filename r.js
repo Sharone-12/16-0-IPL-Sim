@@ -73,6 +73,15 @@
     return frCode.toUpperCase();
   }
 
+  // Era-correct full name for clubs that rebranded mid-history; null otherwise.
+  function eraFull(fr, season) {
+    const y = +season || 0;
+    if (fr === "PBKS") return y <= 2020 ? "Kings XI Punjab" : "Punjab Kings";
+    if (fr === "DC") return y <= 2018 ? "Delhi Daredevils" : "Delhi Capitals";
+    if (fr === "RCB") return y <= 2023 ? "Royal Challengers Bangalore" : "Royal Challengers Bengaluru";
+    return null;
+  }
+
   function parseCsvSimple(text) {
     const lines = text.split('\n');
     if (lines.length === 0) return [];
@@ -296,7 +305,7 @@
         let subText = "";
         
         // Mention the team player came from: full name mapping or frFull
-        const teamName = p.frFull || getFranchiseFullName(p.fr);
+        const teamName = eraFull(p.fr, p.season) || p.frFull || getFranchiseFullName(p.fr);
         if (teamName && p.season) {
           subText = `${teamName} · ${p.season}`;
         } else if (teamName) {

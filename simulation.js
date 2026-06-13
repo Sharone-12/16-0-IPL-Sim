@@ -435,7 +435,7 @@ function teamStrength(players, isUser = false) {
     // Prime brutal. Difficulty factor still applies (easy ~52% / normal ~46% /
     // hard ~18% champ for an optimal draft, per Prime stress-test sweep).
     const base = prime ? 1.0 : 0.95;
-    const dFactor = d === "hard" ? 0.95 : d === "easy" ? 1.02 : 1.0;
+    const dFactor = d === "hard" ? 0.95 : d === "easy" ? 1.01 : 1.0;
     total *= base * dFactor;
   }
   return { batting, bowling, depth, chemistry, total };

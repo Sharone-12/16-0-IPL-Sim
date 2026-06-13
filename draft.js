@@ -841,8 +841,8 @@ function renderXI() {
 
       const prime = config.playerRatings === "prime";
       const d = config.difficulty || "normal";
-      const base = prime ? 0.92 : 0.95;
-      const dFactor = d === "hard" ? 0.95 : d === "easy" ? 1.02 : 1.0;
+      const base = prime ? 1.0 : 0.95;
+      const dFactor = d === "hard" ? 0.95 : d === "easy" ? 1.01 : 1.0;
       total *= base * dFactor;
 
       bat = Math.round(batting);

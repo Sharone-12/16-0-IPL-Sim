@@ -258,7 +258,7 @@ function teamStrength(players, isUser = false) {
   const chemistry = chemistryScore(players);
   let total = batting * 0.46 + bowling * 0.42 + depth * 0.08 + chemistry * 0.04;
   if (isUser) {
-    const base = IS_PRIME ? 0.92 : 0.95;
+    const base = IS_PRIME ? 1.0 : 0.95; // mirrors simulation.js handicap
     const dFactor = DIFFICULTY === "hard" ? 0.95 : DIFFICULTY === "easy" ? 1.02 : 1.0;
     total *= base * dFactor;
   }

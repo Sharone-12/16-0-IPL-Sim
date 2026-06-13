@@ -106,6 +106,11 @@ function boot() {
         .filter((r) => r.Player_Name && r.Franchise && r.Season)
         .map((r) => normalizeCsvPlayer(r, names));
 
+      // Tag current-squad membership BEFORE Prime rewrites each player's season —
+      // otherwise the 2026 opponent filter below loses players whose peak season
+      // isn't 2026, gutting the AI teams (the old "Prime is too easy" bug).
+      state.players.forEach((p) => { p.isCurrent = p.season === "2026"; });
+
       if (state.config && state.config.playerRatings === "prime") {
         const primeObjByName = {};
         for (const p of state.players) {
@@ -327,7 +332,7 @@ function buildOpponentTeams() {
   );
   const grouped = {};
   state.players
-    .filter((p) => p.season === "2026" && needed.has(p.fr))
+    .filter((p) => p.isCurrent && needed.has(p.fr))
     .forEach((p) => {
       (grouped[p.fr] = grouped[p.fr] || []).push(p);
     });
@@ -425,7 +430,11 @@ function teamStrength(players, isUser = false) {
   if (isUser) {
     const prime = state.config && state.config.playerRatings === "prime";
     const d = (state.config && state.config.difficulty) || "normal";
-    const base = prime ? 0.86 : 0.95;
+    // Prime base is gentler than Career: with all players at peak, the AI's
+    // coherent franchise XIs are genuinely strong, so a heavy penalty would make
+    // Prime brutal. Difficulty factor still applies (easy ~52% / normal ~46% /
+    // hard ~18% champ for an optimal draft, per Prime stress-test sweep).
+    const base = prime ? 1.0 : 0.95;
     const dFactor = d === "hard" ? 0.95 : d === "easy" ? 1.02 : 1.0;
     total *= base * dFactor;
   }

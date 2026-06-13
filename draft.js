@@ -988,10 +988,117 @@ completeBtn.addEventListener("click", () => {
   window.location.href = "simulation.html";
 });
 
+// Helper for testgreatestxi shortcut
+function findGreatestXI() {
+  const sorted = [...allPlayers].sort((a, b) => b.ovr - a.ovr);
+  
+  const slotCandidates = [];
+  for (let slot = 0; slot < 11; slot++) {
+    const cand = [];
+    for (const p of sorted) {
+      if (eligibleSlots(p).includes(slot)) {
+        cand.push(p);
+        if (cand.length >= 8) break;
+      }
+    }
+    slotCandidates.push(cand);
+  }
+
+  const maxRemainingOvr = [];
+  for (let slot = 0; slot < 11; slot++) {
+    let sum = 0;
+    for (let s = slot; s < 11; s++) {
+      sum += slotCandidates[s][0].ovr;
+    }
+    maxRemainingOvr.push(sum);
+  }
+  maxRemainingOvr.push(0);
+
+  let bestXi = null;
+  let bestOvrSum = -1;
+
+  // Find a baseline
+  let baselineXi = [];
+  let baselineNames = new Set();
+  let baselineOverseas = 0;
+  let baselineWk = 0;
+  for (let slot = 0; slot < 11; slot++) {
+    const p = slotCandidates[slot].find(cand => 
+      !baselineNames.has(cand.name) &&
+      (baselineOverseas + (cand.isOverseas ? 1 : 0) <= 4) &&
+      (slot >= 7 || cand.isWk || baselineWk > 0 || slotCandidates.slice(slot + 1, 7).some(cList => cList.some(c => c.isWk && !baselineNames.has(c.name))))
+    );
+    if (p) {
+      baselineXi.push(p);
+      baselineNames.add(p.name);
+      if (p.isOverseas) baselineOverseas++;
+      if (p.isWk && slot < 7) baselineWk++;
+    }
+  }
+  if (baselineXi.length === 11 && baselineWk > 0) {
+    bestXi = baselineXi;
+    bestOvrSum = baselineXi.reduce((sum, p) => sum + p.ovr, 0);
+  }
+
+  function search(slot, currentXi, usedNames, overseasCount, wkCount) {
+    if (slot === 11) {
+      if (wkCount === 0) return;
+      const ovrSum = currentXi.reduce((sum, p) => sum + p.ovr, 0);
+      if (ovrSum > bestOvrSum) {
+        bestOvrSum = ovrSum;
+        bestXi = [...currentXi];
+      }
+      return;
+    }
+
+    const currentSum = currentXi.slice(0, slot).reduce((sum, p) => sum + p.ovr, 0);
+    if (currentSum + maxRemainingOvr[slot] <= bestOvrSum) {
+      return;
+    }
+
+    const candidates = slotCandidates[slot];
+    for (const p of candidates) {
+      if (usedNames.has(p.name)) continue;
+      
+      const isO = p.isOverseas ? 1 : 0;
+      if (overseasCount + isO > 4) continue;
+      
+      const isW = (p.isWk && slot < 7) ? 1 : 0;
+      
+      currentXi[slot] = p;
+      usedNames.add(p.name);
+      
+      search(slot + 1, currentXi, usedNames, overseasCount + isO, wkCount + isW);
+      
+      usedNames.delete(p.name);
+    }
+  }
+
+  search(0, new Array(11), new Set(), 0, 0);
+  return bestXi;
+}
+
 // ---------- init ----------
 function initUI() {
   if (config.showRatings === "off") body.classList.add("hide-ratings");
   const customName = (config.teamName || "").trim();
+  if (customName.toLowerCase() === "testgreatestxi") {
+    const greatestXI = findGreatestXI();
+    if (greatestXI) {
+      try {
+        localStorage.setItem(
+          "seasonState",
+          JSON.stringify({
+            config,
+            xi: greatestXI.map((p, slot) => ({ ...p, slot, simOvr: ovrOf(p) })),
+            createdAt: Date.now(),
+          })
+        );
+      } catch (_) {}
+      window.location.href = "simulation.html";
+      return;
+    }
+  }
   if (customName.toLowerCase() === "csk2013test") {
     const cskNames = [
       "MEK Hussey",

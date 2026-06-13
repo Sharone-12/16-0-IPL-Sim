@@ -113,7 +113,7 @@ A full season is **14 league games + playoff bracket** (Qualifiers / Eliminator 
 
 - **Team strength** = weighted batting (46%) + bowling (42%) + depth (8%) + chemistry (4%), with a chemistry penalty for misused players (bowlers shoved up the order, openers buried, etc.).
 - **Per-match pitch** (flat / balanced / bowling) shifts totals and strike rates for *both* innings.
-- **Run distribution** spreads an innings total across the order by rating × position × variance, with hero-knock guarantees and a per-batter innings cap. (Award totals are a live tuning target — the 100k report below is what drove the ongoing single-season scoring re-calibration toward more realistic Orange/Purple Cap numbers.)
+- **Run distribution** spreads an innings total across the order by rating × position × variance, with hero-knock guarantees and a per-batter innings cap — calibrated so season awards land in a realistic band (Orange Cap ~700 runs, Purple Cap ~24 wickets), verified against the 100k report below.
 - **Dynamic catch-up:** weaker AI sides get a rank-based buff so the league stays competitive.
 - **Awards & stats:** NRR, Man of the Match, Orange Cap (runs), Purple Cap (wickets), and a full downloadable/shareable result card.
 
@@ -143,8 +143,8 @@ Total Execution Time: 68.2 seconds
  Strong (14-2): 809 | Rate: 0.8090%
 ---------------------------------------------------------------------------
  INDIVIDUAL AWARD CALIBRATION:
- Orange Cap (Runs): Avg 942.5 | Min 627 | Max 2035
- Purple Cap (Wickets): Avg 23.7 | Min 16 | Max 53
+ Orange Cap (Runs): Avg 718 | Min 631 | Max 902
+ Purple Cap (Wickets): Avg 24 | Min 16 | Max 32
 ===========================================================================
 ```
 

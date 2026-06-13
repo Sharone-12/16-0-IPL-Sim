@@ -16,7 +16,7 @@
 
 **16-0** drops you into the GM chair. Spin a slot machine of real IPL franchise-seasons (2008–2026), draft one player per spin into a structured XI, appoint a captain, then simulate a full league campaign + playoff bracket against the rest of the league. Win all 16 and you've gone **16-0** — a feat that, across **100,000 simulated seasons**, happened just **11 times (0.011%)**. It's the unicorn the whole game is named after.
 
-No accounts. No installs. Pure vanilla JS, deployed on Vercel, backed by Supabase for a global leaderboard and verifiable share links.
+No accounts. No installs. Pure vanilla JS, deployed on Vercel, backed by a hosted Postgres database for a global leaderboard and verifiable share links.
 
 ---
 
@@ -28,7 +28,7 @@ No accounts. No installs. Pure vanilla JS, deployed on Vercel, backed by Supabas
 - **Captaincy** — appoint a captain in the draft; the **(C)** badge follows the player through every roster, result card, and shared link.
 - **Two rating modes × three difficulties** — **Career** (each player's real season ratings) vs **Prime** (everyone at their peak season), each across **Easy / Normal / Hard** with a mode- *and* difficulty-aware handicap.
 - **Match simulator** — per-match pitch types (flat / balanced / bowling tracks), positional run distribution, realistic strike rates, hero-knock guarantees, NRR, Man of the Match, and end-of-season **Orange Cap / Purple Cap** awards.
-- **Global leaderboard** — every completed season is ranked (wins -> NRR) in Supabase; the result card shows your live **"rank #N of M."**
+- **Global leaderboard** — every completed season is ranked (wins -> NRR) in a hosted database; the result card shows your live **"rank #N of M."**
 - **Verified share links** — a short-code permalink (`/v/<code>`) renders a tamper-evident card of your exact XI, record, and awards for anyone to view.
 - **Headless simulation harness** — the entire draft + sim engine is ported to Node for **50k/100k-run** balance testing (see below).
 
@@ -48,12 +48,12 @@ draft.html         -> The draft: slot-machine spin, squad view, XI builder, capt
 simulation.html    -> Season sim: league table, fixtures, scorecards, playoffs, result card
   - simulation.js     (match engine, standings, NRR, awards, leaderboard submit)
 
-leaderboard.html   -> Global rankings (Supabase, wins -> NRR)
+leaderboard.html   -> Global rankings (hosted DB, wins -> NRR)
 
 r.html             -> Verified shared-result viewer (renders any /v/<short_code>)
   - r.js
 
-supabase_config.js -> Supabase client (anon key)
+db_config.js       -> Database client (anon key)
 report.js          -> Shared "Report an Issue" modal
 ```
 
@@ -165,7 +165,7 @@ node run_100k_test.js # the 100,000-season deep run above
 
 - **Frontend:** Vanilla HTML / CSS / JavaScript (zero framework, zero build)
 - **Data:** CSV ratings database parsed client-side with PapaParse
-- **Backend:** Supabase (Postgres) — leaderboard + verified share links
+- **Backend:** Hosted Postgres — leaderboard + verified share links
 - **Hosting:** Vercel (with Web Analytics)
 - **Sim/testing:** Node.js headless port of the live engine
 
@@ -181,7 +181,7 @@ python3 -m http.server 8000
 # open http://localhost:8000
 ```
 
-For the leaderboard/share features, copy `supabase_config.example.js` `supabase_config.js` and add your Supabase URL + anon key.
+For the leaderboard/share features, copy the example DB-config file to a local config and add your database URL + anon key.
 
 ---
 

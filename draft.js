@@ -991,6 +991,42 @@ completeBtn.addEventListener("click", () => {
 function initUI() {
   if (config.showRatings === "off") body.classList.add("hide-ratings");
   const customName = (config.teamName || "").trim();
+  if (customName.toLowerCase() === "haaarcbxi") {
+    const rcbNames = [
+      "V Kohli",
+      "CH Gayle",
+      "KL Rahul",
+      "AB de Villiers",
+      "SR Watson",
+      "SN Khan",
+      "Sachin Baby",
+      "STR Binny",
+      "YS Chahal",
+      "S Aravind",
+      "CJ Jordan"
+    ];
+    const rcbPlayers = [];
+    for (const name of rcbNames) {
+      const p = allPlayers.find(pl => pl.name === name && pl.season === "2016" && pl.fr === "RCB");
+      if (p) rcbPlayers.push(p);
+    }
+    if (rcbPlayers.length < 11) {
+      const rcbAll = allPlayers.filter(pl => pl.season === "2016" && pl.fr === "RCB");
+      rcbPlayers.push(...rcbAll.slice(0, 11 - rcbPlayers.length));
+    }
+    try {
+      localStorage.setItem(
+        "seasonState",
+        JSON.stringify({
+          config,
+          xi: rcbPlayers.map((p, slot) => ({ ...p, slot, simOvr: ovrOf(p) })),
+          createdAt: Date.now(),
+        })
+      );
+    } catch (_) {}
+    window.location.href = "simulation.html";
+    return;
+  }
   if (customName.toLowerCase() === "test") {
     const randomPlayers = [...allPlayers].sort(() => Math.random() - 0.5).slice(0, 11);
     try {

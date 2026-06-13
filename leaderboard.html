@@ -478,6 +478,17 @@
           const { data, error } = await query;
           if (error) throw error;
 
+          // Re-rank: wins first, but among equal wins a harder difficulty ranks
+          // higher (a 15-1 on Hard beats a 15-1 on Easy), then NRR breaks ties.
+          if (data && data.length) {
+            const diffRank = { hard: 3, normal: 2, easy: 1 };
+            data.sort((a, b) =>
+              (b.wins - a.wins) ||
+              ((diffRank[b.difficulty] || 0) - (diffRank[a.difficulty] || 0)) ||
+              ((b.nrr || 0) - (a.nrr || 0))
+            );
+          }
+
           if (!data || data.length === 0) {
             elements.tableWrap.hidden = true;
             showStatus(

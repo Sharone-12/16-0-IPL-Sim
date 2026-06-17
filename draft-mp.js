@@ -1248,6 +1248,13 @@ async function mpStart() {
   });
   if (mpIsHost()) driveBots();
 
+  // Dev shortcut: room named "testnigga" auto-drafts a valid random XI + readies,
+  // so you don't have to hand-draft 11 every test.
+  if (window.__mpRoom && (window.__mpRoom.name || "").toLowerCase() === "testnigga") {
+    mpAutoFill();
+    setTimeout(() => { if (!finishedMp && xi.filter(Boolean).length >= 11) mpComplete(); }, 400);
+  }
+
   // Polling fallback — realtime UPDATEs (ready/done) can be missed; keep the
   // waiting overlay and the host's transition check fresh.
   setInterval(async () => {
@@ -1408,4 +1415,19 @@ async function driveBots() {
   }));
   await mpRefreshPlayers();
   checkAllDone();
+}
+
+// ---------- dev: auto-fill a valid random XI (room "testnigga") ----------
+function mpAutoFill() {
+  const pool = allPlayers.slice();
+  for (let i = pool.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [pool[i], pool[j]] = [pool[j], pool[i]]; }
+  // multiple passes so the WK danger-slot reservation always resolves to 11
+  for (let pass = 0; pass < 3 && xi.some((x) => x === null); pass++) {
+    for (const p of pool) {
+      if (xi.every((x) => x)) break;
+      if (canDraft(p)) { const s = slotFor(p); if (s !== undefined) xi[s] = p; }
+    }
+  }
+  captainKey = xi[0] ? playerKey(xi[0]) : null;
+  renderXI(); updateControls(); updateSpinMeta();
 }

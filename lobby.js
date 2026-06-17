@@ -262,6 +262,15 @@ function subscribe(code) {
     if (status === "SUBSCRIBED") await ch.track({ pid: PLAYER_ID, at: Date.now() });
   });
   state.channel = ch;
+
+  // Polling fallback — realtime UPDATE events (ready toggles) can be missed;
+  // this guarantees every client reflects ready/join/start within ~2.5s.
+  clearInterval(state.poll);
+  state.poll = setInterval(async () => {
+    await refreshRoom(code);
+    await refreshPlayers(code);
+    renderWaiting();
+  }, 2500);
 }
 
 function renderWaiting() {
@@ -283,7 +292,8 @@ function renderWaiting() {
     const tags = [];
     if (p.is_host) tags.push('<span class="ptag host">Host</span>');
     if (!p.is_host && p.status === "ready") tags.push('<span class="ptag ready">Ready</span>');
-    return `<li>
+    const readyRow = !p.is_host && p.status === "ready";
+    return `<li class="${readyRow ? "is-ready" : ""}">
       <span class="ava ${p.is_host ? "host" : ""}">${initialOf(p.username)}</span>
       <span class="pname">${escapeHtml(p.username)}${p.id === PLAYER_ID ? " (you)" : ""}</span>
       ${tags.join("")}
@@ -385,6 +395,7 @@ function gotoDraft(code) {
 
 // leave
 $("leaveBtn").onclick = async () => {
+  clearInterval(state.poll);
   if (state.room && supa) {
     try { await supa.from("players").delete().eq("id", PLAYER_ID).eq("room_id", state.room.id); } catch (_) {}
     if (state.channel) supa.removeChannel(state.channel);

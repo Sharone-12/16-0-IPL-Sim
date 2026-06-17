@@ -1247,6 +1247,14 @@ async function mpStart() {
     location.href = "index.html";
   });
   if (mpIsHost()) driveBots();
+
+  // Polling fallback — realtime UPDATEs (ready/done) can be missed; keep the
+  // waiting overlay and the host's transition check fresh.
+  setInterval(async () => {
+    await mpRefreshPlayers();
+    if (finishedMp) renderWaitingOverlay();
+    if (mpIsHost()) checkAllDone();
+  }, 2500);
 }
 
 // ---------- per-pick timer ----------

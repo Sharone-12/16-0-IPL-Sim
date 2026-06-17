@@ -410,7 +410,17 @@ function escapeHtml(v) {
 }
 
 // ===================== boot =====================
+// Opportunistic cleanup: whenever someone opens the lobby, delete rooms older
+// than 2 hours (cascade removes their players + matches). Fallback for the
+// server-side pg_cron job in mp_cleanup.sql.
+async function cleanupOldRooms() {
+  if (!supa) return;
+  const cutoff = new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString();
+  try { await supa.from("rooms").delete().lt("created_at", cutoff); } catch (_) {}
+}
+
 (async function boot() {
+  cleanupOldRooms();
   await loadBotTeams();
   const savedName = localStorage.getItem("mp_name");
   if (savedName) { const h = $("hostName"); if (h) h.value = savedName; }

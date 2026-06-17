@@ -1357,7 +1357,7 @@ async function checkAllDone() {
   const humans = mpPlayers.filter((p) => !p.is_bot);
   const bots = mpPlayers.filter((p) => p.is_bot);
   const humansReady = humans.length > 0 && humans.every((p) => p.status === "ready_sim");
-  const botsDone = bots.every((p) => Array.isArray(p.xi) && p.xi.length >= 11);
+  const botsDone = bots.every((p) => p.status === "done");
   if (humansReady && botsDone) {
     mpTransitionTried = true;
     try { await MP_SUPA.from("rooms").update({ status: "league" }).eq("id", MP_ROOM); } catch (_) { mpTransitionTried = false; }
@@ -1397,13 +1397,15 @@ function buildBotXI(botFullName) {
   } : null).filter(Boolean);
 }
 async function driveBots() {
-  const bots = mpPlayers.filter((p) => p.is_bot && (!Array.isArray(p.xi) || p.xi.length < 11));
-  for (const bot of bots) {
+  const bots = mpPlayers.filter((p) => p.is_bot && p.status !== "done");
+  // Write each bot's full XI in one shot, all in parallel — no artificial delay
+  // (there's no opponent sidebar to animate, and humans shouldn't wait on bots).
+  await Promise.all(bots.map(async (bot) => {
     const full = buildBotXI(bot.bot_team || bot.username);
-    if (!full.length) { try { await MP_SUPA.from("players").update({ status: "done" }).eq("id", bot.id).eq("room_id", MP_ROOM); } catch (_) {} continue; }
-    for (let n = 1; n <= full.length; n++) {
-      await new Promise((r) => setTimeout(r, 500 + Math.random() * 800));
-      try { await MP_SUPA.from("players").update({ xi: full.slice(0, n), status: n >= full.length ? "done" : "drafting" }).eq("id", bot.id).eq("room_id", MP_ROOM); } catch (_) {}
-    }
-  }
+    try {
+      await MP_SUPA.from("players").update({ xi: full, status: "done" }).eq("id", bot.id).eq("room_id", MP_ROOM);
+    } catch (_) {}
+  }));
+  await mpRefreshPlayers();
+  checkAllDone();
 }

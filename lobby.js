@@ -21,7 +21,7 @@ const state = {
   channel: null,
   online: new Set(),
   botTeams: [],     // [{name, ovr}]
-  createOpts: { era: "all", difficulty: "normal", maxPlayers: 6 },
+  createOpts: { era: "all", difficulty: "normal", ratings: "career" },
 };
 
 // ---------- elements ----------
@@ -104,25 +104,19 @@ $("goJoin").onclick = () => show("join");
 $("createBack").onclick = () => show("chooser");
 $("joinBack").onclick = () => show("chooser");
 
-// slider
-$("maxPlayers").addEventListener("input", (e) => {
-  const v = e.target.value;
-  $("maxVal").textContent = v;
-  $("maxValBig").textContent = v;
-  state.createOpts.maxPlayers = +v;
-});
-// segmented controls
-function wireSeg(segId, key) {
-  $(segId).querySelectorAll("button").forEach((b) => {
+// option-card groups (Difficulty / Ratings / Era) — mirrors the solo setup screen
+document.querySelectorAll(".options[data-key]").forEach((grp) => {
+  const key = grp.dataset.key;
+  grp.querySelectorAll(".opt").forEach((b) => {
     b.onclick = () => {
-      $(segId).querySelectorAll("button").forEach((x) => x.classList.remove("on"));
-      b.classList.add("on");
+      grp.querySelectorAll(".opt").forEach((x) => x.classList.remove("is-selected"));
+      b.classList.add("is-selected");
       state.createOpts[key] = b.dataset.v;
     };
   });
-}
-wireSeg("segEra", "era");
-wireSeg("segDiff", "difficulty");
+});
+
+const LEAGUE_SIZE = 10; // always 10 teams so every side plays a full slate
 
 $("createBtn").onclick = async () => {
   if (!requireSupa()) return;
@@ -143,7 +137,8 @@ $("createBtn").onclick = async () => {
         settings: {
           era: state.createOpts.era,
           difficulty: state.createOpts.difficulty,
-          max_players: state.createOpts.maxPlayers,
+          ratings: state.createOpts.ratings,
+          max_players: LEAGUE_SIZE,
         },
       });
       if (!error) ok = true;
@@ -270,8 +265,9 @@ function renderWaiting() {
   if (!room) return;
   const max = room.settings?.max_players || 10;
   $("wRoomName").textContent = room.name || "Lobby";
-  const eraLabel = { all: "All eras", modern: "Modern '15+", golden: "Golden '08–14" }[room.settings?.era] || "All eras";
-  $("wRules").textContent = `${eraLabel} · ${(room.settings?.difficulty || "normal")} · up to ${max} teams`;
+  const eraLabel = { all: "All-time", "2012": "2012+", "2016": "2016+", "2020": "2020+" }[room.settings?.era] || "All-time";
+  const ratingsLabel = room.settings?.ratings === "prime" ? "Prime" : "Career";
+  $("wRules").textContent = `${eraLabel} · ${(room.settings?.difficulty || "normal")} · ${ratingsLabel} · ${max} teams`;
 
   const humans = state.players.filter((p) => !p.is_bot);
   const botCount = Math.max(0, max - humans.length);

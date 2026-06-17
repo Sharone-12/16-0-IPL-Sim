@@ -65,17 +65,21 @@
     .btn.accent { background: var(--accent); border-color: var(--accent); color: #04220f; }
     .btn.row { margin-bottom: 0.7rem; }
 
-    /* segmented control */
-    .seg { display: flex; gap: 0.4rem; }
-    .seg button { flex: 1; padding: 0.6rem 0.4rem; border-radius: 0.55rem; border: 1px solid var(--line);
-      background: var(--panel-2); color: var(--muted); font-size: 0.62rem; font-weight: 700; letter-spacing: 0.06em;
-      text-transform: uppercase; cursor: pointer; font-family: inherit; }
-    .seg button.on { border-color: var(--accent); color: var(--accent); background: var(--accent-dim); }
-
-    /* slider */
-    .slider-row { display: flex; align-items: center; gap: 0.8rem; }
-    input[type="range"] { flex: 1; accent-color: var(--accent); }
-    .slider-val { font-family: "Anton", Impact, sans-serif; font-size: 1.6rem; min-width: 2ch; text-align: center; }
+    /* setup groups — mirrors the solo Draft Setup screen */
+    .group { margin-bottom: 1.6rem; }
+    .group-label { font-size: 0.62rem; letter-spacing: 0.16em; text-transform: uppercase; color: var(--muted); margin: 0 0 0.7rem; font-weight: 700; }
+    .options { display: grid; gap: 0.6rem; }
+    .options.cols-2 { grid-template-columns: repeat(2, 1fr); }
+    .options.cols-3 { grid-template-columns: repeat(3, 1fr); }
+    .opt { display: flex; flex-direction: column; gap: 0.3rem; padding: 0.95rem 0.85rem; border-radius: 0.7rem;
+      border: 1px solid rgba(255,255,255,0.12); background: rgba(255,255,255,0.035); color: #cdcdcd; text-align: left;
+      cursor: pointer; font-family: inherit; transition: border-color 160ms ease, background-color 160ms ease, box-shadow 160ms ease; }
+    .opt:hover { border-color: rgba(255,255,255,0.35); }
+    .opt.is-selected { border-color: #fff; background: rgba(255,255,255,0.1); box-shadow: inset 0 0 0 1px #fff; }
+    .opt-title { color: #fff; font-size: 0.9rem; font-weight: 700; letter-spacing: 0.02em; }
+    .opt-desc { color: #8f8f8f; font-size: 0.62rem; font-weight: 600; letter-spacing: 0.03em; line-height: 1.35; }
+    .teams-note { font-size: 0.72rem; color: var(--muted); margin: 0 0 1.4rem; }
+    .teams-note b { color: #fff; }
 
     /* waiting room */
     .code-box { text-align: center; padding: 1.3rem 1rem; }
@@ -148,36 +152,43 @@
 
     <!-- ===================== CREATE ===================== -->
     <section id="view-create" class="hidden">
-      <h2 class="title">Create Room</h2>
-      <p class="sub">Set the rules. You're the host.</p>
-      <div class="panel">
-        <label class="fld">
-          <span>Room name</span>
-          <input type="text" id="roomName" maxlength="24" placeholder="e.g. Friday Night League" />
-        </label>
-        <label class="fld">
-          <span>Max players (humans + bots) — <b id="maxVal">6</b></span>
-          <div class="slider-row">
-            <input type="range" id="maxPlayers" min="2" max="10" value="6" />
-            <span class="slider-val" id="maxValBig">6</span>
-          </div>
-        </label>
-        <label class="fld">
-          <span>Era filter</span>
-          <div class="seg" id="segEra">
-            <button data-v="all" class="on">All</button>
-            <button data-v="modern">Modern '15+</button>
-            <button data-v="golden">Golden '08–14</button>
-          </div>
-        </label>
-        <label class="fld" style="margin-bottom:0">
-          <span>Difficulty</span>
-          <div class="seg" id="segDiff">
-            <button data-v="normal" class="on">Normal</button>
-            <button data-v="hard">Hard — stricter fatigue</button>
-          </div>
-        </label>
+      <h2 class="title">Create League</h2>
+      <p class="sub">Set the rules — same draft engine as solo. You're the host.</p>
+
+      <label class="fld">
+        <span>Room name</span>
+        <input type="text" id="roomName" maxlength="24" placeholder="e.g. Friday Night League" />
+      </label>
+
+      <p class="teams-note"><b>10 teams</b> per league (so every team plays a full slate). You + your friends draft; the top IPL 2026 squads fill any empty seats as bots.</p>
+
+      <div class="group">
+        <h3 class="group-label">Difficulty</h3>
+        <div class="options cols-3" data-key="difficulty">
+          <button class="opt" type="button" data-v="easy"><span class="opt-title">Easy</span><span class="opt-desc">3 re-spins · limits relaxed</span></button>
+          <button class="opt is-selected" type="button" data-v="normal"><span class="opt-title">Normal</span><span class="opt-desc">1 re-spin available</span></button>
+          <button class="opt" type="button" data-v="hard"><span class="opt-title">Hard</span><span class="opt-desc">No re-spins · blind ratings</span></button>
+        </div>
       </div>
+
+      <div class="group">
+        <h3 class="group-label">Player Ratings</h3>
+        <div class="options cols-2" data-key="ratings">
+          <button class="opt is-selected" type="button" data-v="career"><span class="opt-title">Career Seasons</span><span class="opt-desc">Rated as that exact season</span></button>
+          <button class="opt" type="button" data-v="prime"><span class="opt-title">Prime Mode</span><span class="opt-desc">Everyone at career-best</span></button>
+        </div>
+      </div>
+
+      <div class="group">
+        <h3 class="group-label">Era</h3>
+        <div class="options cols-2" data-key="era">
+          <button class="opt is-selected" type="button" data-v="all"><span class="opt-title">All-time</span><span class="opt-desc">2008–2026</span></button>
+          <button class="opt" type="button" data-v="2012"><span class="opt-title">2012+</span><span class="opt-desc">Modern era</span></button>
+          <button class="opt" type="button" data-v="2016"><span class="opt-title">2016+</span><span class="opt-desc">Recent</span></button>
+          <button class="opt" type="button" data-v="2020"><span class="opt-title">2020+</span><span class="opt-desc">New school</span></button>
+        </div>
+      </div>
+
       <p class="err" id="createErr"></p>
       <button class="btn accent row" id="createBtn">Create Room</button>
       <button class="btn ghost" id="createBack">Back</button>

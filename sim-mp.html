@@ -1,130 +1,199 @@
 <!doctype html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <title>16-0 — League Simulation</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Anton&display=swap" rel="stylesheet" />
-  <style>
-    :root { --bg:#0a0a0a; --panel:#141414; --panel-2:#1c1c1c; --line:rgba(255,255,255,.12);
-      --text:#fff; --muted:#8a8a8a; --accent:#00ff87; --accent-dim:rgba(0,255,135,.14); --gold:#f5c451; }
-    * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
-    html,body { margin:0; }
-    body { background:var(--bg); color:var(--text); font-family:Arial,Helvetica,sans-serif;
-      min-height:100svh; padding:calc(env(safe-area-inset-top) + .7rem) 1rem calc(env(safe-area-inset-bottom) + 2rem); }
-    .wrap { max-width:600px; margin:0 auto; }
-    .top { display:flex; align-items:center; justify-content:space-between; margin-bottom:1rem; }
-    .back { font-size:.6rem; letter-spacing:.12em; text-transform:uppercase; color:var(--muted);
-      border:1px solid var(--line); border-radius:999px; padding:.45rem .8rem; cursor:pointer; background:none; text-decoration:none; }
-    .wordmark { font-family:"Anton",Impact,sans-serif; font-size:1.4rem; }
-    .phase-chip { font-size:.55rem; letter-spacing:.14em; text-transform:uppercase; color:var(--accent);
-      border:1px solid var(--accent-dim); background:var(--accent-dim); border-radius:999px; padding:.4rem .7rem; }
-
-    h2.title { font-family:"Anton",Impact,sans-serif; font-size:1.8rem; margin:.2rem 0 .1rem; }
-    .sub { color:var(--muted); font-size:.8rem; margin:0 0 1.2rem; }
-
-    .btn { width:100%; padding:.95rem; border-radius:999px; border:1px solid var(--accent); background:var(--accent);
-      color:#04220f; font-weight:700; letter-spacing:.12em; text-transform:uppercase; font-size:.74rem; cursor:pointer;
-      font-family:inherit; margin-top:1rem; transition:opacity .15s ease; }
-    .btn.ghost { background:transparent; color:#fff; border-color:var(--line); }
-    .btn:disabled { opacity:.45; cursor:default; }
-
-    /* standings */
-    table { width:100%; border-collapse:collapse; }
-    th { font-size:.55rem; letter-spacing:.1em; text-transform:uppercase; color:var(--muted); text-align:right; padding:.5rem .35rem; font-weight:700; }
-    th.l, td.l { text-align:left; }
-    td { padding:.55rem .35rem; font-size:.85rem; border-bottom:1px solid var(--line); text-align:right; }
-    tr:last-child td { border-bottom:none; }
-    .rank { color:var(--muted); font-family:"Anton",Impact,sans-serif; width:1.4rem; }
-    .tname { font-weight:700; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:9rem; }
-    .tname .bot { color:#7aa2ff; font-size:.55rem; border:1px solid rgba(122,162,255,.4); border-radius:999px; padding:.05rem .35rem; margin-left:.35rem; }
-    tr.me td { background:rgba(0,255,135,.06); }
-    tr.me .tname { color:var(--accent); }
-    tr.q td { box-shadow:inset 3px 0 0 var(--accent); }
-    tr.out td { opacity:.4; }
-    .pts { color:var(--gold); font-weight:700; }
-    .qline { font-size:.6rem; color:var(--muted); text-align:center; padding:.4rem 0; letter-spacing:.08em; text-transform:uppercase; }
-    /* league reveal ticker */
-    .ticker { display:grid; gap:.3rem; margin-bottom:1rem; animation:tkin .3s ease; }
-    .ticker .tk { font-size:.78rem; color:#cfcfcf; padding:.3rem .5rem; background:var(--panel); border:1px solid var(--line); border-radius:.4rem; display:flex; justify-content:center; gap:.4rem; }
-    .ticker .tk .w { color:var(--accent); font-weight:700; }
-    @keyframes tkin { from { opacity:0; transform:translateY(-4px); } to { opacity:1; transform:none; } }
-
-    /* bracket */
-    .bracket { display:flex; flex-direction:column; gap:.8rem; margin-top:1rem; }
-    .match { border:1px solid var(--line); border-radius:.7rem; background:var(--panel); padding:.7rem .9rem; }
-    .match .ml { font-size:.55rem; letter-spacing:.12em; text-transform:uppercase; color:var(--muted); margin-bottom:.5rem; }
-    .match .row { display:flex; align-items:center; justify-content:space-between; padding:.3rem 0; font-size:.95rem; }
-    .match .row.win { color:var(--accent); font-weight:700; }
-    .match .row .sc { font-family:"Anton",Impact,sans-serif; }
-    .match .vs { text-align:center; color:#555; font-size:.6rem; }
-
-    /* final / champion */
-    .champ { text-align:center; padding:2rem 1rem; }
-    .champ .crown { font-family:"Anton",Impact,sans-serif; font-size:.7rem; letter-spacing:.3em; text-transform:uppercase; color:var(--gold); }
-    .champ .cname { font-family:"Anton",Impact,sans-serif; font-size:2.8rem; margin:.3rem 0; color:#fff; }
-    .champ .ctrophy { font-family:"Anton",Impact,sans-serif; font-size:1rem; color:var(--accent); letter-spacing:.1em; }
-    .final-card { border:1px solid var(--line); border-radius:.8rem; background:var(--panel); padding:1rem; margin-top:1rem; }
-    .final-card .fc-head { display:flex; justify-content:space-between; font-family:"Anton",Impact,sans-serif; font-size:1.3rem; }
-    .final-card .fc-head .w { color:var(--accent); }
-    .final-card .fc-line { color:var(--muted); font-size:.78rem; margin-top:.3rem; text-align:center; }
-    .perf { display:grid; grid-template-columns:1fr 1fr; gap:.6rem; margin-top:.9rem; }
-    .perf .p { border:1px solid var(--line); border-radius:.5rem; padding:.5rem .6rem; }
-    .perf .lbl { font-size:.5rem; letter-spacing:.1em; text-transform:uppercase; color:var(--muted); }
-    .perf .nm { font-weight:700; font-size:.82rem; margin-top:.2rem; }
-    .perf .st { color:var(--accent); font-size:.72rem; }
-
-    .status-msg { text-align:center; color:var(--muted); font-size:.85rem; padding:2.5rem 1rem; }
-    .spin { display:inline-block; width:1.1rem; height:1.1rem; border:2px solid var(--line); border-top-color:var(--accent); border-radius:50%; animation:rot .7s linear infinite; vertical-align:middle; margin-right:.4rem; }
-    @keyframes rot { to { transform:rotate(360deg); } }
-    .hidden { display:none !important; }
-
-    /* knockout match cards + detailed scorecard */
-    .ko-match { border:1px solid var(--line); border-radius:.7rem; background:var(--panel); margin-bottom:.8rem; overflow:hidden; }
-    .ko-match summary { list-style:none; cursor:pointer; padding:.8rem .9rem; }
-    .ko-match summary::-webkit-details-marker { display:none; }
-    .ko-label { display:block; font-size:.55rem; letter-spacing:.12em; text-transform:uppercase; color:var(--muted); margin-bottom:.45rem; }
-    .ko-score { display:flex; align-items:center; gap:.5rem; font-size:.95rem; font-weight:700; flex-wrap:wrap; }
-    .ko-score .w { color:var(--accent); }
-    .ko-vs { color:#555; font-size:.7rem; font-weight:400; }
-    .ko-result { display:block; color:var(--muted); font-size:.68rem; margin-top:.4rem; }
-    .ko-match .bot { color:#7aa2ff; font-size:.5rem; border:1px solid rgba(122,162,255,.4); border-radius:999px; padding:.05rem .3rem; margin-left:.3rem; }
-    .scorecard { padding:.4rem .9rem 1rem; border-top:1px solid var(--line); }
-    .innings-block { margin-top:.9rem; }
-    .innings-block h3 { font-family:"Anton",Impact,sans-serif; font-size:1.05rem; margin:.2rem 0 .5rem; }
-    .score-table { margin-bottom:.7rem; }
-    .score-row { display:grid; align-items:center; gap:.3rem; padding:.32rem .2rem; font-size:.76rem; border-bottom:1px solid rgba(255,255,255,.06); }
-    .score-row.bat { grid-template-columns:1.5fr 1.7fr .5fr .5fr .7fr; }
-    .score-row.bowl { grid-template-columns:1.7fr .5fr .5fr .5fr .7fr; }
-    .score-row > div:not(.c-name):not(.c-dis) { text-align:right; }
-    .score-row.head { color:var(--muted); font-size:.55rem; letter-spacing:.06em; text-transform:uppercase; border-bottom:1px solid var(--line); }
-    .score-row.is-dnb { opacity:.4; }
-    .c-name { font-weight:700; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-    .c-dis { color:var(--muted); font-size:.66rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-    .motm { margin-top:.6rem; font-size:.72rem; color:var(--gold); font-weight:700; }
-
-    /* confetti */
-    .confetti { position:fixed; top:-10px; width:8px; height:14px; z-index:60; opacity:.9; animation:fall linear forwards; }
-    @keyframes fall { to { transform:translateY(105vh) rotate(720deg); opacity:.4; } }
-  </style>
-</head>
-<body>
-  <div class="wrap">
-    <div class="top">
-      <a class="back" id="leaveBtn" href="index.html">← Home</a>
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, viewport-fit=cover"
+    />
+    <title>16-0 — League Simulation</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Anton&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="simulation.css" />
+    <link rel="stylesheet" href="report.css" />
+    <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="supabase_config.js"></script>
+  </head>
+  <body>
+    <header class="sim-header">
+      <a class="back-link" href="lobby.html">← Lobby</a>
       <span class="wordmark">16-0</span>
-      <span class="phase-chip" id="phaseChip">League</span>
+      <span class="phase-pill" id="phasePill">League</span>
+    </header>
+
+    <main class="sim-shell">
+      <section class="season-hero">
+        <div class="hero-text">
+          <p class="eyebrow">Season Simulation</p>
+          <h1 id="screenTitle">League Phase</h1>
+        </div>
+        <div class="record-card">
+          <span class="record-label">Record</span>
+          <strong id="recordText">0-0</strong>
+          <span id="pointsText">0 pts</span>
+        </div>
+      </section>
+
+      <div class="strength-readout" id="strengthReadout"></div>
+
+      <!-- League phase -->
+      <section id="leagueScreen" class="screen is-active">
+        <div class="league-top">
+          <!-- LEFT: fixture card + roster + pinned buttons -->
+          <div class="league-left">
+            <div class="fixture-card">
+              <span class="round-label" id="matchLabel">Round 1 of 14</span>
+              <p class="fixture-status" id="fixtureStatus" hidden>Loading…</p>
+              <div class="vs-row" id="vsRow">
+                <div class="vs-box">
+                  <span class="vs-name" id="userVsName">Your XI</span>
+                  <div class="vs-stats" id="userVsStats"></div>
+                </div>
+                <span class="vs-divider">VS</span>
+                <div class="vs-box vs-opp">
+                  <span class="vs-name" id="oppName">—</span>
+                  <div class="vs-stats" id="oppVsStats"></div>
+                </div>
+              </div>
+              <div class="fixture-result" id="fixtureResult" hidden></div>
+              <div class="pitch-badge" id="pitchBadge" hidden></div>
+            </div>
+
+            <div class="roster-card">
+              <div class="roster-scroll">
+                <table class="roster-table">
+                  <tbody id="rosterBody"></tbody>
+                </table>
+              </div>
+            </div>
+
+            <div class="btn-row league-actions">
+              <button id="playLeagueBtn" class="primary-btn" type="button">
+                Simulate
+              </button>
+            </div>
+          </div>
+
+          <!-- RIGHT: results list (unchanged) -->
+          <section class="panel results-panel">
+            <div class="panel-head">
+              <h2>Results</h2>
+              <span>Latest first</span>
+            </div>
+            <div id="leagueResults" class="results-list" aria-live="polite"></div>
+          </section>
+        </div>
+      </section>
+
+      <!-- League table -->
+      <section id="tableScreen" class="screen">
+        <div class="table-grid">
+          <section class="panel table-panel">
+            <div class="panel-head">
+              <h2>League Table</h2>
+              <span>Top 4 qualify</span>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Team</th>
+                    <th>P</th>
+                    <th>W</th>
+                    <th>L</th>
+                    <th>NRR</th>
+                    <th>Pts</th>
+                  </tr>
+                </thead>
+                <tbody id="leagueTable"></tbody>
+              </table>
+            </div>
+            <button id="playoffBtn" class="primary-btn wide" type="button" hidden>
+              Advance to Playoffs
+            </button>
+          </section>
+
+          <div class="table-right">
+            <section class="panel leaders-panel" id="leadersPanel">
+              <div class="panel-head">
+                <h2>Leaders</h2>
+                <span>All teams</span>
+              </div>
+              <div class="leader-columns">
+                <div>
+                  <h3>Top Scorers</h3>
+                  <ol id="runLeaders" class="leader-list"></ol>
+                </div>
+                <div>
+                  <h3>Top Wickets</h3>
+                  <ol id="wicketLeaders" class="leader-list"></ol>
+                </div>
+              </div>
+            </section>
+            <section class="panel season-end" id="seasonEnd" hidden></section>
+          </div>
+        </div>
+      </section>
+
+      <!-- Playoffs -->
+      <section id="playoffScreen" class="screen">
+        <div class="playoff-layout">
+          <section class="panel playoff-info">
+            <span class="mini-pill" id="playoffTitle">Qualifier 1</span>
+            <div class="playoff-outcome" id="playoffOutcome" hidden></div>
+            <div class="result-slot" id="resultSlot"></div>
+            <strong class="playoff-teams" id="playoffTeams">1st vs 2nd</strong>
+            <div class="playoff-result" id="playoffResult"></div>
+            <div class="playoff-actions" id="playoffActions">
+              <button id="playPlayoffBtn" class="primary-btn" type="button">
+                Play
+              </button>
+            </div>
+            <button id="viewScorecardBtn" class="view-scorecard-btn" type="button" hidden>
+              View Scorecard <span aria-hidden="true">↓</span>
+            </button>
+          </section>
+
+          <section id="scorecardPanel" class="panel scorecard">
+            <div class="result-banner" id="resultBanner">
+              Play the match to see the scorecard.
+            </div>
+            <div class="scorecard-grid" id="scorecardGrid"></div>
+            <div class="motm" id="motm"></div>
+            <div class="playoff-leaders" id="playoffLeaders"></div>
+          </section>
+        </div>
+      </section>
+    </main>
+
+    <footer class="app-report-footer">
+      <a class="report-link" onclick="openBugModal()">Report Issues</a>
+    </footer>
+
+    <div class="toast" role="status" aria-live="polite"></div>
+
+    <div id="bugModal" class="bug-modal" hidden>
+      <div class="bug-modal-inner">
+        <div class="bug-modal-header">
+          <h3>Report an Issue</h3>
+          <button class="bug-close" onclick="closeBugModal()" aria-label="Close">×</button>
+        </div>
+        <p class="bug-subtitle">Describe what went wrong and we'll fix it.</p>
+        <textarea id="bugText" placeholder="e.g. Simulation froze during the playoffs..." rows="5"></textarea>
+        <button id="bugSubmit" onclick="submitBug()">Send Report</button>
+        <p id="bugStatus" hidden></p>
+      </div>
     </div>
 
-    <div id="content">
-      <div class="status-msg"><span class="spin"></span>Loading league…</div>
-    </div>
-  </div>
-
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="supabase_config.js"></script>
-  <script src="sim-mp.js"></script>
-</body>
+    <script src="report.js"></script>
+    <script src="sim-mp.js"></script>
+    <!-- Vercel Web Analytics (static-site script; enable Analytics in the Vercel dashboard) -->
+    <script defer src="/_vercel/insights/script.js"></script>
+  </body>
 </html>

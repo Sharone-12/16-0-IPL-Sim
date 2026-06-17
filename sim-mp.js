@@ -634,8 +634,10 @@ function buildGroupFixtures() {
 
   const userMatches = [];
   const aiMatches = [];
+  const allMatches = [];
   const add = (home, away) => {
     const pair = [home, away];
+    allMatches.push(pair);
     if (home.id === USER_ID || away.id === USER_ID) userMatches.push(pair);
     else aiMatches.push(pair);
   };
@@ -658,7 +660,33 @@ function buildGroupFixtures() {
     }
   }
 
+  if (MP) return assembleRoundsShared(allMatches);
   return assembleRounds(userMatches, aiMatches);
+}
+
+// MULTIPLAYER schedule: completely user-independent so the seeded RNG is
+// consumed in the SAME order on every client → byte-identical results for the
+// whole room. Matches are packed into matchdays where each team plays at most
+// once per round, so every client's own team still has one fixture per round.
+function assembleRoundsShared(matches) {
+  const remaining = shuffle([...matches]); // seeded shuffle = identical everywhere
+  const rounds = [];
+  while (remaining.length) {
+    const used = new Set();
+    const round = [];
+    for (let i = 0; i < remaining.length; ) {
+      const [home, away] = remaining[i];
+      if (!used.has(home.id) && !used.has(away.id)) {
+        used.add(home.id);
+        used.add(away.id);
+        round.push(remaining.splice(i, 1)[0]);
+      } else {
+        i++;
+      }
+    }
+    rounds.push(round);
+  }
+  return rounds;
 }
 
 // Spread fixtures into matchdays: each round = 1 user match + a slice of the
@@ -1272,6 +1300,20 @@ function startPlayoffs() {
     eliminatorWinner: null,
     finalistA: null,
   };
+  // MULTIPLAYER: resolve the WHOLE bracket up front in a fixed canonical order
+  // (q1 → eliminator → q2 → final). Entering playoffs the seeded RNG state is
+  // identical on every client (the league was deterministic), so these four
+  // results — and thus the champion — are identical for everyone. The UI below
+  // just reveals the local player's path through these cached results.
+  if (MP) {
+    const [a, b, c, d] = top4;
+    const q1 = simulateMatch(a, b, { full: true, knockout: true });
+    const eliminator = simulateMatch(c, d, { full: true, knockout: true });
+    const q2 = simulateMatch(q1.loser, eliminator.winner, { full: true, knockout: true });
+    const final = simulateMatch(q1.winner, q2.winner, { full: true, knockout: true });
+    [q1, eliminator, q2, final].forEach(updatePlayerStats);
+    state.playoff.mp = { q1, eliminator, q2, final };
+  }
   els.tableScreen.classList.remove("is-active");
   els.playoffScreen.classList.add("is-active");
   els.phasePill.textContent = "Playoffs";
@@ -1319,8 +1361,12 @@ function playoffPromptText(match) {
 
 function playPlayoffMatch() {
   const matchTeams = currentPlayoffMatch();
-  const match = simulateMatch(matchTeams.home, matchTeams.away, { full: true, knockout: true });
-  updatePlayerStats(match);
+  // MP: read the pre-resolved (shared) result; solo: simulate live. Stats for MP
+  // bracket matches were already tallied once in startPlayoffs.
+  const match = MP
+    ? state.playoff.mp[state.playoff.stage]
+    : simulateMatch(matchTeams.home, matchTeams.away, { full: true, knockout: true });
+  if (!MP) updatePlayerStats(match);
   recordUserResult(match);
   renderFullScorecard(match);
   advancePlayoff(match);
@@ -1351,7 +1397,9 @@ function advancePlayoff(match) {
     }
     if (!state.playoff.q1Winner) {
       const [first, second] = state.playoff.top4;
-      const q1 = simulateMatch(first, second, { full: false, knockout: true });
+      const q1 = MP
+        ? state.playoff.mp.q1
+        : simulateMatch(first, second, { full: false, knockout: true });
       state.playoff.q1Winner = q1.winner;
       state.playoff.q1Loser = q1.loser;
       state.playoff.finalistA = q1.winner;

@@ -17,6 +17,8 @@
     <link rel="stylesheet" href="report.css" />
     <style>
       /* multiplayer-only chrome (everything else reuses draft.css) */
+      /* hide the centered wordmark so the timer can take that spot without overlap */
+      .draft-header .wordmark { visibility: hidden; }
       .mp-timer { position: fixed; top: calc(env(safe-area-inset-top) + 0.55rem); left: 50%;
         transform: translateX(-50%); z-index: 30; font-family: "Anton", Impact, sans-serif;
         font-size: 1.25rem; letter-spacing: .02em; color: #00ff87; padding: .1rem .6rem;

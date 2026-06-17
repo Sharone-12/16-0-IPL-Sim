@@ -1,0 +1,177 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>16-0 — League Draft</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Anton&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg:#0a0a0a; --panel:#141414; --panel-2:#1c1c1c; --line:rgba(255,255,255,.12);
+      --text:#fff; --muted:#8a8a8a; --accent:#00ff87; --accent-dim:rgba(0,255,135,.14);
+      --gold:#f5c451; --blue:#6db8ff; --green:#4ad991;
+    }
+    * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+    html,body { margin:0; }
+    body { background:var(--bg); color:var(--text); font-family:Arial,Helvetica,sans-serif;
+      min-height:100svh; padding-bottom:calc(env(safe-area-inset-bottom) + 5.5rem); }
+
+    /* top bar */
+    .topbar { position:sticky; top:0; z-index:20; display:flex; align-items:center; gap:.6rem;
+      padding:calc(env(safe-area-inset-top) + .7rem) 1rem .7rem; background:rgba(10,10,10,.92);
+      backdrop-filter:blur(8px); border-bottom:1px solid var(--line); }
+    .tb-left { font-size:.6rem; letter-spacing:.12em; text-transform:uppercase; color:var(--muted);
+      border:1px solid var(--line); border-radius:999px; padding:.45rem .7rem; cursor:pointer; background:none; }
+    .tb-mid { flex:1; min-width:0; }
+    .tb-room { font-weight:700; font-size:.85rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .tb-round { font-size:.58rem; letter-spacing:.12em; text-transform:uppercase; color:var(--muted); }
+    .timer { font-family:"Anton",Impact,sans-serif; font-size:1.5rem; min-width:2.4ch; text-align:center;
+      padding:.1rem .5rem; border-radius:.5rem; }
+    .timer.warn { color:var(--gold); } .timer.crit { color:#ff5e5e; }
+
+    .wrap { max-width:560px; margin:0 auto; padding:1rem; }
+
+    /* spin */
+    .spin-area { text-align:center; margin-bottom:1rem; }
+    .reels { display:flex; gap:.5rem; justify-content:center; margin-bottom:.8rem; }
+    .reel { flex:1; max-width:14rem; height:3.4rem; border:1px solid var(--line); border-radius:.7rem;
+      background:var(--panel); display:flex; align-items:center; justify-content:center; overflow:hidden;
+      font-family:"Anton",Impact,sans-serif; font-size:1.05rem; letter-spacing:.02em; padding:0 .5rem; }
+    .reel.season { max-width:6rem; }
+    .reel.rolling { color:var(--muted); }
+    .spin-btn { width:100%; max-width:20rem; padding:.95rem; border-radius:999px; border:1px solid #fff;
+      background:#fff; color:#000; font-weight:700; letter-spacing:.14em; text-transform:uppercase; font-size:.72rem;
+      cursor:pointer; font-family:inherit; }
+    .spin-btn:disabled { opacity:.4; cursor:not-allowed; }
+    .reroll-btn { background:transparent; color:#fff; border-color:var(--line); margin-top:.5rem; }
+    .spin-meta { color:var(--muted); font-size:.72rem; margin-top:.6rem; min-height:1rem; }
+
+    /* squad cards */
+    .squad { display:grid; grid-template-columns:1fr 1fr; gap:.6rem; margin-bottom:1.2rem; }
+    @media (max-width:430px){ .squad { grid-template-columns:1fr; } }
+    .card { text-align:left; border:1px solid var(--line); border-radius:.7rem; background:var(--panel);
+      padding:.7rem .75rem; cursor:pointer; font-family:inherit; color:var(--text);
+      transition:border-color 140ms ease, transform 140ms ease; }
+    .card:hover:not(.blocked){ border-color:#fff; transform:translateY(-2px); }
+    .card.blocked { opacity:.4; cursor:not-allowed; }
+    .card-top { display:flex; align-items:center; justify-content:space-between; gap:.5rem; }
+    .card-name { font-weight:700; font-size:.9rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .ovr { font-family:"Anton",Impact,sans-serif; font-size:1.1rem; }
+    .ovr.gold{color:var(--gold)} .ovr.blue{color:var(--blue)} .ovr.green{color:var(--green)} .ovr.white{color:#fff}
+    .card-meta { display:flex; align-items:center; gap:.4rem; margin-top:.4rem; flex-wrap:wrap; }
+    .rb { font-size:.5rem; letter-spacing:.06em; text-transform:uppercase; padding:.2rem .45rem; border-radius:999px; border:1px solid var(--line); }
+    .rb.op{color:#ff8c8c;border-color:rgba(255,140,140,.4)} .rb.mid{color:#7fe0a8;border-color:rgba(127,224,168,.4)}
+    .rb.fin{color:var(--gold);border-color:rgba(245,196,81,.4)} .rb.low{color:var(--blue);border-color:rgba(109,184,255,.4)}
+    .wk { font-size:.5rem; letter-spacing:.06em; color:#cfcfcf; border:1px solid var(--line); border-radius:999px; padding:.2rem .4rem; }
+    .plane { font-size:.7rem; opacity:.8; }
+    .card-sub { color:var(--muted); font-size:.62rem; margin-top:.35rem; }
+
+    /* XI panel */
+    .xi-wrap { border:1px solid var(--line); border-radius:.8rem; background:var(--panel); margin-bottom:1.2rem; overflow:hidden; }
+    .xi-head { display:flex; align-items:center; justify-content:space-between; padding:.8rem 1rem; cursor:pointer; }
+    .xi-head h3 { margin:0; font-size:.62rem; letter-spacing:.14em; text-transform:uppercase; color:var(--muted); }
+    .xi-count { font-size:.7rem; color:var(--muted); }
+    .xi-count b { color:var(--accent); }
+    .xi-list { list-style:none; margin:0; padding:0 1rem 1rem; }
+    .xi-list.collapsed { display:none; }
+    .xi-list li { display:flex; align-items:center; gap:.6rem; padding:.45rem 0; border-bottom:1px solid var(--line); font-size:.85rem; }
+    .xi-list li:last-child { border-bottom:none; }
+    .xi-num { width:1.4rem; color:var(--muted); font-family:"Anton",Impact,sans-serif; }
+    .xi-name { flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .xi-empty { color:#555; }
+    .xi-povr { font-weight:700; color:var(--muted); }
+
+    /* live sidebar (bottom sheet) */
+    .sidebar { position:fixed; left:0; right:0; bottom:0; z-index:30; background:rgba(15,15,15,.97);
+      backdrop-filter:blur(10px); border-top:1px solid var(--line); padding:.5rem 1rem calc(env(safe-area-inset-bottom) + .6rem); }
+    .sb-head { display:flex; align-items:center; justify-content:space-between; margin-bottom:.4rem; }
+    .sb-head h3 { margin:0; font-size:.58rem; letter-spacing:.14em; text-transform:uppercase; color:var(--accent); }
+    .sb-toggle { background:none;border:none;color:var(--muted);font-size:1rem;cursor:pointer; }
+    .sb-list { list-style:none; margin:0; padding:0; max-height:9rem; overflow-y:auto; transition:max-height .2s ease; }
+    .sb-list.min { max-height:0; }
+    .sb-list li { display:flex; align-items:center; gap:.55rem; padding:.35rem 0; border-bottom:1px solid rgba(255,255,255,.06); font-size:.78rem; }
+    .sb-list li:last-child { border-bottom:none; }
+    .sb-mono { width:1.7rem;height:1.7rem;flex-shrink:0;display:grid;place-items:center;border-radius:50%;
+      border:1px solid var(--line);background:var(--panel-2);font-family:"Anton",Impact,sans-serif;font-size:.7rem;color:#ddd; }
+    .sb-mono.bot{border-style:dashed;color:#9fb4e6}
+    .sb-name { font-weight:700; max-width:7rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .sb-pick { color:var(--muted); flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .sb-rem { color:var(--muted); font-size:.66rem; }
+    .sb-list li.flash .sb-mono { border-color:var(--accent); color:var(--accent); box-shadow:0 0 8px var(--accent-dim); }
+    .sb-list li.me .sb-name { color:var(--accent); }
+
+    /* done bar */
+    .done-bar { position:fixed; left:0; right:0; bottom:0; z-index:40; padding:1rem; background:rgba(10,10,10,.96);
+      border-top:1px solid var(--line); }
+    .done-btn { width:100%; max-width:560px; margin:0 auto; display:block; padding:1rem; border-radius:999px;
+      border:1px solid var(--accent); background:var(--accent); color:#04220f; font-weight:700; letter-spacing:.12em;
+      text-transform:uppercase; font-size:.74rem; cursor:pointer; font-family:inherit; }
+    .done-btn:disabled { opacity:.5; cursor:default; }
+
+    .hidden { display:none !important; }
+    .toast { position:fixed; left:50%; top:5rem; transform:translateX(-50%) translateY(-1rem); opacity:0;
+      background:#fff; color:#000; font-weight:700; font-size:.74rem; padding:.55rem 1rem; border-radius:999px;
+      transition:all .2s ease; z-index:60; pointer-events:none; }
+    .toast.show { transform:translateX(-50%) translateY(0); opacity:1; }
+    .toast.err { background:#ff5e5e; color:#fff; }
+    .countdown { position:fixed; inset:0; background:rgba(0,0,0,.92); display:flex; align-items:center; justify-content:center; z-index:100; }
+    .countdown .num { font-family:"Anton",Impact,sans-serif; font-size:9rem; color:var(--accent); animation:pop 1s ease forwards; }
+    @keyframes pop { 0%{transform:scale(.3);opacity:0} 30%{transform:scale(1);opacity:1} 100%{transform:scale(1.4);opacity:0} }
+  </style>
+</head>
+<body>
+  <div class="topbar">
+    <button class="tb-left" id="leaveBtn">Leave</button>
+    <div class="tb-mid">
+      <div class="tb-room" id="roomName">League</div>
+      <div class="tb-round" id="roundLabel">Pick 0 / 11</div>
+    </div>
+    <div class="timer" id="timer">60</div>
+  </div>
+
+  <div class="wrap">
+    <div class="spin-area">
+      <div class="reels">
+        <div class="reel club" id="reelClub">—</div>
+        <div class="reel season" id="reelSeason">—</div>
+      </div>
+      <button class="spin-btn" id="spinBtn">Spin</button>
+      <button class="spin-btn reroll-btn hidden" id="rerollBtn">Reroll · <span id="rerollLeft">0</span> left</button>
+      <div class="spin-meta" id="spinMeta">Spin for your first club</div>
+    </div>
+
+    <div class="squad" id="squadGrid"></div>
+
+    <div class="xi-wrap">
+      <div class="xi-head" id="xiHead">
+        <h3>Your XI</h3>
+        <span class="xi-count"><b id="pickCount">0</b>/11 · <span id="osCount">0</span>/4 overseas ▾</span>
+      </div>
+      <ol class="xi-list" id="xiList"></ol>
+    </div>
+  </div>
+
+  <!-- live sidebar -->
+  <div class="sidebar" id="sidebar">
+    <div class="sb-head">
+      <h3>League Draft — live</h3>
+      <button class="sb-toggle" id="sbToggle">▾</button>
+    </div>
+    <ul class="sb-list" id="sbList"></ul>
+  </div>
+
+  <!-- done bar (replaces sidebar once your XI is full) -->
+  <div class="done-bar hidden" id="doneBar">
+    <button class="done-btn" id="doneBtn" disabled>Ready for Simulation</button>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="supabase_config.js"></script>
+  <script src="draft-mp.js"></script>
+</body>
+</html>

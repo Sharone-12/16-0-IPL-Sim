@@ -235,17 +235,6 @@ h1 {
   outline-offset: 4px;
 }
 
-/* Multiplayer = the new headline feature: green-accent variant of the pill. */
-.multiplayer-landing-btn {
-  border-color: #00ff87;
-  color: #00ff87;
-}
-.multiplayer-landing-btn:hover {
-  background: #00ff87;
-  border-color: #00ff87;
-  color: #04220f;
-}
-
 /* How to Play — outlined pill, matches the Leaderboard button */
 .how-to-btn {
   display: inline-flex;

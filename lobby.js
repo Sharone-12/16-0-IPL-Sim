@@ -10,8 +10,11 @@ function uid() {
   if (crypto.randomUUID) return crypto.randomUUID();
   return "p_" + Math.random().toString(36).slice(2) + Date.now().toString(36);
 }
-let PLAYER_ID = localStorage.getItem("mp_pid");
-if (!PLAYER_ID) { PLAYER_ID = uid(); localStorage.setItem("mp_pid", PLAYER_ID); }
+// Per-TAB identity (sessionStorage, not localStorage) so two tabs in the same
+// browser are distinct players — and so a fresh tab/session never collides with
+// a stale player row from a previous room (players.id is a global primary key).
+let PLAYER_ID = sessionStorage.getItem("mp_pid");
+if (!PLAYER_ID) { PLAYER_ID = uid(); sessionStorage.setItem("mp_pid", PLAYER_ID); }
 
 // ---------- state ----------
 const state = {
@@ -148,8 +151,9 @@ $("createBtn").onclick = async () => {
     if (!ok) throw new Error("Could not generate a free room code, try again.");
 
     // host joins as a player
-    const hostName = (localStorage.getItem("mp_name") || "Host").slice(0, 18);
-    await supa.from("players").insert({
+    const hostName = (($("hostName").value || "").trim() || localStorage.getItem("mp_name") || "Host").slice(0, 18);
+    localStorage.setItem("mp_name", hostName);
+    await supa.from("players").upsert({
       id: PLAYER_ID, room_id: code, username: hostName,
       is_host: true, is_bot: false, status: "ready", xi: null,
     });
@@ -397,6 +401,8 @@ function escapeHtml(v) {
 // ===================== boot =====================
 (async function boot() {
   await loadBotTeams();
+  const savedName = localStorage.getItem("mp_name");
+  if (savedName) { const h = $("hostName"); if (h) h.value = savedName; }
   // deep link: ?room=CODE -> prefill join
   const params = new URLSearchParams(location.search);
   const roomParam = (params.get("room") || "").toUpperCase();

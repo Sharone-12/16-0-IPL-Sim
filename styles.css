@@ -235,6 +235,23 @@ h1 {
   outline-offset: 4px;
 }
 
+/* Multiplayer = headline feature. Stays monochrome but pulses a soft white glow
+   so it stands out among the plain pills. */
+.mp-glow {
+  border-color: #fff;
+  animation: mp-pulse 2.2s ease-in-out infinite;
+}
+.mp-glow:hover {
+  animation: none;
+}
+@keyframes mp-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(255, 255, 255, 0); }
+  50% { box-shadow: 0 0 18px 1px rgba(255, 255, 255, 0.45); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .mp-glow { animation: none; box-shadow: 0 0 14px 1px rgba(255, 255, 255, 0.3); }
+}
+
 /* How to Play — outlined pill, matches the Leaderboard button */
 .how-to-btn {
   display: inline-flex;

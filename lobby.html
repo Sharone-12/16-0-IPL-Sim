@@ -87,7 +87,11 @@
     .players { list-style: none; margin: 0; padding: 0; }
     .players li { display: flex; align-items: center; gap: 0.7rem; padding: 0.65rem 0.2rem; border-bottom: 1px solid var(--line); }
     .players li:last-child { border-bottom: none; }
-    .ava { font-size: 1.3rem; width: 2rem; text-align: center; }
+    .ava { width: 2.1rem; height: 2.1rem; flex-shrink: 0; display: grid; place-items: center;
+      border-radius: 50%; border: 1px solid var(--line); background: var(--panel-2);
+      font-family: "Anton", Impact, sans-serif; font-size: 0.95rem; color: #e8e8e8; letter-spacing: 0.02em; }
+    .ava.host { border-color: rgba(245,196,81,0.55); color: #f5c451; }
+    .ava.bot { border-style: dashed; color: #9fb4e6; border-color: rgba(122,162,255,0.4); }
     .pname { flex: 1; font-weight: 700; font-size: 0.95rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .ptag { font-size: 0.5rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); border: 1px solid var(--line); border-radius: 999px; padding: 0.2rem 0.5rem; }
     .ptag.host { color: #f5c451; border-color: rgba(245,196,81,0.5); }
@@ -102,9 +106,12 @@
     .fill-note b { color: var(--accent); }
 
     .bot-list { list-style: none; margin: 0; padding: 0; }
-    .bot-list li { display: flex; align-items: center; gap: 0.6rem; padding: 0.5rem 0.2rem; font-size: 0.85rem; color: #cfcfcf; }
-    .bot-list .rank { font-family: "Anton", Impact, sans-serif; color: #7aa2ff; width: 1.6rem; }
-    .bot-list .bovr { margin-left: auto; font-weight: 700; color: var(--muted); font-size: 0.78rem; }
+    .bot-list li { display: flex; align-items: center; gap: 0.7rem; padding: 0.55rem 0.2rem; font-size: 0.88rem; color: #cfcfcf; border-bottom: 1px solid var(--line); }
+    .bot-list li:last-child { border-bottom: none; }
+    .bot-list .rank { font-family: "Anton", Impact, sans-serif; color: var(--muted); width: 1.4rem; font-size: 0.85rem; }
+    .bot-list .bname { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .bot-list .btag { font-size: 0.5rem; letter-spacing: 0.1em; text-transform: uppercase; color: #9fb4e6; border: 1px solid rgba(122,162,255,0.35); border-radius: 999px; padding: 0.2rem 0.5rem; }
+    .bot-list .bovr { font-weight: 700; color: var(--muted); font-size: 0.76rem; min-width: 3.6rem; text-align: right; }
 
     .hidden { display: none !important; }
     .err { color: var(--danger); font-size: 0.78rem; min-height: 1rem; margin: 0.3rem 0 0; }

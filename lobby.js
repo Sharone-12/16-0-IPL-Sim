@@ -44,12 +44,10 @@ function toast(msg) {
   setTimeout(() => t.classList.remove("show"), 1600);
 }
 
-// ---------- avatars ----------
-const AVATARS = ["🏏", "🦁", "🐯", "⚡", "🔥", "🦅", "🐉", "👑", "🚀", "💎", "🎯", "🦈"];
-function avatarFor(id) {
-  let h = 0;
-  for (const c of id) h = (h * 31 + c.charCodeAt(0)) >>> 0;
-  return AVATARS[h % AVATARS.length];
+// ---------- avatars (clean monogram, no emoji) ----------
+function initialOf(name) {
+  const n = (name || "").trim();
+  return n ? n[0].toUpperCase() : "?";
 }
 
 // ===================== CSV: bot team ratings =====================
@@ -286,7 +284,7 @@ function renderWaiting() {
     if (p.is_host) tags.push('<span class="ptag host">Host</span>');
     if (!p.is_host && p.status === "ready") tags.push('<span class="ptag ready">Ready</span>');
     return `<li>
-      <span class="ava">${avatarFor(p.id)}</span>
+      <span class="ava ${p.is_host ? "host" : ""}">${initialOf(p.username)}</span>
       <span class="pname">${escapeHtml(p.username)}${p.id === PLAYER_ID ? " (you)" : ""}</span>
       ${tags.join("")}
       <span class="dot ${online ? "" : "off"}"></span>
@@ -300,7 +298,13 @@ function renderWaiting() {
     : `Full lobby — no bots needed.`;
   const bots = state.botTeams.slice(0, botCount);
   $("botList").innerHTML = bots.map((t, i) =>
-    `<li><span class="rank">${i + 1}</span> 🤖 ${escapeHtml(t.name)} <span class="bovr">OVR ${t.ovr}</span></li>`
+    `<li>
+      <span class="rank">${i + 1}</span>
+      <span class="ava bot">${initialOf(t.name)}</span>
+      <span class="bname">${escapeHtml(t.name)}</span>
+      <span class="btag">Bot</span>
+      <span class="bovr">OVR ${t.ovr}</span>
+    </li>`
   ).join("");
   $("botPanel").classList.toggle("hidden", botCount === 0 || !csvReady);
 

@@ -76,6 +76,30 @@
     @keyframes rot { to { transform:rotate(360deg); } }
     .hidden { display:none !important; }
 
+    /* knockout match cards + detailed scorecard */
+    .ko-match { border:1px solid var(--line); border-radius:.7rem; background:var(--panel); margin-bottom:.8rem; overflow:hidden; }
+    .ko-match summary { list-style:none; cursor:pointer; padding:.8rem .9rem; }
+    .ko-match summary::-webkit-details-marker { display:none; }
+    .ko-label { display:block; font-size:.55rem; letter-spacing:.12em; text-transform:uppercase; color:var(--muted); margin-bottom:.45rem; }
+    .ko-score { display:flex; align-items:center; gap:.5rem; font-size:.95rem; font-weight:700; flex-wrap:wrap; }
+    .ko-score .w { color:var(--accent); }
+    .ko-vs { color:#555; font-size:.7rem; font-weight:400; }
+    .ko-result { display:block; color:var(--muted); font-size:.68rem; margin-top:.4rem; }
+    .ko-match .bot { color:#7aa2ff; font-size:.5rem; border:1px solid rgba(122,162,255,.4); border-radius:999px; padding:.05rem .3rem; margin-left:.3rem; }
+    .scorecard { padding:.4rem .9rem 1rem; border-top:1px solid var(--line); }
+    .innings-block { margin-top:.9rem; }
+    .innings-block h3 { font-family:"Anton",Impact,sans-serif; font-size:1.05rem; margin:.2rem 0 .5rem; }
+    .score-table { margin-bottom:.7rem; }
+    .score-row { display:grid; align-items:center; gap:.3rem; padding:.32rem .2rem; font-size:.76rem; border-bottom:1px solid rgba(255,255,255,.06); }
+    .score-row.bat { grid-template-columns:1.5fr 1.7fr .5fr .5fr .7fr; }
+    .score-row.bowl { grid-template-columns:1.7fr .5fr .5fr .5fr .7fr; }
+    .score-row > div:not(.c-name):not(.c-dis) { text-align:right; }
+    .score-row.head { color:var(--muted); font-size:.55rem; letter-spacing:.06em; text-transform:uppercase; border-bottom:1px solid var(--line); }
+    .score-row.is-dnb { opacity:.4; }
+    .c-name { font-weight:700; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .c-dis { color:var(--muted); font-size:.66rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .motm { margin-top:.6rem; font-size:.72rem; color:var(--gold); font-weight:700; }
+
     /* confetti */
     .confetti { position:fixed; top:-10px; width:8px; height:14px; z-index:60; opacity:.9; animation:fall linear forwards; }
     @keyframes fall { to { transform:translateY(105vh) rotate(720deg); opacity:.4; } }

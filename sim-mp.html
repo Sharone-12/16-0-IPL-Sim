@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>16-0 — League Simulation</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Anton&display=swap" rel="stylesheet" />
+  <style>
+    :root { --bg:#0a0a0a; --panel:#141414; --panel-2:#1c1c1c; --line:rgba(255,255,255,.12);
+      --text:#fff; --muted:#8a8a8a; --accent:#00ff87; --accent-dim:rgba(0,255,135,.14); --gold:#f5c451; }
+    * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+    html,body { margin:0; }
+    body { background:var(--bg); color:var(--text); font-family:Arial,Helvetica,sans-serif;
+      min-height:100svh; padding:calc(env(safe-area-inset-top) + .7rem) 1rem calc(env(safe-area-inset-bottom) + 2rem); }
+    .wrap { max-width:600px; margin:0 auto; }
+    .top { display:flex; align-items:center; justify-content:space-between; margin-bottom:1rem; }
+    .back { font-size:.6rem; letter-spacing:.12em; text-transform:uppercase; color:var(--muted);
+      border:1px solid var(--line); border-radius:999px; padding:.45rem .8rem; cursor:pointer; background:none; text-decoration:none; }
+    .wordmark { font-family:"Anton",Impact,sans-serif; font-size:1.4rem; }
+    .phase-chip { font-size:.55rem; letter-spacing:.14em; text-transform:uppercase; color:var(--accent);
+      border:1px solid var(--accent-dim); background:var(--accent-dim); border-radius:999px; padding:.4rem .7rem; }
+
+    h2.title { font-family:"Anton",Impact,sans-serif; font-size:1.8rem; margin:.2rem 0 .1rem; }
+    .sub { color:var(--muted); font-size:.8rem; margin:0 0 1.2rem; }
+
+    .btn { width:100%; padding:.95rem; border-radius:999px; border:1px solid var(--accent); background:var(--accent);
+      color:#04220f; font-weight:700; letter-spacing:.12em; text-transform:uppercase; font-size:.74rem; cursor:pointer;
+      font-family:inherit; margin-top:1rem; transition:opacity .15s ease; }
+    .btn.ghost { background:transparent; color:#fff; border-color:var(--line); }
+    .btn:disabled { opacity:.45; cursor:default; }
+
+    /* standings */
+    table { width:100%; border-collapse:collapse; }
+    th { font-size:.55rem; letter-spacing:.1em; text-transform:uppercase; color:var(--muted); text-align:right; padding:.5rem .35rem; font-weight:700; }
+    th.l, td.l { text-align:left; }
+    td { padding:.55rem .35rem; font-size:.85rem; border-bottom:1px solid var(--line); text-align:right; }
+    tr:last-child td { border-bottom:none; }
+    .rank { color:var(--muted); font-family:"Anton",Impact,sans-serif; width:1.4rem; }
+    .tname { font-weight:700; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:9rem; }
+    .tname .bot { color:#7aa2ff; font-size:.55rem; border:1px solid rgba(122,162,255,.4); border-radius:999px; padding:.05rem .35rem; margin-left:.35rem; }
+    tr.me td { background:rgba(0,255,135,.06); }
+    tr.me .tname { color:var(--accent); }
+    tr.q td { box-shadow:inset 3px 0 0 var(--accent); }
+    tr.out td { opacity:.4; }
+    .pts { color:var(--gold); font-weight:700; }
+    .qline { font-size:.6rem; color:var(--muted); text-align:center; padding:.4rem 0; letter-spacing:.08em; text-transform:uppercase; }
+
+    /* bracket */
+    .bracket { display:flex; flex-direction:column; gap:.8rem; margin-top:1rem; }
+    .match { border:1px solid var(--line); border-radius:.7rem; background:var(--panel); padding:.7rem .9rem; }
+    .match .ml { font-size:.55rem; letter-spacing:.12em; text-transform:uppercase; color:var(--muted); margin-bottom:.5rem; }
+    .match .row { display:flex; align-items:center; justify-content:space-between; padding:.3rem 0; font-size:.95rem; }
+    .match .row.win { color:var(--accent); font-weight:700; }
+    .match .row .sc { font-family:"Anton",Impact,sans-serif; }
+    .match .vs { text-align:center; color:#555; font-size:.6rem; }
+
+    /* final / champion */
+    .champ { text-align:center; padding:2rem 1rem; }
+    .champ .crown { font-family:"Anton",Impact,sans-serif; font-size:.7rem; letter-spacing:.3em; text-transform:uppercase; color:var(--gold); }
+    .champ .cname { font-family:"Anton",Impact,sans-serif; font-size:2.8rem; margin:.3rem 0; color:#fff; }
+    .champ .ctrophy { font-family:"Anton",Impact,sans-serif; font-size:1rem; color:var(--accent); letter-spacing:.1em; }
+    .final-card { border:1px solid var(--line); border-radius:.8rem; background:var(--panel); padding:1rem; margin-top:1rem; }
+    .final-card .fc-head { display:flex; justify-content:space-between; font-family:"Anton",Impact,sans-serif; font-size:1.3rem; }
+    .final-card .fc-head .w { color:var(--accent); }
+    .final-card .fc-line { color:var(--muted); font-size:.78rem; margin-top:.3rem; text-align:center; }
+    .perf { display:grid; grid-template-columns:1fr 1fr; gap:.6rem; margin-top:.9rem; }
+    .perf .p { border:1px solid var(--line); border-radius:.5rem; padding:.5rem .6rem; }
+    .perf .lbl { font-size:.5rem; letter-spacing:.1em; text-transform:uppercase; color:var(--muted); }
+    .perf .nm { font-weight:700; font-size:.82rem; margin-top:.2rem; }
+    .perf .st { color:var(--accent); font-size:.72rem; }
+
+    .status-msg { text-align:center; color:var(--muted); font-size:.85rem; padding:2.5rem 1rem; }
+    .spin { display:inline-block; width:1.1rem; height:1.1rem; border:2px solid var(--line); border-top-color:var(--accent); border-radius:50%; animation:rot .7s linear infinite; vertical-align:middle; margin-right:.4rem; }
+    @keyframes rot { to { transform:rotate(360deg); } }
+    .hidden { display:none !important; }
+
+    /* confetti */
+    .confetti { position:fixed; top:-10px; width:8px; height:14px; z-index:60; opacity:.9; animation:fall linear forwards; }
+    @keyframes fall { to { transform:translateY(105vh) rotate(720deg); opacity:.4; } }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="top">
+      <a class="back" id="leaveBtn" href="index.html">← Home</a>
+      <span class="wordmark">16-0</span>
+      <span class="phase-chip" id="phaseChip">League</span>
+    </div>
+
+    <div id="content">
+      <div class="status-msg"><span class="spin"></span>Loading league…</div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="supabase_config.js"></script>
+  <script src="sim-mp.js"></script>
+</body>
+</html>

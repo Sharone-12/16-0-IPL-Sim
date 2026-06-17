@@ -46,6 +46,11 @@
     tr.out td { opacity:.4; }
     .pts { color:var(--gold); font-weight:700; }
     .qline { font-size:.6rem; color:var(--muted); text-align:center; padding:.4rem 0; letter-spacing:.08em; text-transform:uppercase; }
+    /* league reveal ticker */
+    .ticker { display:grid; gap:.3rem; margin-bottom:1rem; animation:tkin .3s ease; }
+    .ticker .tk { font-size:.78rem; color:#cfcfcf; padding:.3rem .5rem; background:var(--panel); border:1px solid var(--line); border-radius:.4rem; display:flex; justify-content:center; gap:.4rem; }
+    .ticker .tk .w { color:var(--accent); font-weight:700; }
+    @keyframes tkin { from { opacity:0; transform:translateY(-4px); } to { opacity:1; transform:none; } }
 
     /* bracket */
     .bracket { display:flex; flex-direction:column; gap:.8rem; margin-top:1rem; }

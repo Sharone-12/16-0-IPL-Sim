@@ -204,20 +204,35 @@ function buildTeam(p) {
 }
 
 // ====================== tournament (host) ======================
+// Circle-method round-robin: N teams -> N-1 rounds of N/2 matches each, so the
+// league can be revealed round-by-round like the base game.
+function roundRobinRounds(ids) {
+  const arr = ids.slice(); if (arr.length % 2) arr.push(null);
+  const m = arr.length, rounds = [];
+  for (let r = 0; r < m - 1; r++) {
+    const pairs = [];
+    for (let i = 0; i < m / 2; i++) { const a = arr[i], b = arr[m - 1 - i]; if (a != null && b != null) pairs.push([a, b]); }
+    rounds.push(pairs);
+    arr.splice(1, 0, arr.pop());
+  }
+  return rounds;
+}
 function runTournament(teams) {
+  const byId = (id) => teams.find((t) => t.id === id);
   const table = {};
   teams.forEach((t) => { table[t.id] = { id: t.id, name: t.name, isBot: t.isBot, p: 0, w: 0, l: 0, rf: 0, ra: 0 }; });
-  for (let i = 0; i < teams.length; i++) for (let j = i + 1; j < teams.length; j++) {
-    const m = simulateMatch(teams[i], teams[j]);
-    const a = teams[i].id, b = teams[j].id;
-    const sa = m.scoreFor(a), sb = m.scoreFor(b);
+  const rounds = roundRobinRounds(teams.map((t) => t.id));
+  const league = [];
+  rounds.forEach((pairs, ri) => pairs.forEach(([a, b]) => {
+    const m = simulateMatch(byId(a), byId(b));
+    const sa = m.scoreFor(a).runs, sb = m.scoreFor(b).runs;
     table[a].p++; table[b].p++;
-    table[a].rf += sa.runs; table[a].ra += sb.runs; table[b].rf += sb.runs; table[b].ra += sa.runs;
+    table[a].rf += sa; table[a].ra += sb; table[b].rf += sb; table[b].ra += sa;
     if (m.winner.id === a) { table[a].w++; table[b].l++; } else { table[b].w++; table[a].l++; }
-  }
+    league.push({ a, b, sa, sb, wId: m.winner.id, round: ri });
+  }));
   const standings = Object.values(table).map((r) => ({ ...r, pts: r.w * 2, nrr: +((r.rf / (20 * r.p)) - (r.ra / (20 * r.p))).toFixed(3) }))
     .sort((a, b) => b.pts - a.pts || b.nrr - a.nrr);
-  const byId = (id) => teams.find((t) => t.id === id);
   const t4 = standings.slice(0, 4).map((s) => byId(s.id));
   const q1m = simulateMatch(t4[0], t4[1], { knockout: true });
   const elimm = simulateMatch(t4[2], t4[3], { knockout: true });
@@ -225,7 +240,7 @@ function runTournament(teams) {
   const q2m = simulateMatch(q1l, elimw, { knockout: true });
   const finalm = simulateMatch(q1w, q2m.winner, { knockout: true });
   return {
-    standings,
+    standings, league, roundsCount: rounds.length,
     ko: {
       q1: matchToCard(q1m, "Qualifier 1 · 1st vs 2nd"),
       elim: matchToCard(elimm, "Eliminator · 3rd vs 4th"),
@@ -290,19 +305,58 @@ function teamCell(id) {
   return `${esc(nameById[id] || "—")}${t && t.isBot ? '<span class="bot">BOT</span>' : ""}`;
 }
 
-// ---------- league ----------
-function renderLeague(res) {
-  const rows = res.standings.map((s, i) => `
-    <tr class="${s.id === PID ? "me" : ""} ${i < 4 ? "q" : ""}">
+// ---------- league (animated round-by-round, like the base game) ----------
+let leagueDone = false, leagueAnimating = false, leagueTimer = null;
+
+function standingsUpto(league, rounds) {
+  const t = {};
+  teams.forEach((x) => { t[x.id] = { id: x.id, p: 0, w: 0, l: 0, rf: 0, ra: 0 }; });
+  league.filter((m) => m.round < rounds).forEach((m) => {
+    t[m.a].p++; t[m.b].p++; t[m.a].rf += m.sa; t[m.a].ra += m.sb; t[m.b].rf += m.sb; t[m.b].ra += m.sa;
+    if (m.wId === m.a) { t[m.a].w++; t[m.b].l++; } else { t[m.b].w++; t[m.a].l++; }
+  });
+  return Object.values(t).map((r) => ({ ...r, pts: r.w * 2, nrr: r.p ? +((r.rf / (20 * r.p)) - (r.ra / (20 * r.p))).toFixed(3) : 0 }))
+    .sort((a, b) => b.pts - a.pts || b.nrr - a.nrr || a.id.localeCompare(b.id));
+}
+
+function drawLeague(res, standings, revealed, total, roundMatches) {
+  const live = revealed < total;
+  const rows = standings.map((s, i) => `
+    <tr class="${s.id === PID ? "me" : ""} ${!live && i < 4 ? "q" : ""}">
       <td class="l rank">${i + 1}</td><td class="l tname">${teamCell(s.id)}</td>
       <td>${s.p}</td><td>${s.w}</td><td>${s.l}</td>
       <td>${s.nrr > 0 ? "+" : ""}${s.nrr.toFixed(2)}</td><td class="pts">${s.pts}</td>
-    </tr>${i === 3 ? '<tr><td colspan="7" class="qline">— top 4 qualify —</td></tr>' : ""}`).join("");
+    </tr>${!live && i === 3 ? '<tr><td colspan="7" class="qline">— top 4 qualify —</td></tr>' : ""}`).join("");
+  const ticker = roundMatches ? `<div class="ticker">${roundMatches.map((m) =>
+    `<div class="tk"><span class="${m.wId === m.a ? "w" : ""}">${esc(nameById[m.a])} ${m.sa}</span> – <span class="${m.wId === m.b ? "w" : ""}">${m.sb} ${esc(nameById[m.b])}</span></div>`).join("")}</div>` : "";
   content.innerHTML = `
-    <h2 class="title">League Table</h2><p class="sub">Round-robin complete — every team played every other once.</p>
+    <h2 class="title">League ${live ? "" : "Table"}</h2>
+    <p class="sub">${live ? `Simulating round ${revealed} of ${total}…` : "Round-robin complete — every team played every other once."}</p>
+    ${ticker}
     <table><thead><tr><th class="l">#</th><th class="l">Team</th><th>P</th><th>W</th><th>L</th><th>NRR</th><th>Pts</th></tr></thead><tbody>${rows}</tbody></table>
-    <button class="btn" id="nextBtn">Continue to Knockouts →</button>`;
-  $("nextBtn").onclick = () => { stage = 1; render(); };
+    ${live
+      ? `<button class="btn ghost" id="skipBtn">Skip to Final Table</button>`
+      : `<button class="btn" id="nextBtn">Continue to Knockouts →</button>`}`;
+  if (live) $("skipBtn").onclick = finishLeague.bind(null, res);
+  else $("nextBtn").onclick = () => { stage = 1; render(); };
+}
+function finishLeague(res) {
+  clearTimeout(leagueTimer); leagueAnimating = false; leagueDone = true;
+  drawLeague(res, res.standings, res.roundsCount, res.roundsCount, null);
+}
+function renderLeague(res) {
+  if (leagueDone) { drawLeague(res, res.standings, res.roundsCount, res.roundsCount, null); return; }
+  if (leagueAnimating) return; // don't restart on incidental re-renders
+  leagueAnimating = true;
+  const total = res.roundsCount;
+  let cur = 0;
+  const step = () => {
+    cur++;
+    drawLeague(res, standingsUpto(res.league, cur), cur, total, res.league.filter((m) => m.round === cur - 1));
+    if (cur >= total) { leagueAnimating = false; leagueDone = true; setTimeout(() => finishLeague(res), 900); return; }
+    leagueTimer = setTimeout(step, 950);
+  };
+  step();
 }
 
 // ---------- scorecard (detailed, like solo) ----------

@@ -1128,7 +1128,7 @@ function tierBadge(tier, type) {
 function renderLeaders() {
   const leaders = Object.values(state.leaders);
   els.runLeaders.innerHTML = [...leaders]
-    .sort((a, b) => b.runs - a.runs)
+    .sort((a, b) => b.runs - a.runs || a.name.localeCompare(b.name))
     .slice(0, 8)
     .map((p) => {
       const r = Math.min(p.runs, RUNS_CAP);
@@ -1136,7 +1136,7 @@ function renderLeaders() {
     })
     .join("");
   els.wicketLeaders.innerHTML = [...leaders]
-    .sort((a, b) => b.wickets - a.wickets)
+    .sort((a, b) => b.wickets - a.wickets || a.name.localeCompare(b.name))
     .slice(0, 8)
     .map((p) => {
       const w = Math.min(p.wickets, WKTS_CAP);
@@ -1473,7 +1473,16 @@ function showResultCard(outcome, container) {
 
 function tableRows() {
   return Object.values(state.standings)
-    .sort((a, b) => b.pts - a.pts || Number(nrr(b)) - Number(nrr(a)) || b.w - a.w);
+    .sort(
+      (a, b) =>
+        b.pts - a.pts ||
+        Number(nrr(b)) - Number(nrr(a)) ||
+        b.w - a.w ||
+        // Final, fully-deterministic tiebreak by team id — guarantees the table
+        // (and therefore the top 4, the bracket and the champion) is identical
+        // on every client even when points/NRR/wins are exactly level.
+        String(a.team.id).localeCompare(String(b.team.id))
+    );
 }
 
 function nrr(row) {

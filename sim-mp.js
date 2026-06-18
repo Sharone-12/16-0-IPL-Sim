@@ -145,8 +145,11 @@ async function mpBoot() {
       .eq("room_id", MP_ROOM)
       .order("joined_at", { ascending: true });
 
+    // Humans must have drafted an XI; bots are franchises — their XI is built
+    // here from the real 2026 squad (the base game's best-XI logic), so they
+    // never need to "draft" and are always a complete 11.
     const rows = (pl || []).filter(
-      (p) => Array.isArray(p.xi) && p.xi.length >= 11
+      (p) => p.is_bot || (Array.isArray(p.xi) && p.xi.length >= 11)
     );
     if (rows.length < 2) {
       window.location.href = "lobby.html";
@@ -158,6 +161,29 @@ async function mpBoot() {
     const me = rows.find((p) => p.id === MP_PID);
     USER_NAME = (me && (me.username || me.name)) || "Your XI";
     if (!me) USER_ID = rows[0].id; // spectator / fallback
+
+    // Load the real player pool so bot franchises can field their best XI,
+    // exactly like the single-player opponents do.
+    const [playerRows, nameRows] = await Promise.all([
+      loadCsv("ipl_master_calibrated.csv"),
+      loadCsv("mapped_names.csv").catch(() => []),
+    ]);
+    const names = buildNameMap(nameRows);
+    state.players = playerRows
+      .filter((r) => r.Player_Name && r.Franchise && r.Season)
+      .map((r) => normalizeCsvPlayer(r, names));
+    state.players.forEach((p) => { p.isCurrent = p.season === "2026"; });
+    if (state.config.playerRatings === "prime") {
+      const primeByName = {};
+      for (const p of state.players) {
+        const prev = primeByName[p.name];
+        if (!prev || p.ovr > prev.ovr) primeByName[p.name] = p;
+      }
+      for (const p of state.players) {
+        const prime = primeByName[p.name];
+        if (prime) { p.ovr = prime.ovr; p.bat = prime.bat; p.bowl = prime.bowl; p.season = prime.season; }
+      }
+    }
 
     // Deterministic RNG shared by the whole room.
     mpSeedRng(String(MP_ROOM));
@@ -171,9 +197,29 @@ async function mpBoot() {
   }
 }
 
-// Build a league team from one player's stored XI (humans + bots alike).
+// Build a league team for each seat. Humans use their drafted XI; bot
+// franchises get their real 2026 best XI via the base game's selectBalancedXI
+// (no drafting, always a complete 11 — so the league is always 10 full teams).
 function buildMpTeams(rows) {
   return rows.map((pr) => {
+    if (pr.is_bot) {
+      const full = (pr.bot_team || pr.username || "").trim();
+      const squad = state.players.filter((p) => p.isCurrent && p.frFull === full);
+      const fr = squad.length ? squad[0].fr : full;
+      const players = selectBalancedXI(squad).map((p) => ({
+        ...p,
+        id: `${pr.id}::${p.id}`, // unique per team so leaders never collide
+        team: pr.id,
+      }));
+      return {
+        id: pr.id,
+        name: full,
+        short: fr, // franchise code reads cleanly in scorecards
+        players,
+        strength: teamStrength(players, false),
+      };
+    }
+
     const xi = (Array.isArray(pr.xi) ? [...pr.xi] : [])
       .sort((a, b) => (a.slot ?? 99) - (b.slot ?? 99))
       .slice(0, 11)

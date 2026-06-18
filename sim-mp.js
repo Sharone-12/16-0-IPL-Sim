@@ -257,9 +257,10 @@ function mpStartSync(room) {
 }
 
 async function mpDriverTick() {
-  if (!mpRoom || mpLeagueDone) return;
+  if (!mpRoom) return;
   const last = mpRoom.sim_round ?? -1;
-  if (last >= state.rounds.length - 1) return; // whole league already scheduled
+  // Pointer runs through the league AND the 4 knockout stages (R .. R+4).
+  if (last >= state.rounds.length + MP_STAGES.length) return; // whole tournament scheduled
   const elapsed = Date.now() - new Date(mpRoom.sim_at || 0).getTime();
   if (elapsed < MP_REVEAL_MS) return;
   try {
@@ -270,20 +271,95 @@ async function mpDriverTick() {
   } catch (_) {}
 }
 
-// Reveal every round up to the shared pointer. A late joiner catches up
-// instantly; in steady state the pointer ticks one round at a time, so matches
-// pop in together across the room.
+// The shared pointer covers the WHOLE tournament, so the table and every
+// knockout reveal in lockstep for the room too — not just the league:
+//   0 .. R-1 : league rounds
+//   R        : league table
+//   R+1      : Qualifier 1   (+3.5s each)
+//   R+2      : Eliminator
+//   R+3      : Qualifier 2
+//   R+4      : Final + awards
+const MP_STAGES = ["q1", "eliminator", "q2", "final"];
+let mpTableShown = false;
+let mpStagesRevealed = 0;
+
 function mpReveal() {
-  if (!mpRoom || mpLeagueDone) return;
-  const target = Math.min(mpRoom.sim_round ?? -1, state.rounds.length - 1);
-  while (state.roundIndex <= target && state.roundIndex < state.rounds.length) {
+  if (!mpRoom) return;
+  const R = state.rounds.length;
+  const ptr = mpRoom.sim_round ?? -1;
+
+  // 1) League rounds (catch-up reveals many at once; live ticks one at a time).
+  const leagueTarget = Math.min(ptr, R - 1);
+  while (state.roundIndex <= leagueTarget && state.roundIndex < R) {
     const userMatch = simulateRound();
     renderPlayedFixture(userMatch);
   }
-  if (state.roundIndex >= state.rounds.length) {
+  if (state.roundIndex >= R && !mpLeagueDone) {
     mpLeagueDone = true;
     leagueComplete();
-    if (els.playLeagueBtn) els.playLeagueBtn.style.display = ""; // show "View Table"
+  }
+  if (ptr < R) return;
+
+  // 2) League table — shown to everyone the moment the league ends.
+  if (!mpTableShown) {
+    mpTableShown = true;
+    showTableScreen();
+    if (els.playoffBtn) els.playoffBtn.style.display = "none"; // auto-driven
+  }
+
+  // 3) Knockouts, revealed in canonical order for the whole room.
+  const stageStep = Math.min(ptr - R, MP_STAGES.length); // 0..4
+  if (stageStep >= 1) {
+    mpEnterPlayoffs();
+    for (let i = mpStagesRevealed; i < stageStep; i++) {
+      mpRevealStage(i);
+      mpStagesRevealed = i + 1;
+    }
+  }
+}
+
+// Enter the knockouts for EVERY client (not just qualifiers), resolving the
+// full bracket once in canonical order. RNG state is identical post-league, so
+// every client computes the same four results and the same champion.
+function mpEnterPlayoffs() {
+  if (state.playoff) return;
+  const top4 = tableRows().slice(0, 4).map((row) => row.team);
+  document.body.classList.add("is-endgame");
+  const [a, b, c, d] = top4;
+  const q1 = simulateMatch(a, b, { full: true, knockout: true });
+  const eliminator = simulateMatch(c, d, { full: true, knockout: true });
+  const q2 = simulateMatch(q1.loser, eliminator.winner, { full: true, knockout: true });
+  const final = simulateMatch(q1.winner, q2.winner, { full: true, knockout: true });
+  [q1, eliminator, q2, final].forEach(updatePlayerStats);
+  state.playoff = { top4, mp: { q1, eliminator, q2, final } };
+  els.tableScreen.classList.remove("is-active");
+  els.playoffScreen.classList.add("is-active");
+  els.phasePill.textContent = "Playoffs";
+  els.screenTitle.textContent = "Playoffs";
+  if (els.playPlayoffBtn) els.playPlayoffBtn.style.display = "none"; // auto-driven
+}
+
+function mpRevealStage(idx) {
+  const stage = MP_STAGES[idx];
+  const match = state.playoff.mp[stage];
+  if (!match) return;
+  els.playoffTitle.hidden = false;
+  els.playoffTitle.textContent = PLAYOFF_LABELS[stage];
+  els.playoffOutcome.hidden = true;
+  els.playoffTeams.hidden = false;
+  els.playoffTeams.textContent = `${match.home.short} vs ${match.away.short}`;
+  els.playoffResult.hidden = false;
+  els.playoffResult.textContent = `${match.winner.short} won ${resultMargin(match)}.`;
+  renderFullScorecard(match);
+  if (match.home.id === USER_ID || match.away.id === USER_ID) recordUserResult(match);
+
+  if (idx === MP_STAGES.length - 1) {
+    // Final revealed — crown the champion (same for everyone) + season card.
+    const champ = match.winner;
+    els.phasePill.textContent = "Complete";
+    els.screenTitle.textContent = `${champ.short} — Champions`;
+    els.playoffLeaders.innerHTML = awardsHtml();
+    showResultCard(buildOutcome(champ.id === USER_ID ? "CHAMPIONS" : "ELIMINATED"), els.resultSlot);
   }
 }
 
@@ -1367,6 +1443,7 @@ function updateRecord() {
 }
 
 function startPlayoffs() {
+  if (MP) return; // MP knockouts are auto-driven by the shared pointer (mpReveal)
   const top4 = tableRows().slice(0, 4).map((row) => row.team);
   // Safety net: the playoffs are only for top-4 finishers. If the user didn't
   // qualify, never enter the knockout flow (it would mislabel them as a finalist).
@@ -2247,6 +2324,7 @@ els.playLeagueBtn.addEventListener("click", () => {
 });
 els.playoffBtn.addEventListener("click", startPlayoffs);
 els.playPlayoffBtn.addEventListener("click", () => {
+  if (MP) return; // auto-driven in MP
   if (els.playPlayoffBtn.dataset.nextStage === "true") {
     renderPlayoffStage();
     return;

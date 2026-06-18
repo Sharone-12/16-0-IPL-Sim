@@ -216,6 +216,7 @@ function buildMpTeams(rows) {
         name: full,
         short: fr, // franchise code reads cleanly in scorecards
         players,
+        isHuman: false, // bot franchise = the "AI" side (no handicap, full strength)
         strength: teamStrength(players, false),
       };
     }
@@ -246,9 +247,10 @@ function buildMpTeams(rows) {
       name,
       short: pr.id === USER_ID ? name : name.slice(0, 14),
       players: xi,
-      // No user handicap and no catch-up buff in MP — raw drafted strength,
-      // so the best squad actually wins.
-      strength: teamStrength(xi, false),
+      isHuman: true, // human drafted XI = the "user" side — gets the solo handicap
+      // Exactly like single player: a drafted all-time XI is reality-checked
+      // against modern franchise opposition (mode/difficulty-aware handicap).
+      strength: teamStrength(xi, true),
     };
   });
 }
@@ -627,7 +629,10 @@ function initSeason() {
     state.teams.sort((a, b) =>
       a.id === USER_ID ? -1 : b.id === USER_ID ? 1 : 0
     );
-    // No catch-up buff in MP — fairness across human squads.
+    // Exactly like single player: catch-up buff closes the gap for weak AI (bot)
+    // teams. It skips human teams (they're the "user" side) — deterministic, so
+    // every client computes the same buffed strengths.
+    applyCatchupBuff(state.teams);
   } else {
     state.opponents = buildOpponentTeams();
     state.teams = [
@@ -775,10 +780,15 @@ function makeTeam(id, name, squad) {
 // the strongest team. Bottom 4 close ~45%, mid-table close ~25%. Scales with the
 // actual squad gap (no hardcoded floor) and never touches the user's XI.
 function applyCatchupBuff(teams) {
-  const sorted = [...teams].sort((a, b) => b.strength.total - a.strength.total);
+  const sorted = [...teams].sort(
+    (a, b) =>
+      b.strength.total - a.strength.total ||
+      String(a.id).localeCompare(String(b.id)) // stable across clients
+  );
   const top = sorted[0].strength.total;
   sorted.forEach((team, rank) => {
-    if (team.id === USER_ID) return;
+    // Skip the "user" side: solo skips USER_ID; MP skips every human team.
+    if (team.id === USER_ID || team.isHuman) return;
     const gap = top - team.strength.total;
     const buffFactor = rank >= 6 ? 0.45 : rank >= 4 ? 0.25 : 0;
     if (buffFactor === 0) return;
@@ -2028,21 +2038,17 @@ function simulateMatch(home, away, options = {}) {
 function buildInnings(battingTeam, bowlingTeam, options = {}) {
   let batAdv = battingTeam.strength.batting - bowlingTeam.strength.bowling;
   let totalAdv = battingTeam.strength.total - bowlingTeam.strength.total;
-  // Knockout step-up: trim the user's edge so the cup is genuinely earned.
-  // MP: no per-team handicap — identical math on every client keeps the seeded
-  // simulation deterministic across the room.
-  if (options.knockout && !MP) {
-    if (battingTeam.id === USER_ID) { batAdv -= 1.5; totalAdv -= 1.5; }
-    else if (bowlingTeam.id === USER_ID) { batAdv += 1.5; totalAdv += 1.5; }
+  // Knockout step-up: trim the (human) finalist's edge so the cup is genuinely
+  // earned. Solo keys off USER_ID; MP keys off team.isHuman (humans are the
+  // "user" side, bot franchises are the "AI") — a fixed property, so every
+  // client applies it identically and results stay in sync.
+  if (options.knockout) {
+    const batUser = MP ? battingTeam.isHuman : battingTeam.id === USER_ID;
+    const bowlUser = MP ? bowlingTeam.isHuman : bowlingTeam.id === USER_ID;
+    if (batUser) { batAdv -= 1.5; totalAdv -= 1.5; }
+    else if (bowlUser) { batAdv += 1.5; totalAdv += 1.5; }
   }
-  // MP: real drafted teams with no handicap. Make the rating gap (OVR, bat,
-  // bowl, chemistry via .total) far more decisive and tighten the random swing,
-  // so the better squad reliably wins and a weak team can't fluke a top finish.
-  if (MP) { batAdv *= 1.55; totalAdv *= 1.55; }
-  const swing = MP
-    ? (options.knockout ? 9 : 10)
-    : (options.knockout ? 16 : 18);
-  const pressure = randomBetween(-swing, swing);
+  const pressure = options.knockout ? randomBetween(-16, 16) : randomBetween(-18, 18);
   const pitch = options.pitch || { runs: 0, wickets: 0, srBonus: 0 };
   let projected = 172 + batAdv * 2.4 + totalAdv * 1.6 + pressure + pitch.runs;
   if (options.target) {

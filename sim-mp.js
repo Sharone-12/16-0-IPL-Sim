@@ -463,14 +463,9 @@ function mpRevealStage(idx) {
   const stage = MP_STAGES[idx];
   const match = state.playoff.mp[stage];
   if (!match) return;
-  els.playoffTitle.hidden = false;
-  els.playoffTitle.textContent = PLAYOFF_LABELS[stage];
-  els.playoffOutcome.hidden = true;
-  els.playoffTeams.hidden = false;
-  els.playoffTeams.textContent = `${match.home.short} vs ${match.away.short}`;
-  els.playoffResult.hidden = false;
-  els.playoffResult.textContent = `${match.winner.short} won ${resultMargin(match)}.`;
-  renderFullScorecard(match);
+  mpBuildStageBar();
+  mpEnableStage(idx);
+  mpShowStage(idx); // jump the scorecard view to the freshly-revealed stage
   if (match.home.id === USER_ID || match.away.id === USER_ID) recordUserResult(match);
 
   if (idx === MP_STAGES.length - 1) {
@@ -481,6 +476,53 @@ function mpRevealStage(idx) {
     els.playoffLeaders.innerHTML = awardsHtml();
     showResultCard(buildOutcome(champ.id === USER_ID ? "CHAMPIONS" : "ELIMINATED"), els.resultSlot);
   }
+}
+
+// A row of knockout buttons (Qualifier 1 / Eliminator / Qualifier 2 / Final).
+// Each lights up once its match has been revealed; click any to re-view that
+// match's full scorecard at any time.
+function mpBuildStageBar() {
+  if (document.getElementById("mpStageBar")) return;
+  const bar = document.createElement("div");
+  bar.id = "mpStageBar";
+  bar.className = "mp-stage-bar";
+  bar.innerHTML = MP_STAGES.map(
+    (s, i) =>
+      `<button type="button" class="mp-stage-btn" data-stage="${i}" disabled>${PLAYOFF_LABELS[s]}</button>`
+  ).join("");
+  els.playoffScreen.insertBefore(bar, els.playoffScreen.firstChild);
+  bar.addEventListener("click", (e) => {
+    const b = e.target.closest(".mp-stage-btn");
+    if (!b || b.disabled) return;
+    mpShowStage(Number(b.dataset.stage));
+  });
+}
+
+function mpEnableStage(idx) {
+  const bar = document.getElementById("mpStageBar");
+  const b = bar && bar.querySelector(`[data-stage="${idx}"]`);
+  if (b) b.disabled = false;
+}
+
+// Render a chosen knockout's scorecard without touching the progression state.
+function mpShowStage(idx) {
+  const stage = MP_STAGES[idx];
+  const match = state.playoff.mp[stage];
+  if (!match) return;
+  const bar = document.getElementById("mpStageBar");
+  if (bar) {
+    bar.querySelectorAll(".mp-stage-btn").forEach((b) =>
+      b.classList.toggle("is-active", Number(b.dataset.stage) === idx)
+    );
+  }
+  els.playoffTitle.hidden = false;
+  els.playoffTitle.textContent = PLAYOFF_LABELS[stage];
+  els.playoffOutcome.hidden = true;
+  els.playoffTeams.hidden = false;
+  els.playoffTeams.textContent = `${match.home.short} vs ${match.away.short}`;
+  els.playoffResult.hidden = false;
+  els.playoffResult.textContent = `${match.winner.short} won ${resultMargin(match)}.`;
+  renderFullScorecard(match);
 }
 
 function boot() {

@@ -19,6 +19,43 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="supabase_config.js"></script>
+    <style>
+      /* Knockout selector — click any revealed match to re-view its scorecard. */
+      .mp-stage-bar {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin: 0 0 16px;
+      }
+      .mp-stage-btn {
+        flex: 1 1 auto;
+        min-width: 120px;
+        padding: 10px 14px;
+        background: #121212;
+        color: #888;
+        border: 1px solid #2a2a2a;
+        border-radius: 8px;
+        font-family: "Anton", sans-serif;
+        font-size: 0.82rem;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        cursor: pointer;
+        transition: all 0.15s ease;
+      }
+      .mp-stage-btn:disabled {
+        opacity: 0.4;
+        cursor: not-allowed;
+      }
+      .mp-stage-btn:not(:disabled):hover {
+        color: #fff;
+        border-color: #00ff87;
+      }
+      .mp-stage-btn.is-active {
+        background: #00ff87;
+        color: #0a0a0a;
+        border-color: #00ff87;
+      }
+    </style>
   </head>
   <body>
     <header class="sim-header">

@@ -10,3 +10,8 @@
 
 alter table rooms add column if not exists sim_round int default -1;
 alter table rooms add column if not exists sim_at    timestamptz;
+
+-- Manual, vote-gated progression: each human's sim_ready_step is how far they
+-- have clicked to advance. The room only moves to step N once every human has
+-- sim_ready_step >= N (e.g. "2/2 ready"). Bots don't vote.
+alter table players add column if not exists sim_ready_step int default -1;

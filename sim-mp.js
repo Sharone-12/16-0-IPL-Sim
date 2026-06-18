@@ -253,68 +253,140 @@ function buildMpTeams(rows) {
   });
 }
 
-// ===================== real-time league sync =====================
-// The league unfolds in lockstep for the whole room. Because every client
-// computes byte-identical results from the seeded RNG, we only need to share a
-// single integer — the current round pointer on the room row. No host election:
-// any present client advances the pointer once REVEAL_MS has elapsed, via a
-// conditional UPDATE so exactly one wins each tick (this IS the auto-failover —
-// if whoever was driving leaves, the next client just keeps advancing it).
-const MP_REVEAL_MS = 3500; // pacing between rounds
+// ===================== manual, vote-gated progression =====================
+// No auto-timer. The room advances one step at a time only when EVERY human
+// player has clicked to proceed (e.g. "2/2"). State:
+//   • rooms.sim_round       — the step currently revealed to the whole room
+//   • players.sim_ready_step — how far each human has voted to advance
+// The revealed pointer advances to N once all humans have sim_ready_step >= N
+// (decentralised conditional UPDATE, so it works no matter who clicks). Because
+// results are deterministic, every client reveals the same thing at each step.
 let mpRoom = null;
+let mpPlayers = [];
 let mpLeagueDone = false;
 
-function mpStartSync(room) {
+async function mpStartSync(room) {
   mpRoom = room;
-  // Auto-driven: hide the manual Simulate button during the league.
-  if (els.playLeagueBtn) els.playLeagueBtn.style.display = "none";
+  await mpRefresh();
+  // A late joiner catches its own vote up to where the room already is, so it
+  // never drags the "all humans ready" gate backwards.
+  await mpCatchUpVote();
 
-  // Realtime room updates (may be missed — polling below is the safety net).
   try {
     const ch = MP_SUPA.channel("simmp:" + MP_ROOM);
-    ch.on(
-      "postgres_changes",
-      { event: "UPDATE", schema: "public", table: "rooms", filter: `id=eq.${MP_ROOM}` },
-      (payload) => {
-        mpRoom = payload.new;
-        mpReveal();
-      }
-    );
+    ch.on("postgres_changes",
+      { event: "*", schema: "public", table: "players", filter: `room_id=eq.${MP_ROOM}` },
+      () => mpRefresh());
+    ch.on("postgres_changes",
+      { event: "*", schema: "public", table: "rooms", filter: `id=eq.${MP_ROOM}` },
+      (p) => { if (p.new) mpRoom = p.new; mpTick(); });
     ch.subscribe();
   } catch (_) {}
 
-  // Polling fallback — keeps the pointer fresh even if realtime drops events.
-  setInterval(async () => {
-    try {
-      const { data } = await MP_SUPA.from("rooms").select("*").eq("id", MP_ROOM).single();
-      if (data) {
-        mpRoom = data;
-        mpReveal();
-      }
-    } catch (_) {}
-  }, 2500);
-
-  // Paced, failover-free driver: advance the shared pointer once the interval
-  // has elapsed. The conditional .eq("sim_round", last) means only one client's
-  // update lands per round.
-  setInterval(mpDriverTick, 1000);
-
-  mpReveal();
+  setInterval(mpRefresh, 2500); // polling fallback
+  mpTick();
 }
 
-async function mpDriverTick() {
-  if (!mpRoom) return;
-  const last = mpRoom.sim_round ?? -1;
-  // Pointer runs through the league AND the 4 knockout stages (R .. R+4).
-  if (last >= state.rounds.length + MP_STAGES.length) return; // whole tournament scheduled
-  const elapsed = Date.now() - new Date(mpRoom.sim_at || 0).getTime();
-  if (elapsed < MP_REVEAL_MS) return;
+async function mpRefresh() {
   try {
-    await MP_SUPA.from("rooms")
-      .update({ sim_round: last + 1, sim_at: new Date().toISOString() })
-      .eq("id", MP_ROOM)
-      .eq("sim_round", last);
+    const [roomRes, playersRes] = await Promise.all([
+      MP_SUPA.from("rooms").select("*").eq("id", MP_ROOM).single(),
+      MP_SUPA.from("players").select("id,is_bot,sim_ready_step").eq("room_id", MP_ROOM),
+    ]);
+    if (roomRes.data) mpRoom = roomRes.data;
+    if (playersRes.data) mpPlayers = playersRes.data;
   } catch (_) {}
+  mpTick();
+}
+
+function mpMaxStep() { return state.rounds.length + MP_STAGES.length; }
+function mpHumanCount() { return mpPlayers.filter((p) => !p.is_bot).length; }
+function mpReadyCount(target) {
+  return mpPlayers.filter((p) => !p.is_bot && (p.sim_ready_step ?? -1) >= target).length;
+}
+
+async function mpCatchUpVote() {
+  const ptr = mpRoom.sim_round ?? -1;
+  const me = mpPlayers.find((p) => p.id === MP_PID);
+  if (me && (me.sim_ready_step ?? -1) < ptr) {
+    try {
+      await MP_SUPA.from("players").update({ sim_ready_step: ptr }).eq("id", MP_PID).eq("room_id", MP_ROOM);
+    } catch (_) {}
+  }
+}
+
+// Local player clicks to advance — record the vote for the next step.
+async function mpVote() {
+  const target = (mpRoom.sim_round ?? -1) + 1;
+  if (target > mpMaxStep()) return;
+  const me = mpPlayers.find((p) => p.id === MP_PID);
+  if (me && (me.sim_ready_step ?? -1) >= target) return; // already voted
+  try {
+    await MP_SUPA.from("players").update({ sim_ready_step: target }).eq("id", MP_PID).eq("room_id", MP_ROOM);
+  } catch (_) {}
+  mpRefresh();
+}
+
+// Advance the shared pointer once every human has voted for the next step.
+async function mpTryAdvance() {
+  const ptr = mpRoom.sim_round ?? -1;
+  if (ptr >= mpMaxStep()) return;
+  const target = ptr + 1;
+  const humans = mpHumanCount();
+  if (humans > 0 && mpReadyCount(target) >= humans) {
+    try {
+      await MP_SUPA.from("rooms").update({ sim_round: target }).eq("id", MP_ROOM).eq("sim_round", ptr);
+    } catch (_) {}
+  }
+}
+
+function mpTick() {
+  if (!mpRoom) return;
+  mpReveal();
+  mpRenderGate();
+  mpTryAdvance();
+}
+
+// Drive whichever "advance" button is on the active screen: show the readiness
+// count and lock it once this client has voted.
+function mpRenderGate() {
+  const ptr = mpRoom.sim_round ?? -1;
+  const target = ptr + 1;
+  const done = ptr >= mpMaxStep();
+  const humans = mpHumanCount();
+  const ready = mpReadyCount(target);
+  const me = mpPlayers.find((p) => p.id === MP_PID);
+  const iVoted = me && (me.sim_ready_step ?? -1) >= target;
+
+  // Pick the button for the current phase.
+  let btn, label;
+  if (!mpLeagueDone && !els.tableScreen.classList.contains("is-active")) {
+    btn = els.playLeagueBtn;
+    label = "Simulate Round";
+  } else if (els.playoffScreen.classList.contains("is-active")) {
+    btn = els.playPlayoffBtn;
+    label = "Play Next";
+  } else {
+    btn = els.playoffBtn; // table screen
+    label = "To Playoffs";
+  }
+  [els.playLeagueBtn, els.playPlayoffBtn, els.playoffBtn].forEach((b) => {
+    if (b && b !== btn) b.style.display = "none";
+  });
+  if (!btn) return;
+  btn.style.display = "";
+  btn.hidden = false;
+  if (done) {
+    btn.style.display = "none";
+    return;
+  }
+  if (iVoted) {
+    btn.disabled = true;
+    btn.textContent = `Waiting… ${ready}/${humans}`;
+  } else {
+    btn.disabled = false;
+    btn.textContent = humans > 1 ? `${label} (${ready}/${humans})` : label;
+  }
 }
 
 // The shared pointer covers the WHOLE tournament, so the table and every
@@ -346,11 +418,11 @@ function mpReveal() {
   }
   if (ptr < R) return;
 
-  // 2) League table — shown to everyone the moment the league ends.
+  // 2) League table — shown to everyone the moment the league ends. The
+  // "To Playoffs" button is the shared vote control (managed by mpRenderGate).
   if (!mpTableShown) {
     mpTableShown = true;
     showTableScreen();
-    if (els.playoffBtn) els.playoffBtn.style.display = "none"; // auto-driven
   }
 
   // 3) Knockouts, revealed in canonical order for the whole room.
@@ -382,7 +454,7 @@ function mpEnterPlayoffs() {
   els.playoffScreen.classList.add("is-active");
   els.phasePill.textContent = "Playoffs";
   els.screenTitle.textContent = "Playoffs";
-  if (els.playPlayoffBtn) els.playPlayoffBtn.style.display = "none"; // auto-driven
+  // The "Play Next" button is the shared vote control (managed by mpRenderGate).
 }
 
 function mpRevealStage(idx) {
@@ -1963,7 +2035,14 @@ function buildInnings(battingTeam, bowlingTeam, options = {}) {
     if (battingTeam.id === USER_ID) { batAdv -= 1.5; totalAdv -= 1.5; }
     else if (bowlingTeam.id === USER_ID) { batAdv += 1.5; totalAdv += 1.5; }
   }
-  const pressure = options.knockout ? randomBetween(-16, 16) : randomBetween(-18, 18);
+  // MP: real drafted teams with no handicap. Make the rating gap (OVR, bat,
+  // bowl, chemistry via .total) far more decisive and tighten the random swing,
+  // so the better squad reliably wins and a weak team can't fluke a top finish.
+  if (MP) { batAdv *= 1.55; totalAdv *= 1.55; }
+  const swing = MP
+    ? (options.knockout ? 9 : 10)
+    : (options.knockout ? 16 : 18);
+  const pressure = randomBetween(-swing, swing);
   const pitch = options.pitch || { runs: 0, wickets: 0, srBonus: 0 };
   let projected = 172 + batAdv * 2.4 + totalAdv * 1.6 + pressure + pitch.runs;
   if (options.target) {
@@ -2366,6 +2445,7 @@ function showToast(message) {
 }
 
 els.playLeagueBtn.addEventListener("click", () => {
+  if (MP) { mpVote(); return; } // vote to advance the round (needs all humans)
   if (els.playLeagueBtn.dataset.backToDraft === "true") {
     window.location.href = "draft.html";
     return;
@@ -2374,12 +2454,14 @@ els.playLeagueBtn.addEventListener("click", () => {
     showTableScreen();
     return;
   }
-  if (MP) return; // league is auto-driven by the shared round pointer
   autoSimLeague();
 });
-els.playoffBtn.addEventListener("click", startPlayoffs);
+els.playoffBtn.addEventListener("click", () => {
+  if (MP) { mpVote(); return; }
+  startPlayoffs();
+});
 els.playPlayoffBtn.addEventListener("click", () => {
-  if (MP) return; // auto-driven in MP
+  if (MP) { mpVote(); return; } // vote to reveal the next knockout
   if (els.playPlayoffBtn.dataset.nextStage === "true") {
     renderPlayoffStage();
     return;

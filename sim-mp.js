@@ -164,6 +164,7 @@ async function mpBoot() {
 
     state.__mpTeams = buildMpTeams(rows);
     initSeason();
+    mpStartSync(room);
   } catch (err) {
     console.error(err);
     window.location.href = "lobby.html";
@@ -204,6 +205,86 @@ function buildMpTeams(rows) {
       strength: teamStrength(xi, false),
     };
   });
+}
+
+// ===================== real-time league sync =====================
+// The league unfolds in lockstep for the whole room. Because every client
+// computes byte-identical results from the seeded RNG, we only need to share a
+// single integer — the current round pointer on the room row. No host election:
+// any present client advances the pointer once REVEAL_MS has elapsed, via a
+// conditional UPDATE so exactly one wins each tick (this IS the auto-failover —
+// if whoever was driving leaves, the next client just keeps advancing it).
+const MP_REVEAL_MS = 3500; // pacing between rounds
+let mpRoom = null;
+let mpLeagueDone = false;
+
+function mpStartSync(room) {
+  mpRoom = room;
+  // Auto-driven: hide the manual Simulate button during the league.
+  if (els.playLeagueBtn) els.playLeagueBtn.style.display = "none";
+
+  // Realtime room updates (may be missed — polling below is the safety net).
+  try {
+    const ch = MP_SUPA.channel("simmp:" + MP_ROOM);
+    ch.on(
+      "postgres_changes",
+      { event: "UPDATE", schema: "public", table: "rooms", filter: `id=eq.${MP_ROOM}` },
+      (payload) => {
+        mpRoom = payload.new;
+        mpReveal();
+      }
+    );
+    ch.subscribe();
+  } catch (_) {}
+
+  // Polling fallback — keeps the pointer fresh even if realtime drops events.
+  setInterval(async () => {
+    try {
+      const { data } = await MP_SUPA.from("rooms").select("*").eq("id", MP_ROOM).single();
+      if (data) {
+        mpRoom = data;
+        mpReveal();
+      }
+    } catch (_) {}
+  }, 2500);
+
+  // Paced, failover-free driver: advance the shared pointer once the interval
+  // has elapsed. The conditional .eq("sim_round", last) means only one client's
+  // update lands per round.
+  setInterval(mpDriverTick, 1000);
+
+  mpReveal();
+}
+
+async function mpDriverTick() {
+  if (!mpRoom || mpLeagueDone) return;
+  const last = mpRoom.sim_round ?? -1;
+  if (last >= state.rounds.length - 1) return; // whole league already scheduled
+  const elapsed = Date.now() - new Date(mpRoom.sim_at || 0).getTime();
+  if (elapsed < MP_REVEAL_MS) return;
+  try {
+    await MP_SUPA.from("rooms")
+      .update({ sim_round: last + 1, sim_at: new Date().toISOString() })
+      .eq("id", MP_ROOM)
+      .eq("sim_round", last);
+  } catch (_) {}
+}
+
+// Reveal every round up to the shared pointer. A late joiner catches up
+// instantly; in steady state the pointer ticks one round at a time, so matches
+// pop in together across the room.
+function mpReveal() {
+  if (!mpRoom || mpLeagueDone) return;
+  const target = Math.min(mpRoom.sim_round ?? -1, state.rounds.length - 1);
+  while (state.roundIndex <= target && state.roundIndex < state.rounds.length) {
+    const userMatch = simulateRound();
+    renderPlayedFixture(userMatch);
+  }
+  if (state.roundIndex >= state.rounds.length) {
+    mpLeagueDone = true;
+    leagueComplete();
+    if (els.playLeagueBtn) els.playLeagueBtn.style.display = ""; // show "View Table"
+  }
 }
 
 function boot() {
@@ -2161,6 +2242,7 @@ els.playLeagueBtn.addEventListener("click", () => {
     showTableScreen();
     return;
   }
+  if (MP) return; // league is auto-driven by the shared round pointer
   autoSimLeague();
 });
 els.playoffBtn.addEventListener("click", startPlayoffs);

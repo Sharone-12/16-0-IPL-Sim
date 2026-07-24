@@ -288,13 +288,32 @@ async function mpStartSync(room) {
     const ch = MP_SUPA.channel("simmp:" + MP_ROOM);
     ch.on("postgres_changes",
       { event: "*", schema: "public", table: "players", filter: `room_id=eq.${MP_ROOM}` },
-      () => mpRefresh());
+      (p) => {
+        // Heartbeats fire constantly and change nothing anyone is waiting on.
+        // Without this filter every beat by any client would make every other
+        // client re-query twice — N² traffic for zero new information.
+        const o = p.old || {}, n = p.new || {};
+        const beatOnly =
+          p.eventType === "UPDATE" &&
+          n.sim_ready_step === o.sim_ready_step &&
+          n.status === o.status &&
+          n.xi === o.xi;
+        if (beatOnly) {
+          // Still fold the new stamp in locally so presence stays fresh.
+          const row = mpPlayers.find((x) => x.id === n.id);
+          if (row) row.last_seen = n.last_seen;
+          return;
+        }
+        mpRefresh();
+      });
     ch.on("postgres_changes",
       { event: "*", schema: "public", table: "rooms", filter: `id=eq.${MP_ROOM}` },
       (p) => { if (p.new) mpRoom = p.new; mpTick(); });
     ch.subscribe();
   } catch (_) {}
 
+  mpHeartbeat();
+  setInterval(mpHeartbeat, 15000); // presence — see mpLiveHumans
   setInterval(mpRefresh, 2500); // polling fallback
   mpTick();
 }
@@ -303,7 +322,7 @@ async function mpRefresh() {
   try {
     const [roomRes, playersRes] = await Promise.all([
       MP_SUPA.from("rooms").select("*").eq("id", MP_ROOM).single(),
-      MP_SUPA.from("players").select("id,username,is_bot,sim_ready_step").eq("room_id", MP_ROOM),
+      MP_SUPA.from("players").select("id,username,is_bot,sim_ready_step,last_seen").eq("room_id", MP_ROOM),
     ]);
     if (roomRes.data) mpRoom = roomRes.data;
     if (playersRes.data) mpPlayers = playersRes.data;
@@ -318,7 +337,43 @@ async function mpRefresh() {
 //    2 → Eliminator      (gated on the two teams IN it)
 //    3 → Qualifier 2     (gated on the two teams IN it)
 //    4 → Final           (gated on the two teams IN it) — season complete
-function mpMaxStep() { return MP_STAGES.length; }
+//    5 → Play Again      (gated on EVERY manager still in the room)
+const MP_REPLAY_STEP = 5;
+function mpMaxStep() { return MP_REPLAY_STEP; }
+
+// A manager who closes their tab leaves their players row behind, so presence
+// can't be inferred from the row existing. Each open client heartbeats
+// `last_seen`; anyone more than a minute behind the freshest heartbeat in the
+// room is treated as gone and dropped from every gate — otherwise one closed
+// tab would deadlock the league kickoff, a knockout, or the Play Again vote.
+//
+// Staleness is measured against the newest stamp in the room rather than the
+// local clock, so every client reaches the same verdict regardless of skew.
+const MP_PRESENCE_WINDOW_MS = 60000;
+function mpLiveHumans() {
+  const humans = mpPlayers.filter((p) => !p.is_bot);
+  const stamps = humans
+    .map((p) => Date.parse(p.last_seen))
+    .filter((t) => Number.isFinite(t));
+  if (!stamps.length) return humans; // column not migrated yet — trust every row
+  const newest = Math.max(...stamps);
+  return humans.filter((p) => {
+    if (p.id === MP_PID) return true; // you are, definitionally, here
+    const t = Date.parse(p.last_seen);
+    if (!Number.isFinite(t)) return true; // no heartbeat yet — give the benefit
+    return newest - t <= MP_PRESENCE_WINDOW_MS;
+  });
+}
+
+async function mpHeartbeat() {
+  try {
+    await MP_SUPA
+      .from("players")
+      .update({ last_seen: new Date().toISOString() })
+      .eq("id", MP_PID)
+      .eq("room_id", MP_ROOM);
+  } catch (_) {}
+}
 
 // Who has to press "ready" before `target` can fire.
 //   step 0  → every human in the room (one shared kickoff)
@@ -328,12 +383,14 @@ function mpMaxStep() { return MP_STAGES.length; }
 // Returns null while the bracket is still unknown, [] when nobody has to press
 // (an all-bot fixture, or the participants have left the room).
 function mpRequiredVoters(target) {
-  if (target <= 0) return mpPlayers.filter((p) => !p.is_bot).map((p) => p.id);
+  const live = mpLiveHumans();
+  // Kickoff and Play Again are whole-room votes; the knockouts are not.
+  if (target <= 0 || target === MP_REPLAY_STEP) return live.map((p) => p.id);
   const stage = MP_STAGES[target - 1];
   const match = state.playoff && state.playoff.mp && state.playoff.mp[stage];
   if (!match) return null;
   const ids = [match.home.id, match.away.id];
-  return mpPlayers.filter((p) => !p.is_bot && ids.includes(p.id)).map((p) => p.id);
+  return live.filter((p) => ids.includes(p.id)).map((p) => p.id);
 }
 
 function mpReadyCount(target, required) {
@@ -383,6 +440,16 @@ async function mpTryAdvance() {
   const target = ptr + 1;
   const required = mpRequiredVoters(target);
   if (!required) return; // bracket not resolved on this client yet
+
+  // Play Again isn't a pointer move — it resets the room. It needs EVERY
+  // manager still present, so one person can't drag the others back into a
+  // draft (or restart the season for people who already closed the tab).
+  if (target === MP_REPLAY_STEP) {
+    if (required.length && mpReadyCount(target, required) >= required.length) {
+      mpPlayAgain();
+    }
+    return;
+  }
 
   // Nobody to wait on (both sides are bots, or the humans involved have left).
   // Give spectators a beat to read the previous scorecard, then roll on.
@@ -434,16 +501,14 @@ function mpGotoDraft() {
 // rooms.season. Players are cleared FIRST so nobody can race back into the
 // draft while stale "ready_sim" rows are still around — the host's checkAllDone
 // would see them and instantly bounce the whole room into the sim again.
-// The season bump is a conditional update, so if two people click at once only
-// one increment lands and the other just follows the redirect.
-async function mpPlayAgain(btn) {
+// The season bump is a conditional update, so when the vote passes on several
+// clients at once only one increment lands and the rest follow the redirect.
+// Not called on click any more — mpTryAdvance fires it once every manager in
+// the room has voted (see MP_REPLAY_STEP).
+async function mpPlayAgain() {
   if (mpReplaying) return;
   mpReplaying = true;
-  const original = btn ? btn.textContent : null;
-  if (btn) {
-    btn.disabled = true;
-    btn.textContent = "Starting new season…";
-  }
+  mpRenderReplayGate();
   try {
     await MP_SUPA
       .from("players")
@@ -463,10 +528,7 @@ async function mpPlayAgain(btn) {
   } catch (err) {
     console.error("Play again failed:", err);
     mpReplaying = false;
-    if (btn) {
-      btn.disabled = false;
-      btn.textContent = original;
-    }
+    mpRenderReplayGate();
     showToast("Could not restart — run mp_replay.sql on the database.");
   }
 }
@@ -499,8 +561,11 @@ function mpRenderGate() {
     btn.textContent = `Simulating… Round ${state.roundIndex} of ${state.rounds.length}`;
     return;
   }
-  if (ptr >= mpMaxStep()) {
-    btn.style.display = "none"; // season complete — the result card takes over
+  // Season complete — the shared Play Again vote takes over from the stage
+  // buttons, and lives in the result-card action row rather than on a screen.
+  if (ptr >= MP_STAGES.length) {
+    btn.style.display = "none";
+    mpRenderReplayGate();
     return;
   }
 
@@ -537,6 +602,30 @@ function mpRenderGate() {
   }
   btn.disabled = false;
   btn.textContent = required.length > 1 ? `${label} (${ready}/${required.length})` : label;
+}
+
+// "Play Again" is a whole-room vote, exactly like the league kickoff — it shows
+// a live count and only fires once every manager still in the room has pressed.
+function mpRenderReplayGate() {
+  const btn = document.getElementById("mpPlayAgainBtn");
+  if (!btn) return;
+  if (mpReplaying) {
+    btn.disabled = true;
+    btn.textContent = "Starting new season…";
+    return;
+  }
+  const required = mpRequiredVoters(MP_REPLAY_STEP) || [];
+  const ready = mpReadyCount(MP_REPLAY_STEP, required);
+  const me = mpPlayers.find((p) => p.id === MP_PID);
+  const iVoted = me && (me.sim_ready_step ?? -1) >= MP_REPLAY_STEP;
+  const total = Math.max(required.length, 1);
+  if (iVoted) {
+    btn.disabled = true;
+    btn.textContent = `Waiting for the others… ${ready}/${total}`;
+  } else {
+    btn.disabled = false;
+    btn.textContent = total > 1 ? `Play Again (${ready}/${total})` : "Play Again";
+  }
 }
 
 const MP_STAGES = ["q1", "eliminator", "q2", "final"];
@@ -693,9 +782,8 @@ function mpRevealStage(idx) {
       <a class="primary-btn ghost" href="lobby.html">Back to Lobby</a>
     `;
     wireViewScorecard("viewScorecardInline");
-    document
-      .getElementById("mpPlayAgainBtn")
-      .addEventListener("click", (e) => mpPlayAgain(e.currentTarget));
+    document.getElementById("mpPlayAgainBtn").addEventListener("click", () => mpVote());
+    mpRenderReplayGate();
     showResultCard(buildOutcome(mpUserStage()), els.resultSlot);
   }
 }
@@ -2184,10 +2272,14 @@ function showUserEliminated(stageLabel) {
 }
 
 function goToDraftFresh() {
-  // In a room, "play again" restarts the whole league in place rather than
-  // dropping this one player into a solo draft.
+  // In a room, "play again" is a vote to restart the league in place rather
+  // than dropping this one player into a solo draft.
   if (MP) {
-    mpPlayAgain();
+    mpVote();
+    const required = mpRequiredVoters(MP_REPLAY_STEP) || [];
+    if (required.length > 1) {
+      showToast(`Ready — waiting for the other ${required.length - 1} manager(s)`);
+    }
     return;
   }
   try {

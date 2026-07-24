@@ -318,14 +318,31 @@ async function mpStartSync(room) {
   mpTick();
 }
 
+// `last_seen` is optional: if mp_presence.sql hasn't been run the column does
+// not exist and PostgREST rejects the WHOLE select, which would leave mpPlayers
+// empty and every gate ungated. Fall back to the base columns and carry on
+// without presence rather than breaking the room.
+const MP_BASE_COLS = "id,username,is_bot,sim_ready_step";
+let mpHasPresence = true;
+
 async function mpRefresh() {
   try {
     const [roomRes, playersRes] = await Promise.all([
       MP_SUPA.from("rooms").select("*").eq("id", MP_ROOM).single(),
-      MP_SUPA.from("players").select("id,username,is_bot,sim_ready_step,last_seen").eq("room_id", MP_ROOM),
+      MP_SUPA
+        .from("players")
+        .select(mpHasPresence ? `${MP_BASE_COLS},last_seen` : MP_BASE_COLS)
+        .eq("room_id", MP_ROOM),
     ]);
     if (roomRes.data) mpRoom = roomRes.data;
-    if (playersRes.data) mpPlayers = playersRes.data;
+    if (playersRes.data) {
+      mpPlayers = playersRes.data;
+    } else if (playersRes.error && mpHasPresence) {
+      console.warn("players.last_seen missing — run mp_presence.sql. Continuing without presence.");
+      mpHasPresence = false;
+      const retry = await MP_SUPA.from("players").select(MP_BASE_COLS).eq("room_id", MP_ROOM);
+      if (retry.data) mpPlayers = retry.data;
+    }
   } catch (_) {}
   mpTick();
 }
@@ -366,13 +383,17 @@ function mpLiveHumans() {
 }
 
 async function mpHeartbeat() {
+  if (!mpHasPresence) return; // column not migrated — presence is simply off
   try {
-    await MP_SUPA
+    const { error } = await MP_SUPA
       .from("players")
       .update({ last_seen: new Date().toISOString() })
       .eq("id", MP_PID)
       .eq("room_id", MP_ROOM);
-  } catch (_) {}
+    if (error) mpHasPresence = false;
+  } catch (_) {
+    mpHasPresence = false;
+  }
 }
 
 // Who has to press "ready" before `target` can fire.
@@ -393,10 +414,20 @@ function mpRequiredVoters(target) {
   return live.filter((p) => ids.includes(p.id)).map((p) => p.id);
 }
 
+// A player's vote, sanitised. The step ladder used to run 0..18 (one step per
+// league round); it now runs -1..5. Rooms that played under the old model still
+// carry values like 17 in this column, and since every gate tests `>= target`,
+// a leftover 18 would read as "already voted for everything" and silently run
+// the entire tournament with nobody pressing a thing. Anything above the ladder
+// is a leftover, not a vote.
+function mpVoteStep(p) {
+  const v = p && p.sim_ready_step != null ? Number(p.sim_ready_step) : -1;
+  if (!Number.isFinite(v) || v > MP_REPLAY_STEP) return -1;
+  return v;
+}
+
 function mpReadyCount(target, required) {
-  return mpPlayers.filter(
-    (p) => required.includes(p.id) && (p.sim_ready_step ?? -1) >= target
-  ).length;
+  return mpPlayers.filter((p) => required.includes(p.id) && mpVoteStep(p) >= target).length;
 }
 
 function mpNamesFor(ids) {
@@ -410,7 +441,7 @@ function mpNamesFor(ids) {
 async function mpCatchUpVote() {
   const ptr = mpRoom.sim_round ?? -1;
   const me = mpPlayers.find((p) => p.id === MP_PID);
-  if (me && (me.sim_ready_step ?? -1) < ptr) {
+  if (me && mpVoteStep(me) < ptr) {
     try {
       await MP_SUPA.from("players").update({ sim_ready_step: ptr }).eq("id", MP_PID).eq("room_id", MP_ROOM);
     } catch (_) {}
@@ -425,7 +456,7 @@ async function mpVote() {
   const required = mpRequiredVoters(target);
   if (!required || !required.includes(MP_PID)) return; // not this manager's call
   const me = mpPlayers.find((p) => p.id === MP_PID);
-  if (me && (me.sim_ready_step ?? -1) >= target) return; // already voted
+  if (me && mpVoteStep(me) >= target) return; // already voted
   try {
     await MP_SUPA.from("players").update({ sim_ready_step: target }).eq("id", MP_PID).eq("room_id", MP_ROOM);
   } catch (_) {}
@@ -438,8 +469,19 @@ async function mpTryAdvance() {
   const ptr = mpRoom.sim_round ?? -1;
   if (ptr >= mpMaxStep()) return;
   const target = ptr + 1;
+
+  // An empty roster means the fetch hasn't landed or it failed — NOT that
+  // nobody needs to vote. Acting on it would auto-run the whole tournament.
+  if (!mpPlayers.length) return;
+
   const required = mpRequiredVoters(target);
   if (!required) return; // bracket not resolved on this client yet
+
+  const advance = async () => {
+    try {
+      await MP_SUPA.from("rooms").update({ sim_round: target }).eq("id", MP_ROOM).eq("sim_round", ptr);
+    } catch (_) {}
+  };
 
   // Play Again isn't a pointer move — it resets the room. It needs EVERY
   // manager still present, so one person can't drag the others back into a
@@ -451,17 +493,20 @@ async function mpTryAdvance() {
     return;
   }
 
-  // Nobody to wait on (both sides are bots, or the humans involved have left).
-  // Give spectators a beat to read the previous scorecard, then roll on.
+  // The league kickoff is always a human decision. If there is nobody present
+  // to press it, wait — never start the season on our own.
+  if (target <= 0) {
+    if (required.length && mpReadyCount(target, required) >= required.length) await advance();
+    return;
+  }
+
+  // Knockout between two bot teams: genuinely nobody to wait on, so give
+  // spectators a beat to read the previous scorecard and roll on.
   if (!required.length) {
     mpScheduleAutoAdvance(target, ptr);
     return;
   }
-  if (mpReadyCount(target, required) >= required.length) {
-    try {
-      await MP_SUPA.from("rooms").update({ sim_round: target }).eq("id", MP_ROOM).eq("sim_round", ptr);
-    } catch (_) {}
-  }
+  if (mpReadyCount(target, required) >= required.length) await advance();
 }
 
 // All-bot fixture: auto-advance on a timer instead of stalling forever.
@@ -594,7 +639,7 @@ function mpRenderGate() {
     return;
   }
   const me = mpPlayers.find((p) => p.id === MP_PID);
-  if (me && (me.sim_ready_step ?? -1) >= target) {
+  if (me && mpVoteStep(me) >= target) {
     btn.disabled = true;
     btn.textContent =
       ready >= required.length ? "Starting…" : `Waiting… ${ready}/${required.length}`;
@@ -617,7 +662,7 @@ function mpRenderReplayGate() {
   const required = mpRequiredVoters(MP_REPLAY_STEP) || [];
   const ready = mpReadyCount(MP_REPLAY_STEP, required);
   const me = mpPlayers.find((p) => p.id === MP_PID);
-  const iVoted = me && (me.sim_ready_step ?? -1) >= MP_REPLAY_STEP;
+  const iVoted = me && mpVoteStep(me) >= MP_REPLAY_STEP;
   const total = Math.max(required.length, 1);
   if (iVoted) {
     btn.disabled = true;

@@ -659,6 +659,7 @@ body.hide-ratings .card-stats {
   display: inline-flex;
   align-items: center;
   flex-shrink: 0;
+  line-height: 1;
 }
 
 .xi-slot .ic {
@@ -666,9 +667,14 @@ body.hide-ratings .card-stats {
   height: 16px;
 }
 
+/* The all-rounder glyph is wider than the others, but it must NOT be taller:
+   .xi-slots gives every card an equal share of a fixed-height column and hides
+   the overflow, so 5 extra pixels here pushed the card past its share and
+   sliced the club/season line clean off. Keep the width, cap the height. */
 .xi-slot .ic-allround {
   width: 21px;
-  height: 21px;
+  height: 16px;
+  object-fit: contain;
 }
 
 .slot-origin {

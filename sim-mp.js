@@ -654,9 +654,11 @@ function mpRenderGate() {
 function mpRenderReplayGate() {
   const btn = document.getElementById("mpPlayAgainBtn");
   if (!btn) return;
+  // Labels stay short: .cap-again is nowrap and shares a flex row with the two
+  // cap awards, so a long string would squeeze them.
   if (mpReplaying) {
     btn.disabled = true;
-    btn.textContent = "Starting new season…";
+    btn.textContent = "Starting…";
     return;
   }
   const required = mpRequiredVoters(MP_REPLAY_STEP) || [];
@@ -666,10 +668,10 @@ function mpRenderReplayGate() {
   const total = Math.max(required.length, 1);
   if (iVoted) {
     btn.disabled = true;
-    btn.textContent = `Waiting for the others… ${ready}/${total}`;
+    btn.textContent = `Waiting… ${ready}/${total}`;
   } else {
     btn.disabled = false;
-    btn.textContent = total > 1 ? `Play Again (${ready}/${total})` : "Play Again";
+    btn.textContent = total > 1 ? `Play Again (${ready}/${total})` : "Play Again →";
   }
 }
 
@@ -820,16 +822,17 @@ function mpRevealStage(idx) {
     const champ = match.winner;
     els.phasePill.textContent = "Complete";
     els.screenTitle.textContent = `${champ.short} — Champions`;
+    // The one and only Play Again lives in the awards block (#mpPlayAgainBtn,
+    // emitted by awardsHtml) — top-right of the end screen, on view without
+    // scrolling. Deliberately NOT repeated here or in the result card.
     els.playoffLeaders.innerHTML = awardsHtml();
     els.playoffActions.innerHTML = `
       <button class="primary-btn" type="button" id="viewScorecardInline">View Scorecard ↓</button>
-      <button class="primary-btn ghost" type="button" id="mpPlayAgainBtn">Play Again — Same Room</button>
       <a class="primary-btn ghost" href="lobby.html">Back to Lobby</a>
     `;
     wireViewScorecard("viewScorecardInline");
-    document.getElementById("mpPlayAgainBtn").addEventListener("click", () => mpVote());
-    mpRenderReplayGate();
     showResultCard(buildOutcome(mpUserStage()), els.resultSlot);
+    mpRenderReplayGate();
   }
 }
 
@@ -1787,7 +1790,7 @@ function awardsHtml() {
           <em>${escapeHtml(purple.team)} · ${w} wkts</em>
         </div>
       </div>
-      <button class="cap-again" type="button" onclick="goToDraftFresh()">Play Again →</button>
+      <button class="cap-again" type="button"${MP ? ' id="mpPlayAgainBtn"' : ""} onclick="goToDraftFresh()">Play Again →</button>
     </div>
   `;
 }
@@ -1920,11 +1923,13 @@ function showResultCard(outcome, container) {
       <button class="primary-btn ghost btn-download" type="button" data-act="download">⬇ Save Image</button>
       <a class="primary-btn ghost btn-leaderboard" href="leaderboard.html">Leaderboard</a>
       <button class="primary-btn ghost btn-share-link" type="button" data-act="share-link">🔗 Share Verified Link</button>
-      <button class="primary-btn btn-again" type="button" data-act="again">Close / Play Again</button>
+      ${MP ? "" : '<button class="primary-btn btn-again" type="button" data-act="again">Close / Play Again</button>'}
     </div>`;
 
   const card = container.querySelector(".result-card");
-  container.querySelector('[data-act="again"]').addEventListener("click", goToDraftFresh);
+  // MP has a single shared Play Again in the awards block — no copy in here.
+  const againBtn = container.querySelector('[data-act="again"]');
+  if (againBtn) againBtn.addEventListener("click", goToDraftFresh);
 
   // Fill the leaderboard-rank line: prefer already-known values, otherwise wait
   // on the in-flight submission, and hide the line if ranking is unavailable.
@@ -2320,11 +2325,7 @@ function goToDraftFresh() {
   // In a room, "play again" is a vote to restart the league in place rather
   // than dropping this one player into a solo draft.
   if (MP) {
-    mpVote();
-    const required = mpRequiredVoters(MP_REPLAY_STEP) || [];
-    if (required.length > 1) {
-      showToast(`Ready — waiting for the other ${required.length - 1} manager(s)`);
-    }
+    mpVote(); // the button relabels itself with the live count — no toast needed
     return;
   }
   try {

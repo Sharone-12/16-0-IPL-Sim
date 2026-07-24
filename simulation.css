@@ -884,6 +884,17 @@ tr.is-user td:first-child {
   opacity: 0.85;
 }
 
+/* Multiplayer: this is the shared Play Again vote, so it locks once you've
+   pressed and reads "Waiting… 1/2" until the rest of the room catches up. */
+.cap-again:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+.cap-again:disabled:hover {
+  opacity: 0.55;
+}
+
 .cap-award.is-orange {
   border-left-color: #f2913c;
 }

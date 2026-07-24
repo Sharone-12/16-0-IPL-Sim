@@ -185,8 +185,11 @@ async function mpBoot() {
       }
     }
 
-    // Deterministic RNG shared by the whole room.
-    mpSeedRng(String(MP_ROOM));
+    // Deterministic RNG shared by the whole room. The season counter is folded
+    // into the seed so a replay in the same room isn't a carbon copy of the
+    // last one — every "Play Again" bumps it and reshuffles the whole league.
+    mpSeason = Number(room.season ?? 0);
+    mpSeedRng(`${MP_ROOM}:${mpSeason}`);
 
     state.__mpTeams = buildMpTeams(rows);
     initSeason();
@@ -235,9 +238,12 @@ function buildMpTeams(rows) {
         battingOrder: x.battingOrder,
         isWk: Boolean(x.isWk),
         isOverseas: Boolean(x.isOverseas),
-        ovr: Math.min(Number(x.simOvr || x.ovr || 70), 92),
-        bat: Math.min(Number(x.bat || x.ovr || 70), 92),
-        bowl: Math.min(Number(x.bowl || x.ovr || 65), 92),
+        // NOT capped — identical to solo's normalizeSavedPlayer. A drafted XI
+        // plays at its true ratings, so a 95 is really a 95. The 92 cap belongs
+        // to normalizeCsvPlayer, i.e. the real franchise squads the bots field.
+        ovr: Number(x.simOvr || x.ovr || 70),
+        bat: Number(x.bat || x.ovr || 70),
+        bowl: Number(x.bowl || x.ovr || 60),
         slot: Number(x.slot || 0),
         isCaptain: Boolean(x.isCaptain),
       }));
@@ -266,6 +272,10 @@ function buildMpTeams(rows) {
 let mpRoom = null;
 let mpPlayers = [];
 let mpLeagueDone = false;
+// Which season of this room we booted into. When rooms.season moves past it,
+// somebody hit Play Again and every client follows them back to the draft.
+let mpSeason = 0;
+let mpReplaying = false;
 
 async function mpStartSync(room) {
   mpRoom = room;
@@ -293,7 +303,7 @@ async function mpRefresh() {
   try {
     const [roomRes, playersRes] = await Promise.all([
       MP_SUPA.from("rooms").select("*").eq("id", MP_ROOM).single(),
-      MP_SUPA.from("players").select("id,is_bot,sim_ready_step").eq("room_id", MP_ROOM),
+      MP_SUPA.from("players").select("id,username,is_bot,sim_ready_step").eq("room_id", MP_ROOM),
     ]);
     if (roomRes.data) mpRoom = roomRes.data;
     if (playersRes.data) mpPlayers = playersRes.data;
@@ -301,10 +311,43 @@ async function mpRefresh() {
   mpTick();
 }
 
-function mpMaxStep() { return state.rounds.length + MP_STAGES.length; }
-function mpHumanCount() { return mpPlayers.filter((p) => !p.is_bot).length; }
-function mpReadyCount(target) {
-  return mpPlayers.filter((p) => !p.is_bot && (p.sim_ready_step ?? -1) >= target).length;
+// Step ladder for the whole tournament:
+//   -1 → nobody has started yet; every human sees "Start Simulation"
+//    0 → the entire 14-round league auto-plays, then the points table
+//    1 → Qualifier 1     (gated on the two teams IN it)
+//    2 → Eliminator      (gated on the two teams IN it)
+//    3 → Qualifier 2     (gated on the two teams IN it)
+//    4 → Final           (gated on the two teams IN it) — season complete
+function mpMaxStep() { return MP_STAGES.length; }
+
+// Who has to press "ready" before `target` can fire.
+//   step 0  → every human in the room (one shared kickoff)
+//   step 1+ → ONLY the humans playing in that specific knockout. Bots never
+//             vote, and a manager who didn't qualify is never asked — they just
+//             spectate the scorecards as the bracket plays out.
+// Returns null while the bracket is still unknown, [] when nobody has to press
+// (an all-bot fixture, or the participants have left the room).
+function mpRequiredVoters(target) {
+  if (target <= 0) return mpPlayers.filter((p) => !p.is_bot).map((p) => p.id);
+  const stage = MP_STAGES[target - 1];
+  const match = state.playoff && state.playoff.mp && state.playoff.mp[stage];
+  if (!match) return null;
+  const ids = [match.home.id, match.away.id];
+  return mpPlayers.filter((p) => !p.is_bot && ids.includes(p.id)).map((p) => p.id);
+}
+
+function mpReadyCount(target, required) {
+  return mpPlayers.filter(
+    (p) => required.includes(p.id) && (p.sim_ready_step ?? -1) >= target
+  ).length;
+}
+
+function mpNamesFor(ids) {
+  const names = ids.map((id) => {
+    const p = mpPlayers.find((x) => x.id === id);
+    return (p && p.username) || "a manager";
+  });
+  return names.join(" & ");
 }
 
 async function mpCatchUpVote() {
@@ -317,10 +360,13 @@ async function mpCatchUpVote() {
   }
 }
 
-// Local player clicks to advance — record the vote for the next step.
+// Local player presses their button — record the vote for the next step. Only
+// the managers actually involved in that step can cast one.
 async function mpVote() {
   const target = (mpRoom.sim_round ?? -1) + 1;
   if (target > mpMaxStep()) return;
+  const required = mpRequiredVoters(target);
+  if (!required || !required.includes(MP_PID)) return; // not this manager's call
   const me = mpPlayers.find((p) => p.id === MP_PID);
   if (me && (me.sim_ready_step ?? -1) >= target) return; // already voted
   try {
@@ -329,108 +375,209 @@ async function mpVote() {
   mpRefresh();
 }
 
-// Advance the shared pointer once every human has voted for the next step.
+// Advance the shared pointer once everyone required for the next step is ready.
 async function mpTryAdvance() {
+  if (mpLeagueAnimating) return; // the league is mid-flight, nothing to advance
   const ptr = mpRoom.sim_round ?? -1;
   if (ptr >= mpMaxStep()) return;
   const target = ptr + 1;
-  const humans = mpHumanCount();
-  if (humans > 0 && mpReadyCount(target) >= humans) {
+  const required = mpRequiredVoters(target);
+  if (!required) return; // bracket not resolved on this client yet
+
+  // Nobody to wait on (both sides are bots, or the humans involved have left).
+  // Give spectators a beat to read the previous scorecard, then roll on.
+  if (!required.length) {
+    mpScheduleAutoAdvance(target, ptr);
+    return;
+  }
+  if (mpReadyCount(target, required) >= required.length) {
     try {
       await MP_SUPA.from("rooms").update({ sim_round: target }).eq("id", MP_ROOM).eq("sim_round", ptr);
     } catch (_) {}
   }
 }
 
+// All-bot fixture: auto-advance on a timer instead of stalling forever.
+let mpAutoAdvanceFor = null;
+function mpScheduleAutoAdvance(target, ptr) {
+  if (mpAutoAdvanceFor === target) return;
+  mpAutoAdvanceFor = target;
+  setTimeout(async () => {
+    if ((mpRoom.sim_round ?? -1) !== ptr) return; // someone already moved it
+    try {
+      await MP_SUPA.from("rooms").update({ sim_round: target }).eq("id", MP_ROOM).eq("sim_round", ptr);
+    } catch (_) {}
+  }, 5000);
+}
+
 function mpTick() {
   if (!mpRoom) return;
+  // Someone in the room started a new season — follow them back to the draft.
+  if (Number(mpRoom.season ?? 0) !== mpSeason) {
+    mpGotoDraft();
+    return;
+  }
   mpReveal();
   mpRenderGate();
   mpTryAdvance();
 }
 
-// Drive whichever "advance" button is on the active screen: show the readiness
-// count and lock it once this client has voted.
+let mpDraftRedirecting = false;
+function mpGotoDraft() {
+  if (mpDraftRedirecting) return;
+  mpDraftRedirecting = true;
+  location.href = `draft-mp.html?room=${MP_ROOM}`;
+}
+
+// ---------- play again, same room ----------
+// Wipes every drafted XI and the shared progression pointers, then bumps
+// rooms.season. Players are cleared FIRST so nobody can race back into the
+// draft while stale "ready_sim" rows are still around — the host's checkAllDone
+// would see them and instantly bounce the whole room into the sim again.
+// The season bump is a conditional update, so if two people click at once only
+// one increment lands and the other just follows the redirect.
+async function mpPlayAgain(btn) {
+  if (mpReplaying) return;
+  mpReplaying = true;
+  const original = btn ? btn.textContent : null;
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = "Starting new season…";
+  }
+  try {
+    await MP_SUPA
+      .from("players")
+      .update({ xi: null, status: "waiting", sim_ready_step: -1 })
+      .eq("room_id", MP_ROOM);
+
+    const { data, error } = await MP_SUPA
+      .from("rooms")
+      .update({ season: mpSeason + 1, sim_round: -1, status: "drafting" })
+      .eq("id", MP_ROOM)
+      .eq("season", mpSeason)
+      .select("id");
+    if (error) throw error;
+    // No row updated = another client already bumped it; either way we go.
+    void data;
+    mpGotoDraft();
+  } catch (err) {
+    console.error("Play again failed:", err);
+    mpReplaying = false;
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = original;
+    }
+    showToast("Could not restart — run mp_replay.sql on the database.");
+  }
+}
+
+// Render the single control for the current step. Only managers who are in the
+// upcoming fixture get a live button; everyone else gets a read-only status
+// line naming who the room is waiting on, and keeps full access to every
+// scorecard revealed so far.
 function mpRenderGate() {
   const ptr = mpRoom.sim_round ?? -1;
   const target = ptr + 1;
-  const done = ptr >= mpMaxStep();
-  const humans = mpHumanCount();
-  const ready = mpReadyCount(target);
-  const me = mpPlayers.find((p) => p.id === MP_PID);
-  const iVoted = me && (me.sim_ready_step ?? -1) >= target;
 
-  // Pick the button for the current phase.
-  let btn, label;
-  if (!mpLeagueDone && !els.tableScreen.classList.contains("is-active")) {
-    btn = els.playLeagueBtn;
-    label = "Simulate Round";
-  } else if (els.playoffScreen.classList.contains("is-active")) {
-    btn = els.playPlayoffBtn;
-    label = "Play Next";
-  } else {
-    btn = els.playoffBtn; // table screen
-    label = "To Playoffs";
-  }
+  // Pick the control that lives on the CURRENTLY VISIBLE screen, and park the
+  // other two. Driving this off the active screen (rather than the pointer) is
+  // what keeps the button from ending up inside a hidden panel.
+  let btn;
+  if (els.playoffScreen.classList.contains("is-active")) btn = els.playPlayoffBtn;
+  else if (els.tableScreen.classList.contains("is-active")) btn = els.playoffBtn;
+  else btn = els.playLeagueBtn;
   [els.playLeagueBtn, els.playPlayoffBtn, els.playoffBtn].forEach((b) => {
     if (b && b !== btn) b.style.display = "none";
   });
   if (!btn) return;
-  btn.style.display = "";
-  btn.hidden = false;
-  if (done) {
-    btn.style.display = "none";
+
+  // Mid-league there is nothing to press — the whole phase plays itself.
+  if (mpLeagueAnimating) {
+    btn.style.display = "";
+    btn.hidden = false;
+    btn.disabled = true;
+    btn.textContent = `Simulating… Round ${state.roundIndex} of ${state.rounds.length}`;
     return;
   }
-  if (iVoted) {
-    btn.disabled = true;
-    btn.textContent = `Waiting… ${ready}/${humans}`;
-  } else {
-    btn.disabled = false;
-    btn.textContent = humans > 1 ? `${label} (${ready}/${humans})` : label;
+  if (ptr >= mpMaxStep()) {
+    btn.style.display = "none"; // season complete — the result card takes over
+    return;
   }
+
+  const required = mpRequiredVoters(target);
+  if (!required) {
+    btn.style.display = "none"; // bracket not resolved on this client yet
+    return;
+  }
+
+  btn.style.display = "";
+  btn.hidden = false;
+
+  const label =
+    target === 0 ? "Start Simulation" : `Start ${PLAYOFF_LABELS[MP_STAGES[target - 1]]}`;
+  const ready = mpReadyCount(target, required);
+
+  if (!required.length) {
+    btn.disabled = true;
+    btn.textContent = "Playing automatically…";
+    return;
+  }
+  if (!required.includes(MP_PID)) {
+    // Spectator for this fixture — no vote, just who we're waiting on.
+    btn.disabled = true;
+    btn.textContent = `Waiting for ${mpNamesFor(required)} — ${ready}/${required.length}`;
+    return;
+  }
+  const me = mpPlayers.find((p) => p.id === MP_PID);
+  if (me && (me.sim_ready_step ?? -1) >= target) {
+    btn.disabled = true;
+    btn.textContent =
+      ready >= required.length ? "Starting…" : `Waiting… ${ready}/${required.length}`;
+    return;
+  }
+  btn.disabled = false;
+  btn.textContent = required.length > 1 ? `${label} (${ready}/${required.length})` : label;
 }
 
-// The shared pointer covers the WHOLE tournament, so the table and every
-// knockout reveal in lockstep for the room too — not just the league:
-//   0 .. R-1 : league rounds
-//   R        : league table
-//   R+1      : Qualifier 1   (+3.5s each)
-//   R+2      : Eliminator
-//   R+3      : Qualifier 2
-//   R+4      : Final + awards
 const MP_STAGES = ["q1", "eliminator", "q2", "final"];
 let mpTableShown = false;
 let mpStagesRevealed = 0;
+let mpLeaguePlayed = false;
+let mpLeagueAnimating = false;
+let mpBracketReady = false;
 
 function mpReveal() {
   if (!mpRoom) return;
-  const R = state.rounds.length;
   const ptr = mpRoom.sim_round ?? -1;
+  if (ptr < 0) return; // still on the kickoff gate
 
-  // 1) League rounds (catch-up reveals many at once; live ticks one at a time).
-  const leagueTarget = Math.min(ptr, R - 1);
-  while (state.roundIndex <= leagueTarget && state.roundIndex < R) {
-    const userMatch = simulateRound();
-    renderPlayedFixture(userMatch);
+  // 1) The league. One shared trigger plays the whole phase — results roll in
+  // round by round on their own. A client that arrives late (pointer already in
+  // the knockouts) catches the season up instantly instead of animating it.
+  if (!mpLeaguePlayed) {
+    if (!mpLeagueAnimating) mpRunLeague(ptr === 0);
+    return; // the run re-enters mpTick when it finishes
   }
-  if (state.roundIndex >= R && !mpLeagueDone) {
-    mpLeagueDone = true;
-    leagueComplete();
-  }
-  if (ptr < R) return;
 
-  // 2) League table — shown to everyone the moment the league ends. The
-  // "To Playoffs" button is the shared vote control (managed by mpRenderGate).
+  // 2) Points table, built purely from those simulated results.
   if (!mpTableShown) {
     mpTableShown = true;
-    showTableScreen();
+    mpShowTableScreen();
   }
 
-  // 3) Knockouts, revealed in canonical order for the whole room.
-  const stageStep = Math.min(ptr - R, MP_STAGES.length); // 0..4
+  // 3) Resolve the bracket AFTER the table has rendered — resolving it folds
+  // the knockout runs/wickets into state.leaders, and the league table's
+  // Orange/Purple caps must reflect the league alone.
+  if (!mpBracketReady) {
+    mpBracketReady = true;
+    mpResolveBracket();
+    mpRenderGate(); // the Q1 gate only becomes knowable once the bracket exists
+  }
+
+  // 4) Knockouts, revealed in canonical order for the whole room.
+  const stageStep = Math.min(ptr, MP_STAGES.length); // 0..4
   if (stageStep >= 1) {
-    mpEnterPlayoffs();
+    mpEnterPlayoffScreen();
     for (let i = mpStagesRevealed; i < stageStep; i++) {
       mpRevealStage(i);
       mpStagesRevealed = i + 1;
@@ -438,13 +585,73 @@ function mpReveal() {
   }
 }
 
-// Enter the knockouts for EVERY client (not just qualifiers), resolving the
-// full bracket once in canonical order. RNG state is identical post-league, so
-// every client computes the same four results and the same champion.
-function mpEnterPlayoffs() {
+// Play the entire league phase off a single shared trigger. Every client runs
+// the identical seeded sequence, so the pacing here is pure presentation — the
+// results are already determined the moment the room starts.
+async function mpRunLeague(animate) {
+  if (mpLeagueAnimating || mpLeaguePlayed) return;
+  mpLeagueAnimating = true;
+  mpRenderGate();
+  while (state.roundIndex < state.rounds.length) {
+    const userMatch = simulateRound();
+    renderPlayedFixture(userMatch);
+    mpRenderGate(); // keeps the "Simulating… Round N of 14" counter live
+    if (animate) await new Promise((r) => setTimeout(r, 1400));
+  }
+  mpLeaguePlayed = true;
+  mpLeagueAnimating = false;
+  mpLeagueDone = true;
+  leagueComplete();
+  mpTick();
+}
+
+// Multiplayer league table. The solo showTableScreen() treats "outside the top
+// 4" as the end of the season — it hides the leaders panel and the To Playoffs
+// button and drops an ELIMINATED result card in. In a room everyone keeps
+// watching the same knockouts together, so MP always shows the full table plus
+// leaders, always keeps the shared vote button, and leaves the result card to
+// the final reveal.
+function mpShowTableScreen() {
+  els.leagueScreen.classList.remove("is-active");
+  els.tableScreen.classList.add("is-active");
+  els.phasePill.textContent = "Table";
+  els.screenTitle.textContent = "League Table";
+  renderTable();
+  renderLeaders();
+  els.leadersPanel.hidden = false;
+  els.seasonEnd.hidden = true;
+  els.playoffBtn.hidden = false;
+
+  const rank = tableRows().findIndex((row) => row.team.id === USER_ID) + 1;
+  const tablePanel = document.querySelector(".table-panel");
+  let info = tablePanel.querySelector(".elim-left-info");
+  if (!info) {
+    info = document.createElement("div");
+    info.className = "elim-left-info";
+    tablePanel.appendChild(info);
+  }
+  // Seeding is readable straight off the table (no simulation needed), so show
+  // the opening bracket here — that's how a manager knows whether the "Start
+  // Qualifier 1" button is theirs to press.
+  const top4 = tableRows().slice(0, 4).map((row) => row.team);
+  const bracket = top4.length === 4
+    ? `<p class="season-end-msg">Qualifier 1: ${escapeHtml(top4[0].short)} vs ${escapeHtml(top4[1].short)} &nbsp;·&nbsp; Eliminator: ${escapeHtml(top4[2].short)} vs ${escapeHtml(top4[3].short)}</p>`
+    : "";
+  info.innerHTML =
+    (rank <= 4
+      ? `<p class="season-end-msg">You finished ${ordinal(rank)} — qualified for the playoffs.</p>`
+      : `<p class="season-end-msg">You finished ${ordinal(rank)}. Top 4 qualify — you can still watch every knockout.</p>`) +
+    bracket;
+}
+
+// Resolve the whole bracket from the finished league table, on EVERY client
+// (not just qualifiers). RNG state is identical post-league, so everyone
+// computes the same four results and the same champion. Nothing is shown yet —
+// this only has to happen early so the room knows WHO is in Qualifier 1 and can
+// gate its start button on exactly those two managers.
+function mpResolveBracket() {
   if (state.playoff) return;
   const top4 = tableRows().slice(0, 4).map((row) => row.team);
-  document.body.classList.add("is-endgame");
   const [a, b, c, d] = top4;
   const q1 = simulateMatch(a, b, { full: true, knockout: true });
   const eliminator = simulateMatch(c, d, { full: true, knockout: true });
@@ -452,11 +659,17 @@ function mpEnterPlayoffs() {
   const final = simulateMatch(q1.winner, q2.winner, { full: true, knockout: true });
   [q1, eliminator, q2, final].forEach(updatePlayerStats);
   state.playoff = { top4, mp: { q1, eliminator, q2, final } };
+}
+
+// Switch to the knockout screen — separate from resolving the bracket, so the
+// points table stays up until the first qualifier actually starts.
+function mpEnterPlayoffScreen() {
+  if (els.playoffScreen.classList.contains("is-active")) return;
+  document.body.classList.add("is-endgame");
   els.tableScreen.classList.remove("is-active");
   els.playoffScreen.classList.add("is-active");
   els.phasePill.textContent = "Playoffs";
   els.screenTitle.textContent = "Playoffs";
-  // The "Play Next" button is the shared vote control (managed by mpRenderGate).
 }
 
 function mpRevealStage(idx) {
@@ -474,8 +687,33 @@ function mpRevealStage(idx) {
     els.phasePill.textContent = "Complete";
     els.screenTitle.textContent = `${champ.short} — Champions`;
     els.playoffLeaders.innerHTML = awardsHtml();
-    showResultCard(buildOutcome(champ.id === USER_ID ? "CHAMPIONS" : "ELIMINATED"), els.resultSlot);
+    els.playoffActions.innerHTML = `
+      <button class="primary-btn" type="button" id="viewScorecardInline">View Scorecard ↓</button>
+      <button class="primary-btn ghost" type="button" id="mpPlayAgainBtn">Play Again — Same Room</button>
+      <a class="primary-btn ghost" href="lobby.html">Back to Lobby</a>
+    `;
+    wireViewScorecard("viewScorecardInline");
+    document
+      .getElementById("mpPlayAgainBtn")
+      .addEventListener("click", (e) => mpPlayAgain(e.currentTarget));
+    showResultCard(buildOutcome(mpUserStage()), els.resultSlot);
   }
+}
+
+// How far the local player's own team actually got, for the result card badge —
+// mirrors the solo labels (CHAMPIONS / RUNNERS-UP / ELIMINATED — <STAGE>).
+function mpUserStage() {
+  const mp = (state.playoff && state.playoff.mp) || {};
+  const final = mp.final;
+  if (final && final.winner.id === USER_ID) return "CHAMPIONS";
+  if (final && (final.home.id === USER_ID || final.away.id === USER_ID)) return "RUNNERS-UP";
+  for (const stage of ["q2", "eliminator", "q1"]) {
+    const m = mp[stage];
+    if (m && (m.home.id === USER_ID || m.away.id === USER_ID)) {
+      return `ELIMINATED — ${PLAYOFF_LABELS[stage].toUpperCase()}`;
+    }
+  }
+  return "ELIMINATED — LEAGUE";
 }
 
 // A row of knockout buttons (Qualifier 1 / Eliminator / Qualifier 2 / Final).
@@ -993,10 +1231,30 @@ function buildGroupFixtures() {
 
 // MULTIPLAYER schedule: completely user-independent so the seeded RNG is
 // consumed in the SAME order on every client → byte-identical results for the
-// whole room. Matches are packed into matchdays where each team plays at most
-// once per round, so every client's own team still has one fixture per round.
+// whole room.
+//
+// The fixture LIST is already real-IPL correct (14 each: group rivals twice
+// home/away, cross-group rival twice, the other four once). This deals those 70
+// into matchdays where every team plays EXACTLY once per round — 14 rounds of
+// 5 — so no manager ever sits out a round. Greedy first-fit packing used to be
+// used here, but it only lands a perfect 14-round split ~0.2% of the time and
+// otherwise sprawls to 16-18 matchdays with byes; `mpPerfectSchedule` searches
+// for a true 1-factorisation instead (first try succeeds ~76% of seeds, never
+// needed more than 6 across 3,000 seeds tested).
 function assembleRoundsShared(matches) {
-  const remaining = shuffle([...matches]); // seeded shuffle = identical everywhere
+  const teamIds = [];
+  matches.forEach(([home, away]) => {
+    if (!teamIds.includes(home.id)) teamIds.push(home.id);
+    if (!teamIds.includes(away.id)) teamIds.push(away.id);
+  });
+  teamIds.sort(); // stable across clients
+
+  const exact = mpPerfectSchedule(matches, teamIds);
+  if (exact) return exact;
+
+  // Fallback (should be unreachable): greedy first-fit. Still deterministic, so
+  // the room stays in sync even if the search ever comes up empty.
+  const remaining = shuffle([...matches]);
   const rounds = [];
   while (remaining.length) {
     const used = new Set();
@@ -1014,6 +1272,73 @@ function assembleRoundsShared(matches) {
     rounds.push(round);
   }
   return rounds;
+}
+
+// Deal every fixture into rounds that are perfect matchings of the league (each
+// team appears exactly once per round). Retries with a fresh seeded shuffle if a
+// greedy pass paints itself into a corner; both the shuffle and the search are
+// deterministic, so every client produces the identical schedule.
+function mpPerfectSchedule(matches, teamIds) {
+  const perRound = teamIds.length / 2;
+  if (teamIds.length % 2 !== 0 || matches.length % perRound !== 0) return null;
+  const totalRounds = matches.length / perRound;
+
+  for (let attempt = 0; attempt < 50; attempt++) {
+    const pool = shuffle([...matches]);
+    const taken = new Array(pool.length).fill(false);
+    const rounds = [];
+    let ok = true;
+    for (let r = 0; r < totalRounds; r++) {
+      const picked = mpFindRoundMatching(pool, taken, teamIds);
+      if (!picked) {
+        ok = false;
+        break;
+      }
+      rounds.push(picked.map((i) => pool[i]));
+    }
+    if (ok) return rounds;
+  }
+  return null;
+}
+
+// Backtracking search for one full matchday: pair up every team using only
+// fixtures still unplayed. Always expands the team with the fewest remaining
+// options first, which keeps the search tiny (10 teams, 70 fixtures).
+function mpFindRoundMatching(pool, taken, teamIds) {
+  const used = new Set();
+  const chosen = [];
+
+  function recurse() {
+    if (chosen.length * 2 === teamIds.length) return true;
+    let bestEdges = null;
+    for (const id of teamIds) {
+      if (used.has(id)) continue;
+      const edges = [];
+      for (let i = 0; i < pool.length; i++) {
+        if (taken[i]) continue;
+        const [home, away] = pool[i];
+        if (home.id === id && !used.has(away.id)) edges.push(i);
+        else if (away.id === id && !used.has(home.id)) edges.push(i);
+      }
+      if (!edges.length) return false; // this team can't be paired — dead end
+      if (!bestEdges || edges.length < bestEdges.length) bestEdges = edges;
+    }
+    for (const i of bestEdges) {
+      const [home, away] = pool[i];
+      used.add(home.id);
+      used.add(away.id);
+      taken[i] = true;
+      chosen.push(i);
+      if (recurse()) return true;
+      used.delete(home.id);
+      used.delete(away.id);
+      taken[i] = false;
+      chosen.pop();
+    }
+    return false;
+  }
+
+  return recurse() ? chosen : null;
 }
 
 // Spread fixtures into matchdays: each round = 1 user match + a slice of the
@@ -1859,6 +2184,12 @@ function showUserEliminated(stageLabel) {
 }
 
 function goToDraftFresh() {
+  // In a room, "play again" restarts the whole league in place rather than
+  // dropping this one player into a solo draft.
+  if (MP) {
+    mpPlayAgain();
+    return;
+  }
   try {
     localStorage.removeItem("seasonState");
   } catch (_) {

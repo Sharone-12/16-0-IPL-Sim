@@ -193,7 +193,10 @@ ok("marquee overflow lands in a role set, not the bin", (() => {
 
 console.log("\n--- set composition (10 teams) ---");
 pool10.sets.forEach((s) =>
-  console.log(`  ${s.label.padEnd(24)} ${String(s.got).padStart(3)} lots  (wanted ${s.wanted}, pool has ${s.available})`)
+  console.log(
+    `  ${s.label.padEnd(24)} ${String(s.got).padStart(3)} lots` +
+    `  ${String(Math.round((s.got / pool10.lots.length) * 100)).padStart(3)}%`
+  )
 );
 
 // ---------- 6. money ----------
@@ -215,6 +218,94 @@ ok("a manager who spends to maxBid can still fill the XI", (() => {
     purse -= slotsLeft === 11 ? bid : A.MIN_BASE; // blow the lot on the first buy
   }
   return purse >= 0;
+})());
+
+// ---------- 8. squad legality ----------
+const lotsBy = (fn) => pool10.lots.filter(fn);
+const openers = lotsBy((l) => l.battingOrder === "Opener" && l.primaryRole !== "Bowler");
+const bowlers = lotsBy((l) => l.primaryRole === "Bowler");
+
+ok("an empty squad accepts anyone", A.canAdd([], openers[0]));
+ok("cannot sign the same player twice", !A.canAdd([openers[0]], openers[0]));
+ok("a 4th opener is refused (only 3 opener slots exist)",
+   !A.canAdd(openers.slice(0, 3), openers[3]));
+ok("a 5th bowler beyond the tail is refused",
+   !A.canAdd(bowlers.slice(0, 4), bowlers[4]));
+ok("overseas cap blocks a 5th overseas signing", (() => {
+  const foreign = pool10.lots.filter((l) => l.isOverseas);
+  const four = [];
+  for (const l of foreign) { if (A.canAdd(four, l)) four.push(l); if (four.length === 4) break; }
+  const next = foreign.find((l) => !four.includes(l) && A.squadFeasible(four.concat([{ ...l, isOverseas: false }])));
+  return four.length === 4 && next ? !A.canAdd(four, next) : true;
+})());
+ok("assignSlots finds a valid arrangement for a legal XI", (() => {
+  const xi = [];
+  for (const l of pool10.lots) { if (xi.length === 11) break; if (A.canAdd(xi, l)) xi.push(l); }
+  const slots = A.assignSlots(xi);
+  return xi.length === 11 && slots && new Set(slots).size === 11 && slots.every((s) => s >= 0);
+})());
+ok("a greedily-built XI is always legal and has a keeper in the top 7", (() => {
+  const xi = [];
+  for (const l of pool10.lots) { if (xi.length === 11) break; if (A.canAdd(xi, l)) xi.push(l); }
+  const slots = A.assignSlots(xi);
+  return xi.length === 11 && xi.some((p, i) => p.isWk && slots[i] < 7);
+})());
+ok("keeper rule: a squad that can never seat a keeper is rejected", (() => {
+  const noKeeper = [];
+  for (const l of pool10.lots) {
+    if (l.isWk) continue;
+    if (noKeeper.length === 11) break;
+    if (A.canAdd(noKeeper, l)) noKeeper.push(l);
+  }
+  return noKeeper.length < 11; // cannot complete an XI with zero keepers
+})());
+
+// ---------- 9. skipping dead lots ----------
+const mgr = (id, squad, purse) => ({ id, squad: squad || [], purse: purse == null ? A.PURSE : purse });
+
+ok("a manager with a full XI cannot bid", (() => {
+  const xi = [];
+  for (const l of pool10.lots) { if (xi.length === 11) break; if (A.canAdd(xi, l)) xi.push(l); }
+  return !A.canBidOn(mgr("a", xi), pool10.lots[50], 50);
+})());
+ok("a manager who cannot afford the price cannot bid",
+   !A.canBidOn(mgr("a", [], 100), pool10.lots[0], 100));
+ok("a manager with no legal slot cannot bid",
+   !A.canBidOn(mgr("a", openers.slice(0, 3)), openers[3], openers[3].basePrice));
+ok("shouldAutoPass fires when nobody in the room can bid",
+   A.shouldAutoPass([mgr("a", openers.slice(0, 3)), mgr("b", openers.slice(3, 6))],
+                    openers[6], openers[6].basePrice));
+ok("shouldAutoPass stays false while anyone can bid",
+   !A.shouldAutoPass([mgr("a", openers.slice(0, 3)), mgr("b", [])], openers[6], openers[6].basePrice));
+ok("isAuctionComplete only when every manager is full", (() => {
+  const xi = [];
+  for (const l of pool10.lots) { if (xi.length === 11) break; if (A.canAdd(xi, l)) xi.push(l); }
+  return A.isAuctionComplete([mgr("a", xi), mgr("b", xi)]) &&
+         !A.isAuctionComplete([mgr("a", xi), mgr("b", [])]);
+})());
+
+// ---------- 10. move to next set ----------
+ok("nextSetIndex jumps past the whole current set", (() => {
+  const i = A.nextSetIndex(pool10.lots, 0);
+  return pool10.lots[0].setId === "marquee" &&
+         pool10.lots[i].setId !== "marquee" &&
+         pool10.lots[i - 1].setId === "marquee";
+})());
+ok("nextSetIndex from mid-set still lands on the next set", (() => {
+  const i = A.nextSetIndex(pool10.lots, 5);
+  return pool10.lots[i].setId !== pool10.lots[5].setId;
+})());
+ok("nextSetIndex clamps at the end", A.nextSetIndex(pool10.lots, pool10.lots.length) === pool10.lots.length);
+ok("skip vote only asks managers who could still bid in that set", (() => {
+  const full = [];
+  for (const l of pool10.lots) { if (full.length === 11) break; if (A.canAdd(full, l)) full.push(l); }
+  const voters = A.skipSetVoters([mgr("live", []), mgr("done", full)], pool10.lots, 0);
+  return voters.includes("live") && !voters.includes("done");
+})());
+ok("skip vote is empty when the set is dead for everyone", (() => {
+  const start = pool10.lots.findIndex((l) => l.setId === "openersA");
+  const three = openers.slice(0, 3);
+  return A.skipSetVoters([mgr("a", three), mgr("b", three)], pool10.lots, start).length === 0;
 })());
 
 console.log(`\n${pass} passed, ${fail} failed`);

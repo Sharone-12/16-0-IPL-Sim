@@ -325,6 +325,108 @@
     return purseLeft - reserveFor * MIN_BASE;
   }
 
+  // ---------- squad legality ----------
+  const XI_SIZE = 11;
+  const TOP_ORDER_SLOTS = 7; // a keeper must end up in slots 0-6
+
+  // Exact assignment of players to distinct XI slots, by backtracking over the
+  // most-constrained player first. Greedy placement is not enough: buying an
+  // opener can force an earlier opener out of slot 2, and only a full search
+  // sees that. Returns a slot-per-player array, or null if no arrangement fits.
+  function assignSlots(players) {
+    const used = new Array(XI_SIZE).fill(false);
+    const out = new Array(players.length).fill(-1);
+    const order = players
+      .map((p, i) => ({ i, opts: eligibleSlots(p) }))
+      .sort((a, b) => a.opts.length - b.opts.length);
+
+    function place(k) {
+      if (k === order.length) return true;
+      const { i, opts } = order[k];
+      for (const s of opts) {
+        if (used[s]) continue;
+        used[s] = true;
+        out[i] = s;
+        if (place(k + 1)) return true;
+        used[s] = false;
+        out[i] = -1;
+      }
+      return false;
+    }
+    return place(0) ? out : null;
+  }
+
+  // Could this squad still become a legal XI? Checks slot assignment, the
+  // overseas cap, and that a keeper can still reach the top order.
+  function squadFeasible(players) {
+    if (players.length > XI_SIZE) return false;
+    if (players.filter((p) => p.isOverseas).length > MAX_OVERSEAS) return false;
+
+    const slots = assignSlots(players);
+    if (!slots) return false;
+
+    // Keeper rule. Once the XI is full a keeper must actually be in the top 7;
+    // before that it is enough that a top-order slot is still free for one.
+    const keeperUp = players.some((p, i) => p.isWk && slots[i] < TOP_ORDER_SLOTS);
+    if (keeperUp) return true;
+    if (players.length >= XI_SIZE) return false;
+    const topUsed = slots.filter((s) => s < TOP_ORDER_SLOTS).length;
+    return topUsed < TOP_ORDER_SLOTS;
+  }
+
+  // Can this manager add this player and still finish with a legal XI?
+  function canAdd(squad, player) {
+    if (squad.length >= XI_SIZE) return false;
+    if (squad.some((p) => p.name === player.name)) return false;
+    return squadFeasible(squad.concat([player]));
+  }
+
+  // ---------- bidding eligibility ----------
+  // A manager may bid only if they can afford the price AND the player can
+  // legally join their XI. This is what lets dead lots pass instantly instead
+  // of burning a timer nobody is going to use.
+  function canBidOn(manager, lot, price) {
+    const squad = manager.squad || [];
+    if (squad.length >= XI_SIZE) return false;
+    if (maxBid(manager.purse, XI_SIZE - squad.length) < price) return false;
+    return canAdd(squad, lot);
+  }
+
+  function eligibleBidders(managers, lot, price) {
+    return managers.filter((m) => canBidOn(m, lot, price)).map((m) => m.id);
+  }
+
+  // Nobody in the room can bid — pass immediately rather than run the clock.
+  function shouldAutoPass(managers, lot, price) {
+    return eligibleBidders(managers, lot, price).length === 0;
+  }
+
+  // Every manager has a full XI — the auction is over, whatever lots remain.
+  function isAuctionComplete(managers) {
+    return managers.length > 0 && managers.every((m) => (m.squad || []).length >= XI_SIZE);
+  }
+
+  // Index of the first lot of the NEXT set — what the "Move to next set" vote
+  // jumps to. Returns lots.length when the current set is the last one.
+  function nextSetIndex(lots, fromIndex) {
+    if (fromIndex >= lots.length) return lots.length;
+    const current = lots[fromIndex].setId;
+    let i = fromIndex;
+    while (i < lots.length && lots[i].setId === current) i++;
+    return i;
+  }
+
+  // Who has to agree to skip the rest of a set: everyone who could still bid in
+  // it. A manager with a full XI has no stake and is not asked — same rule the
+  // knockouts use, where only the teams in the fixture vote.
+  function skipSetVoters(managers, lots, fromIndex) {
+    const end = nextSetIndex(lots, fromIndex);
+    const remaining = lots.slice(fromIndex, end);
+    return managers
+      .filter((m) => remaining.some((lot) => canBidOn(m, lot, lot.basePrice)))
+      .map((m) => m.id);
+  }
+
   return {
     LAKH_PER_CRORE,
     PURSE,
@@ -343,5 +445,15 @@
     buildAuctionPool,
     checkSupply,
     maxBid,
+    XI_SIZE,
+    assignSlots,
+    squadFeasible,
+    canAdd,
+    canBidOn,
+    eligibleBidders,
+    shouldAutoPass,
+    isAuctionComplete,
+    nextSetIndex,
+    skipSetVoters,
   };
 });

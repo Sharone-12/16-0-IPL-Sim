@@ -86,6 +86,7 @@ async function boot() {
     S.clock = CLOCKS[st.clock] || CLOCKS.brisk;
 
     const rows = await loadCsv();
+    S.rows = rows;
     const teams = Math.max(2, Number(st.teams) || 2);
     let players = rows;
     if (st.ratings === "prime") {
@@ -148,7 +149,7 @@ async function refresh() {
     if (r.data) S.room = r.data;
     if (p.data) S.managers = p.data.filter((x) => !x.is_bot);
     if (a.data) S.auction = a.data;
-    if (b.data) S.buys = b.data;
+    if (b.data) { S.buys = b.data; announceSales(); }
     // Our optimistic echo is spent once the server reports an equal-or-better bid.
     if (S.optimistic && S.auction &&
         (S.auction.lot_index !== S.optimistic.lotIndex || (S.auction.price || 0) >= S.optimistic.price)) {
@@ -156,6 +157,39 @@ async function refresh() {
     }
   } catch (_) {}
   if (S.ready) render();
+}
+
+// ---------- hammer-fall announcement ----------
+// "SOLD — Chris Gayle to Sharone for ₹14 Cr". Lots already resolved before this
+// client loaded are marked seen rather than replayed, so joining mid-auction
+// does not fire a burst of stale popups.
+const announced = new Set();
+let saleTimer = null;
+function announceSales() {
+  const fresh = [];
+  for (const b of S.buys) {
+    if (announced.has(b.lot_index)) continue;
+    announced.add(b.lot_index);
+    if (S.seenFirstLoad && b.buyer) fresh.push(b);
+  }
+  S.seenFirstLoad = true;
+  // If several resolved at once (a skipped set), only the last one is worth showing.
+  const last = fresh[fresh.length - 1];
+  if (last) showSale(last);
+}
+
+function showSale(buy) {
+  const p = buy.player || {};
+  const pop = $("salePop");
+  $("saleCard").className = "sale-card";
+  $("saleCard").innerHTML = `
+    <div class="sale-stamp">Sold</div>
+    <div class="sale-player">${esc(p.displayName || p.name || "Player")}</div>
+    <div class="sale-to">to <span class="sale-buyer">${esc(nameOf(buy.buyer))}</span></div>
+    <div class="sale-price">${money(buy.price)}</div>`;
+  pop.hidden = false;
+  clearTimeout(saleTimer);
+  saleTimer = setTimeout(() => { pop.hidden = true; }, 2600);
 }
 
 function subscribe() {
@@ -352,9 +386,65 @@ async function finishAuction() {
   }
 }
 
+// The league needs ten teams so every side plays a full 14-game slate. Any seat
+// the auction did not fill is taken by a real 2026 franchise, exactly as the
+// league lobby does it — sim-mp.js builds their XI from the franchise's actual
+// squad off the `bot_team` name, so nothing else has to change.
+const LEAGUE_SIZE = 10;
+
+function botTeamsByStrength() {
+  const byTeam = {};
+  for (const r of S.rows || []) {
+    if (String(r.season).trim() !== "2026") continue;
+    const full = (r.frFull || r.fr || "").trim();
+    if (!full) continue;
+    (byTeam[full] = byTeam[full] || []).push(r.ovr || 0);
+  }
+  return Object.entries(byTeam)
+    .filter(([, ovrs]) => ovrs.length >= 11)
+    .map(([name, ovrs]) => {
+      const top = ovrs.sort((a, b) => b - a).slice(0, 11);
+      return { name, ovr: Math.round(top.reduce((a, b) => a + b, 0) / top.length) };
+    })
+    .sort((a, b) => b.ovr - a.ovr);
+}
+
+function botId() {
+  return "bot_" + Math.random().toString(36).slice(2, 10) + Date.now().toString(36).slice(-4);
+}
+
 async function proceed() {
-  $("proceedBtn").disabled = true;
-  try { await SUPA.from("rooms").update({ status: "league" }).eq("id", ROOM); } catch (_) {}
+  const btn = $("proceedBtn");
+  btn.disabled = true;
+  btn.textContent = "Setting up the league…";
+  try {
+    const { data: existing } = await SUPA.from("players").select("id,is_bot").eq("room_id", ROOM);
+    const humans = (existing || []).filter((p) => !p.is_bot);
+    const alreadyBots = (existing || []).filter((p) => p.is_bot).length;
+    const need = Math.max(0, LEAGUE_SIZE - humans.length - alreadyBots);
+
+    if (need) {
+      const bots = botTeamsByStrength().slice(0, need);
+      if (bots.length) {
+        await SUPA.from("players").insert(bots.map((t) => ({
+          id: botId(), room_id: ROOM, username: t.name,
+          is_host: false, is_bot: true, bot_team: t.name,
+          status: "done", xi: null, sim_ready_step: -1,
+        })));
+      }
+    }
+
+    // Start the shared progression from the top: kickoff vote, 14 rounds, then
+    // the per-fixture knockout gates — all handled by sim-mp.js unchanged.
+    await SUPA.from("players").update({ sim_ready_step: -1 }).eq("room_id", ROOM);
+    await SUPA.from("rooms").update({ status: "league", sim_round: -1 }).eq("id", ROOM);
+  } catch (err) {
+    console.error(err);
+    btn.disabled = false;
+    btn.textContent = "Proceed to Simulation";
+    toast("Could not start the league", "error");
+    return;
+  }
   gotoSim();
 }
 let goingSim = false;

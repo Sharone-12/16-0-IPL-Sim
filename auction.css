@@ -224,7 +224,46 @@ a { color: inherit; }
 .stamp.sold { color: var(--win); border: 2px solid var(--win); }
 .stamp.unsold { color: var(--danger); border: 2px solid var(--danger); }
 
+/* ---------- hammer-fall announcement ---------- */
+.sale-pop {
+  position: fixed; inset: 0; z-index: 80;
+  display: grid; place-items: center;
+  background: rgba(0, 0, 0, 0.72);
+  animation: saleIn 180ms ease;
+  pointer-events: none;
+}
+.sale-card {
+  background: var(--panel); border: 2px solid var(--win); border-radius: 1rem;
+  padding: 1.8rem 2.4rem; text-align: center; max-width: min(90vw, 520px);
+  box-shadow: 0 0 44px rgba(0, 255, 135, 0.22);
+  animation: salePop 260ms cubic-bezier(0.2, 1.3, 0.4, 1);
+}
+.sale-card.is-unsold { border-color: var(--danger); box-shadow: 0 0 40px rgba(255, 94, 94, 0.2); }
+.sale-stamp {
+  font-family: "Anton", Impact, sans-serif; font-size: 1.15rem; letter-spacing: 0.24em;
+  text-transform: uppercase; color: var(--win); margin-bottom: 0.5rem;
+}
+.sale-card.is-unsold .sale-stamp { color: var(--danger); }
+.sale-player {
+  font-family: "Anton", Impact, sans-serif; font-size: 2.4rem; line-height: 1.05;
+  margin-bottom: 0.5rem; word-break: break-word;
+}
+.sale-to { font-size: 0.72rem; letter-spacing: 0.16em; text-transform: uppercase; color: var(--muted); }
+.sale-buyer { color: var(--accent); font-weight: 700; }
+.sale-price {
+  font-family: "Anton", Impact, sans-serif; font-size: 2.1rem; color: var(--accent);
+  margin-top: 0.5rem;
+}
+@keyframes saleIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes salePop { from { transform: scale(0.82); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+@media (prefers-reduced-motion: reduce) {
+  .sale-pop, .sale-card { animation: none; }
+}
+
 @media (max-width: 620px) {
+  .sale-player { font-size: 1.7rem; }
+  .sale-price { font-size: 1.6rem; }
+  .sale-card { padding: 1.4rem 1.5rem; }
   .lot-name { font-size: 1.5rem; }
   .lot-ovr { font-size: 2.6rem; }
   .bid-price { font-size: 1.7rem; }

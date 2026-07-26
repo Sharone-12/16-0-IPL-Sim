@@ -256,6 +256,20 @@ h1 {
   .mp-glow { animation: none; box-shadow: 0 0 14px 1px rgba(0, 255, 135, 0.4); }
 }
 
+/* Auction = the other headline mode. Amber fill so it reads as a sibling of
+   Multiplayer without competing with it. Same pill geometry as every other
+   landing button — only the colours differ. */
+.auction-glow {
+  border-color: #ffb020;
+  background: #ffb020;
+  color: #0a0a0a;
+}
+.auction-glow:hover {
+  border-color: #ffb020;
+  background: #ffc457;
+  color: #0a0a0a;
+}
+
 /* How to Play — outlined pill, matches the Leaderboard button */
 .how-to-btn {
   display: inline-flex;

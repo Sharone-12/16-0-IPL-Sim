@@ -63,31 +63,72 @@
   // Ordered exactly as they come under the hammer. Marquee first, then the
   // role sets split A/B by rating, then unsold players get an accelerated round.
   const SETS = [
-    { id: "marquee", label: "Marquee", perTeam: 2 },
-    { id: "openersA", label: "Openers — Tier A", perTeam: 1.5 },
-    { id: "wicketkeepers", label: "Wicketkeepers", perTeam: 2 },
-    { id: "middleA", label: "Middle Order — Tier A", perTeam: 2.5 },
-    { id: "allrounders", label: "All-Rounders", perTeam: 2 },
-    { id: "bowlersA", label: "Bowlers — Tier A", perTeam: 3 },
-    { id: "finishers", label: "Finishers", perTeam: 1.5 },
-    { id: "openersB", label: "Openers — Tier B", perTeam: 2 },
-    { id: "middleB", label: "Middle Order — Tier B", perTeam: 2.5 },
-    { id: "bowlersB", label: "Bowlers — Tier B", perTeam: 3 },
+    { id: "marquee", label: "Marquee" },
+    { id: "openersA", label: "Openers — Tier A" },
+    { id: "wicketkeepers", label: "Wicketkeepers" },
+    { id: "middleA", label: "Middle Order — Tier A" },
+    { id: "allrounders", label: "All-Rounders" },
+    { id: "bowlersA", label: "Bowlers — Tier A" },
+    { id: "finishers", label: "Finishers" },
+    { id: "openersB", label: "Openers — Tier B" },
+    { id: "middleB", label: "Middle Order — Tier B" },
+    { id: "bowlersB", label: "Bowlers — Tier B" },
   ];
 
   const TIER_A_MIN = 85;
+  const MARQUEE_MIN = 92;
 
-  // Which set a player belongs to. Order matters: marquee wins over everything,
-  // then keeper, then all-rounder, then specialist bowler, then batting order.
-  function setIdFor(p) {
-    if (p.ovr >= 92) return "marquee";
-    if (p.isWk) return "wicketkeepers";
-    if (p.primaryRole === "All-Rounder") return "allrounders";
-    if (p.primaryRole === "Bowler") return p.ovr >= TIER_A_MIN ? "bowlersA" : "bowlersB";
-    if (p.battingOrder === "Opener") return p.ovr >= TIER_A_MIN ? "openersA" : "openersB";
-    if (p.battingOrder === "Finisher") return "finishers";
-    return p.ovr >= TIER_A_MIN ? "middleA" : "middleB";
+  // Selection is quota'd by ROLE, never by the A/B display tier. Quota'ing the
+  // tiers separately caused a rating inversion — Bowlers A capped at 30 of 60
+  // dropped Rabada (87) while Bowlers B admitted its top 30 at ~84, so a worse
+  // bowler made the auction and a better one did not. Roles are the real
+  // constraint (an XI needs openers/bowlers/keepers), so roles carry the quota
+  // and A/B is applied afterwards purely to order the lots.
+  const ROLE_QUOTAS = [
+    { id: "opener", perTeam: 3.5 },
+    { id: "middle", perTeam: 5 },
+    { id: "finisher", perTeam: 1.5 },
+    { id: "wk", perTeam: 2 },
+    { id: "allrounder", perTeam: 2 },
+    { id: "bowler", perTeam: 6 },
+  ];
+  const MARQUEE_PER_TEAM = 2;
+
+  // The player's role for quota purposes — independent of rating.
+  function roleFor(p) {
+    if (p.isWk) return "wk";
+    if (p.primaryRole === "All-Rounder") return "allrounder";
+    if (p.primaryRole === "Bowler") return "bowler";
+    if (p.battingOrder === "Opener") return "opener";
+    if (p.battingOrder === "Finisher") return "finisher";
+    return "middle";
   }
+
+  // Which auction set a player is presented in.
+  //   isMarquee — decided during pool construction (top N overall), so a 92+
+  //     player who misses the marquee cut is NOT dropped, they appear in their
+  //     own role set instead.
+  //   tierA — also decided during construction, by splitting each role's
+  //     SELECTED players at their median rather than at a fixed OVR line. A
+  //     fixed line put all 60 chosen bowlers in Tier A and left Tier B empty,
+  //     giving 60 bowler lots back to back — a quarter of the auction with
+  //     nothing else to bid on. A median split keeps both blocks populated and
+  //     separated in the running order.
+  function setIdFor(p, isMarquee, tierA) {
+    if (isMarquee) return "marquee";
+    if (tierA === undefined) tierA = p.ovr >= TIER_A_MIN;
+    switch (roleFor(p)) {
+      case "wk": return "wicketkeepers";
+      case "allrounder": return "allrounders";
+      case "bowler": return tierA ? "bowlersA" : "bowlersB";
+      case "opener": return tierA ? "openersA" : "openersB";
+      case "finisher": return "finishers";
+      default: return tierA ? "middleA" : "middleB";
+    }
+  }
+
+  // Roles presented across two tiered sets, so their block is split in the order.
+  const SPLIT_ROLES = new Set(["bowler", "opener", "middle"]);
 
   // Which XI slots a player can legally occupy — mirrors draft.js eligibleSlots
   // so the pool is validated against the same rules the XI builder enforces.
@@ -137,9 +178,9 @@
     return [...best.values()];
   }
 
-  // Per-team quota → absolute count, clamped to what actually exists.
-  function quotaFor(set, teams) {
-    return Math.max(1, Math.ceil(set.perTeam * teams));
+  // Per-team quota → absolute count.
+  function quotaFor(perTeam, teams) {
+    return Math.max(1, Math.ceil(perTeam * teams));
   }
 
   /**
@@ -156,25 +197,49 @@
 
     const unique = bestSeasonPerPlayer(players, eraFrom, eraTo);
 
-    // Bucket by set, best first — quotas then skim the top of each bucket.
-    const buckets = {};
-    for (const set of SETS) buckets[set.id] = [];
-    for (const p of unique) buckets[setIdFor(p)].push(p);
-    for (const id of Object.keys(buckets)) buckets[id].sort((a, b) => b.ovr - a.ovr);
+    // 1) Marquee: the very best overall, capped so it stays a showcase. Anyone
+    //    rated 92+ who misses this cut is NOT dropped — step 2 picks them up in
+    //    their own role set, exactly as the real auction does.
+    const byOvr = [...unique].sort((a, b) => b.ovr - a.ovr || a.name.localeCompare(b.name));
+    const marqueeCount = Math.min(
+      quotaFor(MARQUEE_PER_TEAM, teams),
+      byOvr.filter((p) => p.ovr >= MARQUEE_MIN).length
+    );
+    const marquee = new Set(byOvr.slice(0, marqueeCount).map((p) => p.name));
+
+    // 2) Fill each ROLE to its quota, best first, from everyone not already
+    //    marquee. Because the quota is per role, a player can never be cut while
+    //    a lower-rated player of the same role is admitted.
+    const selected = byOvr.filter((p) => marquee.has(p.name));
+    const roleAvailable = {};
+    const tierA = new Set(); // names presented in the Tier A half of their role
+    for (const role of ROLE_QUOTAS) {
+      const pool = byOvr.filter((p) => !marquee.has(p.name) && roleFor(p) === role.id);
+      roleAvailable[role.id] = pool.length;
+      const take = pool.slice(0, quotaFor(role.perTeam, teams));
+      selected.push(...take);
+      // Split this role's chosen players at their own median (they are already
+      // sorted best-first), so both tier sets are populated and the role's lots
+      // arrive as two separated blocks instead of one long slog.
+      if (SPLIT_ROLES.has(role.id)) {
+        take.slice(0, Math.ceil(take.length / 2)).forEach((p) => tierA.add(p.name));
+      }
+    }
+
+    // 3) Order the chosen players into their display sets.
+    const bySet = {};
+    for (const set of SETS) bySet[set.id] = [];
+    for (const p of selected) {
+      bySet[setIdFor(p, marquee.has(p.name), tierA.has(p.name))].push(p);
+    }
+    for (const id of Object.keys(bySet)) bySet[id].sort((a, b) => b.ovr - a.ovr);
 
     const lots = [];
     const setSummary = [];
     for (const set of SETS) {
-      const want = quotaFor(set, teams);
-      const got = buckets[set.id].slice(0, want);
-      setSummary.push({
-        id: set.id,
-        label: set.label,
-        wanted: want,
-        got: got.length,
-        available: buckets[set.id].length,
-      });
-      got.forEach((p) => {
+      const members = bySet[set.id];
+      setSummary.push({ id: set.id, label: set.label, got: members.length });
+      members.forEach((p) => {
         lots.push({
           name: p.name,
           displayName: p.displayName || p.name,
@@ -188,6 +253,7 @@
           battingOrder: p.battingOrder,
           isWk: p.isWk,
           isOverseas: p.isOverseas,
+          role: roleFor(p),
           setId: set.id,
           setLabel: set.label,
           basePrice: basePriceFor(p.ovr),
@@ -198,30 +264,58 @@
     return {
       lots,
       sets: setSummary,
+      roleAvailable,
       purse: PURSE,
       shortfalls: checkSupply(lots, teams),
     };
   }
 
+  const MAX_OVERSEAS = 4; // per XI, same rule as the draft
+
   // Can every manager legally fill an XI from this pool? Checks the binding
-  // constraints from SLOT_LABELS: 2 openers, 4 middle-ish, 4 bowlers, 1 keeper
-  // in the top 7 — per team. Returns [] when the pool is safe.
+  // constraints from SLOT_LABELS — 2 openers, 4 middle-ish, 4 bowlers, 1 keeper
+  // in the top 7, per team — AND the overseas cap, which limits each XI to 4
+  // overseas players and therefore demands at least 7 Indians per team.
+  // Returns [] when the pool is safe.
   function checkSupply(lots, teams) {
     const count = (fn) => lots.filter(fn).length;
-    const openers = count((p) => eligibleSlots(p).some((s) => s <= 2) && p.battingOrder === "Opener");
-    const middle = count((p) => p.battingOrder === "Middle Order" && p.primaryRole !== "Bowler");
-    const bowlers = count((p) => p.primaryRole === "Bowler");
-    const keepers = count((p) => p.isWk && eligibleSlots(p).some((s) => s <= 6));
+    const isOpener = (p) => p.battingOrder === "Opener";
+    const isMiddle = (p) => p.battingOrder === "Middle Order" && p.primaryRole !== "Bowler";
+    const isBowler = (p) => p.primaryRole === "Bowler";
+    const isKeeper = (p) => p.isWk && eligibleSlots(p).some((s) => s <= 6);
 
     const need = [
-      ["openers", openers, 2 * teams],
-      ["middle order", middle, 4 * teams],
-      ["bowlers", bowlers, 4 * teams],
-      ["wicketkeepers (top 7)", keepers, 1 * teams],
+      ["openers", count(isOpener), 2 * teams],
+      ["middle order", count(isMiddle), 4 * teams],
+      ["bowlers", count(isBowler), 4 * teams],
+      ["wicketkeepers (top 7)", count(isKeeper), 1 * teams],
+      // Overseas cap: every team needs at least 11 - 4 = 7 Indians.
+      ["indian players", count((p) => !p.isOverseas), (11 - MAX_OVERSEAS) * teams],
     ];
-    return need
+
+    const short = need
       .filter(([, have, want]) => have < want)
       .map(([what, have, want]) => ({ what, have, want }));
+
+    // Per role, the league can cover demand from Indians plus at most
+    // MAX_OVERSEAS * teams overseas signings. Necessary condition, not
+    // sufficient (true feasibility is a matching problem), but it catches the
+    // realistic failure: a role that is overwhelmingly overseas.
+    const overseasBudget = MAX_OVERSEAS * teams;
+    [
+      ["openers", isOpener, 2 * teams],
+      ["middle order", isMiddle, 4 * teams],
+      ["bowlers", isBowler, 4 * teams],
+    ].forEach(([what, fn, want]) => {
+      const indian = count((p) => fn(p) && !p.isOverseas);
+      const overseas = count((p) => fn(p) && p.isOverseas);
+      const reachable = indian + Math.min(overseas, overseasBudget);
+      if (reachable < want) {
+        short.push({ what: what + " (within overseas cap)", have: reachable, want });
+      }
+    });
+
+    return short;
   }
 
   // The most this manager can bid and still afford to fill every empty slot at
@@ -235,6 +329,7 @@
     LAKH_PER_CRORE,
     PURSE,
     MIN_BASE,
+    MAX_OVERSEAS,
     SETS,
     basePriceFor,
     bidIncrement,
@@ -243,6 +338,7 @@
     setIdFor,
     eligibleSlots,
     canFillSlot7,
+    roleFor,
     bestSeasonPerPlayer,
     buildAuctionPool,
     checkSupply,

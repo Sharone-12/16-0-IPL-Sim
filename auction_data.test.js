@@ -84,6 +84,26 @@ for (const teams of [2, 3, 4, 5, 6, 7, 8, 9, 10]) {
 }
 ok("every room size 2-10 can fill a legal XI", allSafe);
 
+// ---------- 3b. overseas cap ----------
+console.log("\n--- overseas cap (max 4 per XI => >=7 Indians per team) ---");
+let overseasSafe = true;
+for (const teams of [2, 4, 6, 8, 10]) {
+  const lots = A.buildAuctionPool(rows, { teams, eraFrom: 2008, eraTo: 2026 }).lots;
+  const indian = lots.filter((l) => !l.isOverseas).length;
+  const needIndian = (11 - A.MAX_OVERSEAS) * teams;
+  const indianBowlers = lots.filter((l) => !l.isOverseas && l.primaryRole === "Bowler").length;
+  if (indian < needIndian) overseasSafe = false;
+  console.log(
+    `  ${String(teams).padStart(2)} teams  indian=${String(indian).padStart(3)}/${String(needIndian).padStart(3)} needed` +
+    `  indian bowlers=${String(indianBowlers).padStart(3)} (bowler slots=${4 * teams})`
+  );
+}
+ok("pool always supplies enough Indians for the overseas cap", overseasSafe);
+ok("checkSupply now catches an all-overseas pool", (() => {
+  const allForeign = uniq.map((p) => Object.assign({}, p, { isOverseas: true }));
+  return A.checkSupply(allForeign, 4).some((s) => s.what.includes("indian"));
+})());
+
 // ---------- 4. why the quota exists ----------
 // NOT legality: a naive top-N cut is legally fine, because all-rounders and
 // keepers who bat middle order also fill slots 3/4/5 (61 such players in a
@@ -98,8 +118,27 @@ const share = (lots, id) => lots.filter((l) => A.setIdFor(l) === id).length / lo
 ok("naive cut is dominated by one set (bad auction pacing)",
    share(naive, "bowlersA") > 0.25, `bowlersA share ${(share(naive, "bowlersA") * 100).toFixed(0)}%`);
 ok("naive cut starves finishers", naive.filter((l) => A.setIdFor(l) === "finishers").length < 5);
-ok("quota pool keeps every set under a quarter of the lots",
-   A.SETS.every((s) => share(pool10Lots(), s.id) <= 0.25));
+// Pacing: no single set may hog a long unbroken run of lots. A fixed OVR-85
+// tier line used to put all 60 chosen bowlers in Tier A and leave Tier B empty
+// — 60 bowler lots back to back. Each role is now split at its own median.
+ok("no set runs for more than 35 consecutive lots", (() => {
+  const lots = pool10Lots();
+  let run = 1, worst = 1, worstSet = lots[0].setLabel;
+  for (let i = 1; i < lots.length; i++) {
+    if (lots[i].setId === lots[i - 1].setId) {
+      if (++run > worst) { worst = run; worstSet = lots[i].setLabel; }
+    } else run = 1;
+  }
+  if (worst > 35) console.log(`      worst run: ${worst} x ${worstSet}`);
+  return worst <= 35;
+})());
+ok("both tiers of every split role are populated", (() => {
+  const lots = pool10Lots();
+  const empty = ["bowlers", "openers", "middle"]
+    .filter((r) => !lots.some((l) => l.setId === r + "A") || !lots.some((l) => l.setId === r + "B"));
+  if (empty.length) console.log("      empty tier for: " + empty.join(", "));
+  return empty.length === 0;
+})());
 ok("quota pool gives finishers a real set",
    pool10Lots().filter((l) => l.setId === "finishers").length >= 10);
 function pool10Lots() {
@@ -121,6 +160,36 @@ ok("lots are grouped in set order", (() => {
 })());
 ok("every lot has a base price", pool10.lots.every((l) => l.basePrice >= A.MIN_BASE));
 ok("marquee set is the first thing under the hammer", pool10.lots[0].setId === "marquee");
+
+// ---------- 5b. NO RATING INVERSION ----------
+// The bug this exists to catch: quota'ing the A/B display tiers separately cut
+// Rabada (87) from Bowlers A while admitting ~84 bowlers into Bowlers B, and
+// dropped three 92-rated players because Marquee held only 2 x teams.
+const inPool = new Set(pool10.lots.map((l) => l.name));
+const excluded = uniq.filter((p) => !inPool.has(p.name));
+ok("no excluded player outranks an included player of the SAME role", (() => {
+  const worstIn = {};
+  pool10.lots.forEach((l) => {
+    worstIn[l.role] = Math.min(worstIn[l.role] === undefined ? Infinity : worstIn[l.role], l.ovr);
+  });
+  const bad = excluded.filter((p) => p.ovr > (worstIn[A.roleFor(p)] ?? Infinity));
+  if (bad.length) {
+    console.log("      inversions: " + bad.slice(0, 5).map((p) => `${p.name}(${p.ovr},${A.roleFor(p)})`).join(", "));
+  }
+  return bad.length === 0;
+})());
+ok("every 92+ player is in the auction somewhere", (() => {
+  const missing = uniq.filter((p) => p.ovr >= 92 && !inPool.has(p.name));
+  if (missing.length) console.log("      missing: " + missing.map((p) => `${p.name}(${p.ovr})`).join(", "));
+  return missing.length === 0;
+})());
+ok("marquee overflow lands in a role set, not the bin", (() => {
+  const elite = uniq.filter((p) => p.ovr >= 92);
+  const marqueeLots = pool10.lots.filter((l) => l.setId === "marquee").length;
+  return elite.length > marqueeLots
+    ? elite.every((p) => inPool.has(p.name))
+    : true;
+})());
 
 console.log("\n--- set composition (10 teams) ---");
 pool10.sets.forEach((s) =>

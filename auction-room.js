@@ -146,6 +146,7 @@ async function refresh() {
       SUPA.from("auction_state").select("*").eq("room_id", ROOM).single(),
       SUPA.from("auction_buys").select("*").eq("room_id", ROOM).order("lot_index", { ascending: true }),
     ]);
+    if (a.error && a.error.code !== "PGRST116") console.error("[auction] state read failed:", a.error);
     if (r.data) S.room = r.data;
     if (p.data) S.managers = p.data.filter((x) => !x.is_bot);
     if (a.data) S.auction = a.data;
@@ -213,9 +214,18 @@ function msLeft() {
 
 // Runs ~8x a second on every client. Whoever notices an expiry first resolves
 // it; the conditional writes make the duplicate attempts harmless.
+let ticking = false;
 async function tick() {
   if (!S.ready || !S.auction || S.auction.status !== "live" || S.finishing) return;
   renderTimer();
+  // setInterval does not wait for an async callback, so without this guard ~8
+  // overlapping ticks a second each fire their own resolveLot.
+  if (ticking) return;
+  ticking = true;
+  try { await tickOnce(); } finally { ticking = false; }
+}
+
+async function tickOnce() {
 
   const lot = currentLot();
   if (!lot) { finishAuction(); return; }
@@ -231,15 +241,38 @@ async function tick() {
 
   // Open the clock on a fresh lot.
   if (!S.auction.ends_at) {
-    await SUPA.from("auction_state")
+    const open = await SUPA.from("auction_state")
       .update({ ends_at: new Date(Date.now() + S.clock.open).toISOString() })
       .eq("room_id", ROOM).eq("lot_index", S.auction.lot_index).is("ends_at", null);
+    if (open.error) {
+      console.error("[auction] could not open the clock:", open.error);
+      toast("Could not start the clock — check the console", "error");
+    }
     return;
   }
 
   // Hammer.
-  if (msLeft() <= 0) {
+  const left = msLeft();
+  if (Number.isFinite(left) && left <= 0) {
     await resolveLot(S.auction.high_bidder, S.auction.price || 0);
+    return;
+  }
+
+  // Self-heal: if the deadline is well past and the lot still has not moved,
+  // something went wrong writing the result. Re-read the truth and try again
+  // rather than sitting on a dead 0.
+  if (!Number.isFinite(left) || left < -3000) {
+    console.warn("[auction] lot", S.auction.lot_index, "stuck at deadline; re-syncing", {
+      ends_at: S.auction.ends_at, left,
+    });
+    await refresh();
+    if (S.auction && Number.isFinite(msLeft()) && msLeft() <= 0) {
+      await resolveLot(S.auction.high_bidder, S.auction.price || 0);
+    } else if (S.auction && !Number.isFinite(msLeft())) {
+      // ends_at unusable — clear it so the next tick opens a fresh clock.
+      await SUPA.from("auction_state").update({ ends_at: null })
+        .eq("room_id", ROOM).eq("lot_index", S.auction.lot_index);
+    }
   }
 }
 
@@ -250,16 +283,26 @@ async function resolveLot(buyer, price) {
   const idx = S.auction.lot_index;
   const lot = S.lots[idx];
   if (!lot) return;
-  try {
-    await SUPA.from("auction_buys").insert({
-      room_id: ROOM, lot_index: idx,
-      buyer: buyer || null, player: buyer ? lot : null, price: buyer ? price : null,
-    });
-  } catch (_) { /* someone else already resolved it — fine */ }
 
-  await SUPA.from("auction_state")
+  // A duplicate-key error here is EXPECTED — every client races to resolve and
+  // the primary key lets exactly one win. Anything else is a real fault and
+  // must be visible, not swallowed.
+  const ins = await SUPA.from("auction_buys").insert({
+    room_id: ROOM, lot_index: idx,
+    buyer: buyer || null, player: buyer ? lot : null, price: buyer ? price : null,
+  });
+  if (ins.error && ins.error.code !== "23505") {
+    console.error("[auction] could not record the sale:", ins.error);
+    toast("Could not record the sale — check the console", "error");
+  }
+
+  const adv = await SUPA.from("auction_state")
     .update({ lot_index: idx + 1, price: null, high_bidder: null, ends_at: null, skip_votes: [] })
     .eq("room_id", ROOM).eq("lot_index", idx);
+  if (adv.error) {
+    console.error("[auction] could not advance the lot:", adv.error);
+    toast("Could not advance the lot — check the console", "error");
+  }
 
   if (buyer) {
     // Cached purse for the lobby/room UI; the truth is always auction_buys.

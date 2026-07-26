@@ -225,6 +225,12 @@ a { color: inherit; }
 .stamp.unsold { color: var(--danger); border: 2px solid var(--danger); }
 
 /* ---------- hammer-fall announcement ---------- */
+/* `display: grid` below beats the browser default for [hidden] (display:none),
+   so without this rule the overlay is on screen from page load — dimming the
+   whole room behind an empty card. Author display always wins over the
+   attribute, so it has to be restored explicitly. */
+.sale-pop[hidden] { display: none; }
+
 .sale-pop {
   position: fixed; inset: 0; z-index: 80;
   display: grid; place-items: center;

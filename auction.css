@@ -1,0 +1,233 @@
+/* ===================== 16-0 — Auction room =====================
+   Deliberately reuses the visual language of draft.css / simulation.css:
+   same near-black panels, hairline borders, Anton display face, OVR tier
+   colours and role badges. Only the accent differs (amber, matching the
+   Auction button on the landing page) so the mode reads as its own thing. */
+
+:root {
+  --bg: #0a0a0a;
+  --panel: #141414;
+  --panel-2: #1c1c1c;
+  --line: rgba(255, 255, 255, 0.12);
+  --text: #ffffff;
+  --muted: #8a8a8a;
+  --accent: #ffb020;
+  --accent-dim: rgba(255, 176, 32, 0.16);
+  --danger: #ff5e5e;
+  --win: #00ff87;
+}
+
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body { margin: 0; }
+body {
+  min-height: 100svh;
+  background: var(--bg);
+  color: var(--text);
+  font-family: Arial, Helvetica, sans-serif;
+  display: flex;
+  flex-direction: column;
+  padding: calc(env(safe-area-inset-top) + 0.9rem) 1rem calc(env(safe-area-inset-bottom) + 1.5rem);
+}
+a { color: inherit; }
+
+/* ---------- header ---------- */
+.ar-header {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 1rem;
+}
+.back-link {
+  font-size: 0.6rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted);
+  text-decoration: none; border: 1px solid var(--line); border-radius: 999px; padding: 0.45rem 0.8rem;
+}
+.wordmark { font-family: "Anton", Impact, sans-serif; font-size: 1.5rem; letter-spacing: -0.02em; }
+.phase-pill {
+  font-size: 0.55rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--accent);
+  border: 1px solid var(--accent-dim); background: var(--accent-dim);
+  border-radius: 999px; padding: 0.4rem 0.7rem;
+}
+
+/* ---------- set progress ---------- */
+.set-bar { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 1rem; }
+.set-seg {
+  flex: 1 1 auto; min-width: 26px; height: 5px; border-radius: 999px;
+  background: rgba(255, 255, 255, 0.1);
+}
+.set-seg.is-done { background: rgba(255, 176, 32, 0.4); }
+.set-seg.is-live { background: var(--accent); box-shadow: 0 0 10px var(--accent-dim); }
+
+/* ---------- layout ---------- */
+.ar-layout {
+  flex: 1; min-height: 0;
+  display: grid; grid-template-columns: 1fr 340px; gap: 1rem; align-items: start;
+}
+@media (max-width: 900px) { .ar-layout { grid-template-columns: 1fr; } }
+
+.ar-stage, .ar-side {
+  background: var(--panel); border: 1px solid var(--line); border-radius: 1rem; padding: 1.1rem;
+}
+
+/* ---------- the lot ---------- */
+.lot-meta { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 0.7rem; }
+.lot-set {
+  font-size: 0.62rem; letter-spacing: 0.16em; text-transform: uppercase;
+  color: var(--accent); font-weight: 700;
+}
+.lot-count { font-size: 0.62rem; letter-spacing: 0.1em; color: var(--muted); }
+
+.lot-card {
+  border: 1px solid var(--line); border-radius: 0.9rem; background: var(--panel-2);
+  padding: 1.2rem; min-height: 148px; display: flex; align-items: center; gap: 1.1rem;
+}
+.lot-loading, .lot-empty { color: var(--muted); font-size: 0.85rem; margin: auto; }
+.lot-main { flex: 1; min-width: 0; }
+.lot-name {
+  font-family: "Anton", Impact, sans-serif; font-size: 2rem; line-height: 1.05;
+  margin: 0 0 0.3rem; letter-spacing: 0.01em;
+}
+.lot-sub { font-size: 0.72rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); font-weight: 700; }
+.lot-badges { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-top: 0.7rem; }
+.badge {
+  font-size: 0.55rem; letter-spacing: 0.1em; text-transform: uppercase; font-weight: 700;
+  border-radius: 999px; padding: 0.25rem 0.6rem; border: 1px solid var(--line); color: #cfcfcf;
+}
+.badge.role-opener   { color: #ff8f6b; border-color: rgba(255,143,107,0.4); }
+.badge.role-middle   { color: #7fe4a4; border-color: rgba(127,228,164,0.4); }
+.badge.role-finisher { color: #f5c451; border-color: rgba(245,196,81,0.4); }
+.badge.role-lower    { color: #7aa2ff; border-color: rgba(122,162,255,0.4); }
+.badge.overseas      { color: #cbb0ff; border-color: rgba(203,176,255,0.4); }
+.badge.wk            { color: var(--accent); border-color: var(--accent-dim); }
+
+.lot-ovr { font-family: "Anton", Impact, sans-serif; font-size: 3.4rem; line-height: 1; flex-shrink: 0; }
+.ovr-gold  { color: #f5c451; }
+.ovr-blue  { color: #6ea8ff; }
+.ovr-green { color: #00ff87; }
+.ovr-white { color: #ffffff; }
+
+/* ---------- bidding ---------- */
+.bid-zone { margin-top: 1rem; }
+.bid-state { display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-bottom: 0.9rem; }
+.bid-block { min-width: 0; }
+.bid-label { display: block; font-size: 0.58rem; letter-spacing: 0.16em; text-transform: uppercase; color: var(--muted); }
+.bid-price { display: block; font-family: "Anton", Impact, sans-serif; font-size: 2.2rem; line-height: 1.1; }
+.bid-holder { font-size: 0.72rem; color: var(--muted); }
+.bid-holder.is-you { color: var(--win); font-weight: 700; }
+
+.timer-ring {
+  width: 74px; height: 74px; flex-shrink: 0; border-radius: 50%;
+  display: grid; place-items: center;
+  border: 3px solid var(--line); transition: border-color 160ms ease, box-shadow 160ms ease;
+}
+.timer-ring.is-warn { border-color: var(--accent); box-shadow: 0 0 16px var(--accent-dim); }
+.timer-ring.is-crit { border-color: var(--danger); box-shadow: 0 0 18px rgba(255,94,94,0.35); animation: pulse 0.7s ease-in-out infinite; }
+.timer-num { font-family: "Anton", Impact, sans-serif; font-size: 1.9rem; }
+@keyframes pulse { 50% { transform: scale(1.06); } }
+
+.bid-btn {
+  width: 100%; padding: 1.05rem; border-radius: 999px; border: 1px solid var(--accent);
+  background: var(--accent); color: #221703; font-family: "Anton", Impact, sans-serif;
+  font-size: 1.15rem; letter-spacing: 0.06em; text-transform: uppercase; cursor: pointer;
+  transition: transform 140ms ease, opacity 140ms ease;
+}
+.bid-btn:hover:not(:disabled) { transform: translateY(-2px); }
+.bid-btn:disabled { opacity: 0.32; cursor: not-allowed; transform: none; }
+.bid-btn.is-leading { background: transparent; color: var(--win); border-color: var(--win); }
+
+.bid-note { font-size: 0.68rem; color: var(--muted); text-align: center; margin: 0.6rem 0 0; min-height: 1rem; }
+
+.stage-actions { display: flex; gap: 0.6rem; margin-top: 0.8rem; }
+.ghost-btn {
+  flex: 1; padding: 0.7rem; border-radius: 999px; border: 1px solid var(--line);
+  background: transparent; color: #cfcfcf; font-size: 0.66rem; font-weight: 700;
+  letter-spacing: 0.14em; text-transform: uppercase; cursor: pointer; font-family: inherit;
+}
+.ghost-btn:hover:not(:disabled) { border-color: #fff; color: #fff; }
+.ghost-btn:disabled { opacity: 0.4; cursor: default; }
+
+/* ---------- sold feed ---------- */
+.sold-feed { margin-top: 1rem; display: flex; flex-direction: column; gap: 0.4rem; max-height: 200px; overflow-y: auto; }
+.sold-row {
+  display: flex; align-items: center; gap: 0.6rem; font-size: 0.75rem;
+  padding: 0.5rem 0.65rem; border-radius: 0.5rem; background: var(--panel-2); border: 1px solid var(--line);
+}
+.sold-row.is-unsold { opacity: 0.55; }
+.sold-row .s-name { flex: 1; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sold-row .s-buyer { color: var(--accent); font-size: 0.66rem; letter-spacing: 0.06em; text-transform: uppercase; }
+.sold-row .s-price { font-family: "Anton", Impact, sans-serif; font-size: 0.95rem; }
+
+/* ---------- side: squad ---------- */
+.side-head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 0.5rem; }
+.side-title { font-family: "Anton", Impact, sans-serif; font-size: 1.15rem; margin: 0; letter-spacing: 0.02em; }
+.purse-pill { text-align: right; }
+.purse-label { display: block; font-size: 0.5rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); }
+.purse-pill strong { font-family: "Anton", Impact, sans-serif; font-size: 1.25rem; color: var(--accent); }
+
+.squad-meta {
+  display: flex; justify-content: space-between; gap: 0.4rem; flex-wrap: wrap;
+  font-size: 0.58rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted);
+  margin-bottom: 0.6rem;
+}
+.squad-list, .mgr-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.28rem; }
+.squad-list li {
+  display: flex; align-items: center; gap: 0.5rem; padding: 0.4rem 0.55rem;
+  border: 1px dashed rgba(255, 255, 255, 0.16); border-radius: 0.55rem; min-height: 2.3rem;
+}
+.squad-list li.is-filled { border-style: solid; background: var(--panel-2); }
+.slot-num {
+  display: grid; place-items: center; flex-shrink: 0; width: 1.22rem; height: 1.22rem;
+  border-radius: 50%; background: rgba(255, 255, 255, 0.08); color: #8f8f8f;
+  font-size: 0.56rem; font-weight: 700;
+}
+.slot-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 0.08rem; }
+.slot-role { font-size: 0.47rem; letter-spacing: 0.1em; text-transform: uppercase; color: #707070; }
+.slot-player { font-size: 0.72rem; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.slot-paid { font-size: 0.5rem; letter-spacing: 0.06em; color: var(--accent); font-weight: 700; }
+.slot-ovr { font-family: "Anton", Impact, sans-serif; font-size: 1.05rem; flex-shrink: 0; }
+
+/* ---------- side: managers ---------- */
+.mgr-list li {
+  display: flex; align-items: center; gap: 0.55rem; padding: 0.5rem 0.2rem;
+  border-bottom: 1px solid var(--line); font-size: 0.78rem;
+}
+.mgr-list li:last-child { border-bottom: none; }
+.mgr-list li.is-you .m-name { color: var(--accent); }
+.mgr-list li.is-full { opacity: 0.55; }
+.m-name { flex: 1; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.m-squad { color: var(--muted); font-size: 0.66rem; }
+.m-purse { font-family: "Anton", Impact, sans-serif; font-size: 0.9rem; min-width: 3.8rem; text-align: right; }
+.m-bidding { color: var(--win); font-size: 0.55rem; letter-spacing: 0.1em; text-transform: uppercase; }
+
+/* ---------- shared ---------- */
+.primary-btn {
+  padding: 0.95rem; border-radius: 999px; border: 1px solid #fff; background: #fff; color: #000;
+  font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; font-size: 0.72rem;
+  cursor: pointer; font-family: inherit;
+}
+.primary-btn:disabled { opacity: 0.4; cursor: default; }
+.primary-btn.wide { width: 100%; margin-top: 1rem; }
+.hidden { display: none !important; }
+
+.toast {
+  position: fixed; left: 50%; bottom: 1.5rem; transform: translateX(-50%) translateY(2rem); opacity: 0;
+  background: var(--accent); color: #221703; font-weight: 700; font-size: 0.75rem;
+  padding: 0.6rem 1rem; border-radius: 999px; transition: all 220ms ease; pointer-events: none; z-index: 50;
+}
+.toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+.toast.is-error { background: var(--danger); color: #fff; }
+
+/* ---------- sold / unsold stamp ---------- */
+.lot-card.is-sold { border-color: var(--win); }
+.lot-card.is-unsold { border-color: var(--danger); }
+.stamp {
+  font-family: "Anton", Impact, sans-serif; font-size: 1.1rem; letter-spacing: 0.14em;
+  text-transform: uppercase; padding: 0.3rem 0.8rem; border-radius: 0.4rem; align-self: flex-start;
+}
+.stamp.sold { color: var(--win); border: 2px solid var(--win); }
+.stamp.unsold { color: var(--danger); border: 2px solid var(--danger); }
+
+@media (max-width: 620px) {
+  .lot-name { font-size: 1.5rem; }
+  .lot-ovr { font-size: 2.6rem; }
+  .bid-price { font-size: 1.7rem; }
+  .timer-ring { width: 62px; height: 62px; }
+  .timer-num { font-size: 1.5rem; }
+}

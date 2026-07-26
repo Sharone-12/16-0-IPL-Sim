@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>16-0 — Auction Room</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Anton&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="auction.css" />
+</head>
+<body>
+  <header class="ar-header">
+    <a class="back-link" href="index.html">&larr; Exit</a>
+    <span class="wordmark">16-0</span>
+    <span class="phase-pill" id="phasePill">Auction</span>
+  </header>
+
+  <!-- set progress -->
+  <div class="set-bar" id="setBar"></div>
+
+  <main class="ar-layout">
+
+    <!-- ============ the lot under the hammer ============ -->
+    <section class="ar-stage">
+      <div class="lot-meta">
+        <span class="lot-set" id="lotSet">&mdash;</span>
+        <span class="lot-count" id="lotCount"></span>
+      </div>
+
+      <div class="lot-card" id="lotCard">
+        <div class="lot-loading">Loading auction&hellip;</div>
+      </div>
+
+      <!-- bidding -->
+      <div class="bid-zone">
+        <div class="bid-state">
+          <div class="bid-block">
+            <span class="bid-label">Current bid</span>
+            <strong class="bid-price" id="bidPrice">&mdash;</strong>
+            <span class="bid-holder" id="bidHolder">No bids yet</span>
+          </div>
+          <div class="timer-ring" id="timerRing">
+            <span class="timer-num" id="timerNum">&mdash;</span>
+          </div>
+        </div>
+
+        <button class="bid-btn" type="button" id="bidBtn" disabled>Bid</button>
+        <p class="bid-note" id="bidNote"></p>
+
+        <div class="stage-actions">
+          <button class="ghost-btn" type="button" id="skipBtn" hidden>Move to Next Set</button>
+        </div>
+      </div>
+
+      <div class="sold-feed" id="soldFeed" aria-live="polite"></div>
+    </section>
+
+    <!-- ============ your squad ============ -->
+    <aside class="ar-side">
+      <div class="side-head">
+        <h2 class="side-title">Your Squad</h2>
+        <div class="purse-pill">
+          <span class="purse-label">Purse</span>
+          <strong id="purseVal">&mdash;</strong>
+        </div>
+      </div>
+      <div class="squad-meta">
+        <span id="squadCount">0/11</span>
+        <span id="overseasCount">0/4 overseas</span>
+        <span id="maxBidVal"></span>
+      </div>
+      <ul class="squad-list" id="squadList"></ul>
+
+      <div class="side-head" style="margin-top:1.2rem">
+        <h2 class="side-title">Room</h2>
+      </div>
+      <ul class="mgr-list" id="mgrList"></ul>
+
+      <button class="primary-btn wide hidden" type="button" id="proceedBtn">Proceed to Simulation</button>
+    </aside>
+  </main>
+
+  <div class="toast" id="toast"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="supabase_config.js"></script>
+  <script src="auction_data.js"></script>
+  <script src="auction-room.js"></script>
+  <script defer src="/_vercel/insights/script.js"></script>
+</body>
+</html>

@@ -226,6 +226,20 @@
       }
     }
 
+    // 2b) Guarantee the one signing that can actually strand a manager. A
+    // manager who spends all four overseas places before buying a keeper needs
+    // an INDIAN keeper, and in a small room the keeper quota can come back
+    // almost entirely overseas. Top the pool up so there is always one per team.
+    const chosen = new Set(selected.map((p) => p.name));
+    const indianKeepers = selected.filter((p) => p.isWk && !p.isOverseas).length;
+    if (indianKeepers < teams) {
+      const extra = byOvr.filter((p) => p.isWk && !p.isOverseas && !chosen.has(p.name));
+      for (const p of extra.slice(0, teams - indianKeepers)) {
+        selected.push(p);
+        chosen.add(p.name);
+      }
+    }
+
     // 3) Order the chosen players into their display sets.
     const bySet = {};
     for (const set of SETS) bySet[set.id] = [];
@@ -291,6 +305,11 @@
       ["wicketkeepers (top 7)", count(isKeeper), 1 * teams],
       // Overseas cap: every team needs at least 11 - 4 = 7 Indians.
       ["indian players", count((p) => !p.isOverseas), (11 - MAX_OVERSEAS) * teams],
+      // A manager who spends all four overseas slots before signing a keeper can
+      // only be rescued by an INDIAN keeper. Simulation showed this is the one
+      // way a squad actually gets stranded, so the pool must guarantee one per
+      // team even in the worst case.
+      ["indian wicketkeepers", count((p) => p.isWk && !p.isOverseas), teams],
     ];
 
     const short = need
@@ -416,6 +435,69 @@
     return i;
   }
 
+  // ---------- mandatory-signing warnings ----------
+  // What a manager MUST still buy to end up legal. Surfacing this is what stops
+  // the one real stranding case: filling ten slots, spending all four overseas
+  // places, and only then discovering the last signing has to be an Indian
+  // keeper who may no longer be available.
+  function outstandingNeeds(squad) {
+    const needs = [];
+    const slots = assignSlots(squad) || [];
+    const hasKeeperUp = squad.some((p, i) => p.isWk && slots[i] < TOP_ORDER_SLOTS);
+    const left = XI_SIZE - squad.length;
+    if (!hasKeeperUp) {
+      const overseasFull = squad.filter((p) => p.isOverseas).length >= MAX_OVERSEAS;
+      needs.push({
+        what: overseasFull ? "an INDIAN wicketkeeper" : "a wicketkeeper in the top 7",
+        urgent: left <= 2,
+        indianOnly: overseasFull,
+      });
+    }
+    return needs;
+  }
+
+  // Accelerated round: hand any manager who is still short the best remaining
+  // player they can legally take, at base price. Real auctions have exactly this
+  // safety net, and without it a cautious manager who never bid on a keeper ends
+  // the auction with ten players and an illegal XI.
+  // `reserve` is the wider player database. The auction pool is only ~2x demand,
+  // so a manager who reaches ten players with no keeper and no overseas budget
+  // left can need an Indian keeper after every one in the pool has gone. Real
+  // auctions bring in replacement players for exactly this; without a reserve to
+  // draw on, that manager simply cannot field a legal XI.
+  function fillShortSquads(managers, lots, takenNames, reserve) {
+    const taken = new Set(takenNames || []);
+    const awarded = [];
+    const extras = (reserve || []).map((p) =>
+      p.basePrice ? p : Object.assign({}, p, { basePrice: basePriceFor(p.ovr) })
+    );
+    // Neediest first, so scarce keepers go where they are mandatory.
+    const order = [...managers].sort((a, b) => a.squad.length - b.squad.length);
+    for (const m of order) {
+      const squad = m.squad.slice();
+      let purse = m.purse;
+      while (squad.length < XI_SIZE) {
+        // Prefer whatever satisfies an outstanding requirement first.
+        const needsKeeper = outstandingNeeds(squad).length > 0;
+        const usable = (list) =>
+          list.filter((l) => !taken.has(l.name) && l.basePrice <= purse && canAdd(squad, l));
+        let candidates = usable(lots);
+        if (!candidates.length) candidates = usable(extras); // replacement players
+        if (!candidates.length) break;
+        const pick =
+          (needsKeeper && candidates.find((l) => l.isWk)) ||
+          candidates.reduce((best, l) => (l.ovr > best.ovr ? l : best), candidates[0]);
+        taken.add(pick.name);
+        squad.push(pick);
+        purse -= pick.basePrice;
+        awarded.push({ buyer: m.id, player: pick, price: pick.basePrice });
+      }
+      m.squad = squad;
+      m.purse = purse;
+    }
+    return awarded;
+  }
+
   // Who has to agree to skip the rest of a set: everyone who could still bid in
   // it. A manager with a full XI has no stake and is not asked — same rule the
   // knockouts use, where only the teams in the fixture vote.
@@ -455,5 +537,7 @@
     isAuctionComplete,
     nextSetIndex,
     skipSetVoters,
+    outstandingNeeds,
+    fillShortSquads,
   };
 });

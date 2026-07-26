@@ -1,0 +1,254 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>16-0 — Auction</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Anton&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #0a0a0a;
+      --panel: #141414;
+      --panel-2: #1c1c1c;
+      --line: rgba(255, 255, 255, 0.12);
+      --text: #ffffff;
+      --muted: #8a8a8a;
+      --accent: #ffb020;
+      --accent-dim: rgba(255, 176, 32, 0.16);
+      --danger: #ff5e5e;
+    }
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    html, body { margin: 0; }
+    body {
+      min-height: 100svh;
+      background: var(--bg);
+      color: var(--text);
+      font-family: Arial, Helvetica, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: calc(env(safe-area-inset-top) + 1rem) 1rem calc(env(safe-area-inset-bottom) + 2rem);
+    }
+    a { color: inherit; }
+    .wrap { width: 100%; max-width: 480px; }
+
+    /* header */
+    .top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.4rem; }
+    .back { font-size: 0.6rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted);
+      text-decoration: none; border: 1px solid var(--line); border-radius: 999px; padding: 0.45rem 0.8rem; }
+    .wordmark { font-family: "Anton", Impact, sans-serif; font-size: 1.5rem; letter-spacing: -0.02em; }
+    .chip { font-size: 0.55rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--accent);
+      border: 1px solid var(--accent-dim); background: var(--accent-dim); border-radius: 999px; padding: 0.4rem 0.7rem; }
+
+    h2.title { font-family: "Anton", Impact, sans-serif; font-size: 2rem; margin: 0 0 0.2rem; letter-spacing: 0.01em; }
+    .sub { color: var(--muted); font-size: 0.8rem; margin: 0 0 1.5rem; }
+
+    /* generic */
+    .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 1rem; padding: 1.1rem; margin-bottom: 1rem; }
+    label.fld { display: block; margin-bottom: 1rem; }
+    label.fld > span { display: block; font-size: 0.6rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); margin-bottom: 0.45rem; }
+    input[type="text"] {
+      width: 100%; padding: 0.85rem 0.9rem; border-radius: 0.6rem; border: 1px solid var(--line);
+      background: var(--panel-2); color: var(--text); font-size: 1rem; font-family: inherit;
+    }
+    input[type="text"]:focus { outline: none; border-color: var(--accent); }
+    input.code-input { font-family: ui-monospace, "SF Mono", Menlo, monospace; letter-spacing: 0.4em; text-transform: uppercase; text-align: center; font-size: 1.5rem; }
+
+    .btn { width: 100%; padding: 0.95rem; border-radius: 999px; border: 1px solid #fff; background: #fff; color: #000;
+      font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; font-size: 0.72rem; cursor: pointer; font-family: inherit;
+      transition: transform 160ms ease, opacity 160ms ease; }
+    .btn:hover { transform: translateY(-2px); }
+    .btn:disabled { opacity: 0.35; cursor: not-allowed; transform: none; }
+    .btn.ghost { background: transparent; color: #fff; }
+    .btn.accent { background: var(--accent); border-color: var(--accent); color: #221703; }
+    .btn.row { margin-bottom: 0.7rem; }
+
+    /* setup groups — mirrors the solo Draft Setup screen */
+    .group { margin-bottom: 1.6rem; }
+    .group-label { font-size: 0.62rem; letter-spacing: 0.16em; text-transform: uppercase; color: var(--muted); margin: 0 0 0.7rem; font-weight: 700; }
+    .options { display: grid; gap: 0.6rem; }
+    .options.cols-2 { grid-template-columns: repeat(2, 1fr); }
+    .options.cols-3 { grid-template-columns: repeat(3, 1fr); }
+    .opt { display: flex; flex-direction: column; gap: 0.3rem; padding: 0.95rem 0.85rem; border-radius: 0.7rem;
+      border: 1px solid rgba(255,255,255,0.12); background: rgba(255,255,255,0.035); color: #cdcdcd; text-align: left;
+      cursor: pointer; font-family: inherit; transition: border-color 160ms ease, background-color 160ms ease, box-shadow 160ms ease; }
+    .opt:hover { border-color: rgba(255,255,255,0.35); }
+    .opt.is-selected { border-color: #fff; background: rgba(255,255,255,0.1); box-shadow: inset 0 0 0 1px #fff; }
+    .opt-title { color: #fff; font-size: 0.9rem; font-weight: 700; letter-spacing: 0.02em; }
+    .opt-desc { color: #8f8f8f; font-size: 0.62rem; font-weight: 600; letter-spacing: 0.03em; line-height: 1.35; }
+    .teams-note { font-size: 0.72rem; color: var(--muted); margin: 0 0 1.4rem; }
+    .teams-note b { color: #fff; }
+
+    /* waiting room */
+    .code-box { text-align: center; padding: 1.3rem 1rem; }
+    .code-box .lbl { font-size: 0.58rem; letter-spacing: 0.16em; text-transform: uppercase; color: var(--muted); }
+    .code-box .code { font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 2.6rem; letter-spacing: 0.5em;
+      font-weight: 700; margin: 0.3rem 0 0.2rem; padding-left: 0.5em; cursor: pointer; }
+    .code-box .hint { font-size: 0.6rem; color: var(--muted); }
+
+    .players { list-style: none; margin: 0; padding: 0; }
+    .players li { display: flex; align-items: center; gap: 0.7rem; padding: 0.65rem 0.2rem; border-bottom: 1px solid var(--line); }
+    .players li:last-child { border-bottom: none; }
+    .players li.is-ready { background: rgba(255,176,32,.08); border-radius: .5rem; }
+    .players li.is-ready .pname { color: var(--accent); }
+    .ava { width: 2.1rem; height: 2.1rem; flex-shrink: 0; display: grid; place-items: center;
+      border-radius: 50%; border: 1px solid var(--line); background: var(--panel-2);
+      font-family: "Anton", Impact, sans-serif; font-size: 0.95rem; color: #e8e8e8; letter-spacing: 0.02em; }
+    .ava.host { border-color: rgba(245,196,81,0.55); color: #f5c451; }
+    .ava.bot { border-style: dashed; color: #9fb4e6; border-color: rgba(122,162,255,0.4); }
+    .pname { flex: 1; font-weight: 700; font-size: 0.95rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .ptag { font-size: 0.5rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); border: 1px solid var(--line); border-radius: 999px; padding: 0.2rem 0.5rem; }
+    .ptag.host { color: #f5c451; border-color: rgba(245,196,81,0.5); }
+    .ptag.ready { color: var(--accent); border-color: var(--accent-dim); background: var(--accent-dim); }
+    .ptag.bot { color: #7aa2ff; border-color: rgba(122,162,255,0.4); }
+    .dot { width: 0.5rem; height: 0.5rem; border-radius: 50%; background: var(--accent); box-shadow: 0 0 8px var(--accent); flex-shrink: 0; }
+    .dot.off { background: #555; box-shadow: none; }
+
+    .section-head { display: flex; justify-content: space-between; align-items: baseline; margin: 0 0 0.6rem; }
+    .section-head h3 { font-size: 0.62rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); margin: 0; }
+    .fill-note { font-size: 0.72rem; color: var(--muted); margin: 0 0 0.8rem; }
+    .fill-note b { color: var(--accent); }
+
+    .bot-list { list-style: none; margin: 0; padding: 0; }
+    .bot-list li { display: flex; align-items: center; gap: 0.7rem; padding: 0.55rem 0.2rem; font-size: 0.88rem; color: #cfcfcf; border-bottom: 1px solid var(--line); }
+    .bot-list li:last-child { border-bottom: none; }
+    .bot-list .rank { font-family: "Anton", Impact, sans-serif; color: var(--muted); width: 1.4rem; font-size: 0.85rem; }
+    .bot-list .bname { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .bot-list .btag { font-size: 0.5rem; letter-spacing: 0.1em; text-transform: uppercase; color: #9fb4e6; border: 1px solid rgba(122,162,255,0.35); border-radius: 999px; padding: 0.2rem 0.5rem; }
+    .bot-list .bovr { font-weight: 700; color: var(--muted); font-size: 0.76rem; min-width: 3.6rem; text-align: right; }
+
+    .hidden { display: none !important; }
+    .err { color: var(--danger); font-size: 0.78rem; min-height: 1rem; margin: 0.3rem 0 0; }
+    .toast { position: fixed; left: 50%; bottom: 1.5rem; transform: translateX(-50%) translateY(2rem); opacity: 0;
+      background: var(--accent); color: #221703; font-weight: 700; font-size: 0.75rem; padding: 0.6rem 1rem; border-radius: 999px;
+      transition: all 220ms ease; pointer-events: none; z-index: 50; }
+    .toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+
+    /* countdown overlay */
+    .countdown { position: fixed; inset: 0; background: rgba(0,0,0,0.92); display: flex; align-items: center; justify-content: center; z-index: 100; }
+    .countdown .num { font-family: "Anton", Impact, sans-serif; font-size: 9rem; color: var(--accent); animation: pop 1s ease forwards; }
+    @keyframes pop { 0% { transform: scale(0.3); opacity: 0; } 30% { transform: scale(1); opacity: 1; } 100% { transform: scale(1.4); opacity: 0; } }
+
+    .status-msg { text-align: center; color: var(--muted); font-size: 0.8rem; padding: 1rem 0; }
+    .spin { display: inline-block; width: 1rem; height: 1rem; border: 2px solid var(--line); border-top-color: var(--accent); border-radius: 50%; animation: rot 0.7s linear infinite; vertical-align: middle; }
+    @keyframes rot { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="top">
+      <a class="back" href="index.html">&larr; Home</a>
+      <span class="wordmark">16-0</span>
+      <span class="chip">Auction</span>
+    </div>
+
+    <!-- ============ chooser ============ -->
+    <section id="view-chooser">
+      <h2 class="title">Auction Mode</h2>
+      <p class="sub">Bid against the room for a squad. Set by set, one player at a time.</p>
+      <button class="btn accent row" id="goCreate">Create Auction</button>
+      <button class="btn ghost" id="goJoin">Join Auction</button>
+    </section>
+
+    <!-- ============ create ============ -->
+    <section id="view-create" class="hidden">
+      <h2 class="title">Create Auction</h2>
+      <p class="sub">Everyone bids for the same players. One squad each, no bench.</p>
+
+      <div class="panel">
+        <label class="fld"><span>Auction name</span>
+          <input type="text" id="roomName" maxlength="28" placeholder="Friday Night Auction" /></label>
+        <label class="fld" style="margin-bottom:0"><span>Your name</span>
+          <input type="text" id="hostName" maxlength="18" placeholder="Manager" /></label>
+      </div>
+
+      <div class="group">
+        <p class="group-label">Bidding clock</p>
+        <div class="options cols-3" data-key="clock">
+          <button class="opt" type="button" data-v="snappy"><span class="opt-title">Snappy</span><span class="opt-desc">6s &middot; +5s on a bid</span></button>
+          <button class="opt is-selected" type="button" data-v="brisk"><span class="opt-title">Brisk</span><span class="opt-desc">8s &middot; +6s on a bid</span></button>
+          <button class="opt" type="button" data-v="relaxed"><span class="opt-title">Relaxed</span><span class="opt-desc">12s &middot; +8s on a bid</span></button>
+        </div>
+      </div>
+
+      <div class="group">
+        <p class="group-label">Player ratings</p>
+        <div class="options cols-2" data-key="ratings">
+          <button class="opt is-selected" type="button" data-v="career"><span class="opt-title">Career Seasons</span><span class="opt-desc">Each player at their best season</span></button>
+          <button class="opt" type="button" data-v="prime"><span class="opt-title">Prime Mode</span><span class="opt-desc">Everyone at career-best</span></button>
+        </div>
+      </div>
+
+      <div class="group">
+        <p class="group-label">Era</p>
+        <div class="options cols-2" data-key="era">
+          <button class="opt is-selected" type="button" data-v="all"><span class="opt-title">All-time</span><span class="opt-desc">2008&ndash;2026</span></button>
+          <button class="opt" type="button" data-v="2012"><span class="opt-title">2012+</span><span class="opt-desc">Modern era</span></button>
+          <button class="opt" type="button" data-v="2016"><span class="opt-title">2016+</span><span class="opt-desc">Recent</span></button>
+          <button class="opt" type="button" data-v="2020"><span class="opt-title">2020+</span><span class="opt-desc">New school</span></button>
+        </div>
+      </div>
+
+      <p class="teams-note">Purse per manager: <b>&#8377;100 Cr</b> &middot; squad <b>11 players</b>, no bench.
+        The lot list is sized to the number of managers, so everyone can always complete a legal XI.</p>
+
+      <p class="err" id="createErr"></p>
+      <button class="btn accent row" id="createBtn">Create Auction</button>
+      <button class="btn ghost" id="createBack">Back</button>
+    </section>
+
+    <!-- ============ join ============ -->
+    <section id="view-join" class="hidden">
+      <h2 class="title">Join Auction</h2>
+      <p class="sub">Enter the 6-character room code.</p>
+      <div class="panel">
+        <label class="fld"><span>Room code</span>
+          <input type="text" class="code-input" id="joinCode" maxlength="6" placeholder="ABC123" /></label>
+        <label class="fld" style="margin-bottom:0"><span>Your name</span>
+          <input type="text" id="joinName" maxlength="18" placeholder="Manager" /></label>
+      </div>
+      <p class="err" id="joinErr"></p>
+      <button class="btn accent row" id="joinBtn">Join Auction</button>
+      <button class="btn ghost" id="joinBack">Back</button>
+    </section>
+
+    <!-- ============ waiting ============ -->
+    <section id="view-waiting" class="hidden">
+      <h2 class="title" id="wRoomName">Auction Room</h2>
+      <p class="sub" id="wSub">Waiting for managers&hellip;</p>
+
+      <div class="panel code-box">
+        <div class="lbl">Room code</div>
+        <div class="code" id="wCode">------</div>
+        <div class="hint">Tap code to copy &middot; <a href="#" id="shareLink" style="color:var(--accent);text-decoration:none">Share link</a></div>
+      </div>
+
+      <div class="panel">
+        <div class="section-head"><h3>Managers</h3><span class="ptag" id="wCount">0</span></div>
+        <ul class="players" id="wPlayers"></ul>
+      </div>
+
+      <div class="panel">
+        <div class="section-head"><h3>Auction preview</h3></div>
+        <ul class="bot-list" id="wPreview"></ul>
+      </div>
+
+      <p class="err" id="waitErr"></p>
+      <button class="btn accent row hidden" id="startBtn">Start Auction</button>
+      <p class="status-msg hidden" id="waitMsg">Waiting for the host to start&hellip;</p>
+      <button class="btn ghost" id="leaveBtn">Leave</button>
+    </section>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="supabase_config.js"></script>
+  <script src="auction_data.js"></script>
+  <script src="auction.js"></script>
+  <script defer src="/_vercel/insights/script.js"></script>
+</body>
+</html>

@@ -25,6 +25,13 @@
       --accent-deep: #0b3f86;      /* deep navy */
       --accent-dim: rgba(91, 159, 227, 0.14);
       --accent-line: rgba(91, 159, 227, 0.42);
+
+      /* Primary-button fill: blue-dominant, with white only as a highlight in the
+         first fifth. The darkest stop is held at #5b9fe3 so the navy label keeps a
+         5.8:1 contrast ratio all the way along — going darker reads better but
+         makes the text fail. */
+      --fill: linear-gradient(135deg, #eef6fd 0%, #a9cfee 18%, #7fb8ee 52%, #5b9fe3 100%);
+      --fill-hover: linear-gradient(135deg, #f7fbff 0%, #bcdbf3 18%, #93c5f2 52%, #6faae7 100%);
       --danger: #ff5e5e;
     }
     * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -69,8 +76,24 @@
       transition: transform 160ms ease, opacity 160ms ease; }
     .btn:hover:not(:disabled) { transform: translateY(-2px); }
     .btn:disabled { opacity: 0.35; cursor: not-allowed; transform: none; }
-    .btn.ghost { background: transparent; color: #fff; }
-    .btn.accent { background: var(--accent); border-color: var(--accent); color: #06203f; }
+    .btn.ghost { background: transparent; color: #fff; border-color: var(--line-2); }
+
+    /* Primary action: filled with the blue-and-white gradient from the mode's
+       palette. The travelling ring is reserved for the Auction button on the
+       landing page, so the two never compete. */
+    .btn.accent {
+      background: var(--fill);
+      border-color: transparent;
+      color: #06203f;
+    }
+    /* Restated: `.btn:hover:not(:disabled)` outranks `.btn.accent`, so without
+       this the gradient would be dropped the moment the pointer touched it. */
+    .btn.accent:hover:not(:disabled) {
+      background: var(--fill-hover);
+      border-color: transparent;
+      color: #06203f;
+    }
+    .btn.accent:disabled { background: var(--panel-3); border-color: var(--line); color: var(--dim); }
     .btn.row { margin-bottom: 0.7rem; }
 
     /* setup groups — mirrors the solo Draft Setup screen */

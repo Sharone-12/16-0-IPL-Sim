@@ -26,6 +26,13 @@
   --accent-dim: rgba(91, 159, 227, 0.14);
   --accent-line: rgba(91, 159, 227, 0.42);
 
+  /* Primary-button fill: blue-dominant, with white only as a highlight in the
+     first fifth. The darkest stop is held at #5b9fe3 so the navy label keeps a
+     5.8:1 contrast ratio all the way along — going darker reads better but
+     makes the text fail. */
+  --fill: linear-gradient(135deg, #eef6fd 0%, #a9cfee 18%, #7fb8ee 52%, #5b9fe3 100%);
+  --fill-hover: linear-gradient(135deg, #f7fbff 0%, #bcdbf3 18%, #93c5f2 52%, #6faae7 100%);
+
   --live: #00ff87;
   --win: #00ff87;
   --danger: #ff5e5e;
@@ -192,18 +199,26 @@ a { color: inherit; }
 
 .bid-btn {
   width: 100%; padding: 1.05rem; border-radius: 999px;
-  border: 1px solid var(--accent); background: var(--accent); color: #06203f;
+  border: 1px solid transparent; color: #06203f;
+  background: var(--fill);
   font-family: "Anton", Impact, sans-serif; font-size: 1.15rem;
   letter-spacing: 0.06em; text-transform: uppercase; cursor: pointer;
   transition: transform 140ms ease, opacity 140ms ease;
 }
-.bid-btn:hover:not(:disabled) { transform: translateY(-2px); }
+.bid-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  background: var(--fill-hover);
+}
 .bid-btn:active:not(:disabled) { transform: none; }
 .bid-btn:disabled {
   background: transparent; border-color: var(--line); color: var(--dim);
   cursor: not-allowed; transform: none;
 }
 .bid-btn.is-leading { background: transparent; color: var(--live); border-color: var(--live); }
+/* Restated for hover. Today this is masked because renderBid also disables the
+   button while you lead, so `:not(:disabled)` never matches — but that is a JS
+   invariant, and the leading state should hold its own colours in CSS alone. */
+.bid-btn.is-leading:hover { background: transparent; color: var(--live); border-color: var(--live); }
 
 .bid-note { font-size: 0.66rem; color: var(--muted); text-align: center; margin: 0.65rem 0 0; min-height: 1rem; line-height: 1.5; }
 
@@ -313,12 +328,26 @@ a { color: inherit; }
 
 /* ---------- shared ---------- */
 .primary-btn {
-  padding: 0.95rem; border-radius: 999px; border: 1px solid #fff; background: #fff; color: #000;
+  padding: 0.95rem; border-radius: 999px; border: 1px solid #fff;
   font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; font-size: 0.72rem;
   cursor: pointer; font-family: inherit; transition: transform 140ms ease;
 }
 .primary-btn:hover:not(:disabled) { transform: translateY(-2px); }
-.primary-btn:disabled { opacity: 0.4; cursor: default; transform: none; }
+.primary-btn:disabled { cursor: default; transform: none; }
+
+/* Primary action: filled with the blue-and-white gradient from the mode's
+   palette. The travelling ring is reserved for the Auction button on the
+   landing page, so the two never compete. */
+.primary-btn {
+  background: var(--fill);
+  border-color: transparent;
+  color: #06203f;
+}
+.primary-btn:hover:not(:disabled) {
+  background: var(--fill-hover);
+}
+.primary-btn:disabled { background: transparent; border-color: var(--line); color: var(--dim); }
+
 .primary-btn.wide { width: 100%; margin-top: 1rem; }
 .hidden { display: none !important; }
 

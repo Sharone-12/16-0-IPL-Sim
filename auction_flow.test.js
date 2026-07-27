@@ -444,6 +444,55 @@ for (const [name, c] of Object.entries(CLOCKS)) {
   ok(`${name}: a bid always leaves at least the bump`, alwaysMin);
 }
 
+// ---------- 3d. host kick ----------
+// A removed manager must lose their VOTE but keep their TEAM. Deleting the row
+// instead would change the roster, and every client derives fixtures from that
+// roster — so anyone reloading after the kick would compute a different season.
+const kickBox = {
+  console,
+  MP_PID: "me",
+  mpPlayers: [],
+  MP_PRESENCE_WINDOW_MS: 60000,
+  MP_LEAGUE_SIZE: 10,
+};
+vm.createContext(kickBox);
+vm.runInContext(lift(simSrc, ["mpLiveHumans", "mpTrimToLeague"]), kickBox);
+
+{
+  const now = Date.now();
+  const stamp = (s) => new Date(now - s * 1000).toISOString();
+  kickBox.mpPlayers = [
+    { id: "me",    is_bot: false, status: "ready",  last_seen: stamp(0) },
+    { id: "alice", is_bot: false, status: "ready",  last_seen: stamp(2) },
+    { id: "bob",   is_bot: false, status: "kicked", last_seen: stamp(1) },  // idle, tab open
+    { id: "carol", is_bot: false, status: "ready",  last_seen: stamp(400) }, // tab closed
+    { id: "bot_1", is_bot: true,  status: "done",   last_seen: stamp(0) },
+  ];
+  const live = kickBox.mpLiveHumans().map((p) => p.id);
+  ok("a kicked manager is dropped from the voters", !live.includes("bob"), live.join(","));
+  ok("a stale heartbeat is still dropped too", !live.includes("carol"), live.join(","));
+  ok("everyone else still votes", live.includes("me") && live.includes("alice"));
+  ok("bots never vote", !live.includes("bot_1"));
+
+  // ...but the league roster is untouched by the kick.
+  const rows = kickBox.mpPlayers
+    .filter((p) => p.id !== "bot_1")
+    .map((p, i) => ({ ...p, joined_at: new Date(1000 + i * 1000).toISOString(),
+                      xi: p.is_bot ? null : new Array(11).fill(0) }));
+  for (let i = 0; i < 6; i++) {
+    rows.push({ id: `bot_R_${i}`, is_bot: true, status: "done",
+                joined_at: new Date(9000 + i * 1000).toISOString(), xi: null });
+  }
+  const seated = kickBox.mpTrimToLeague(rows).map((p) => p.id);
+  ok("a kicked manager keeps their league seat", seated.includes("bob"), seated.join(","));
+  ok("the league is still exactly 10 teams", seated.length === 10, `got ${seated.length}`);
+
+  // The sim's own roster filter must agree — it is what buildMpTeams consumes.
+  const boot = rows.filter((p) => p.is_bot || (Array.isArray(p.xi) && p.xi.length >= 11));
+  ok("mpBoot's roster filter also keeps a kicked manager",
+     boot.some((p) => p.id === "bob"));
+}
+
 // ---------- 4. full auction → league dry run ----------
 function rng(seed) {
   let a = seed >>> 0;

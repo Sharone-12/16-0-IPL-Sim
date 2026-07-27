@@ -316,6 +316,19 @@ a { color: inherit; }
 .m-name { font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .m-squad { color: var(--muted); font-size: 0.62rem; letter-spacing: 0.06em; }
 .m-purse { font-family: "Anton", Impact, sans-serif; font-size: 0.92rem; text-align: right; }
+/* Host control. The extra track only exists while the host is looking, and the
+   host's own row gets a spacer so the purse column stays aligned down the list. */
+.mgr-list.has-kick li { grid-template-columns: 1fr auto auto auto; }
+.m-kick-spacer { width: 1.15rem; }
+.m-kick {
+  width: 1.15rem; height: 1.15rem; padding: 0; flex-shrink: 0;
+  display: grid; place-items: center;
+  border: 1px solid var(--line); border-radius: 50%;
+  background: transparent; color: var(--dim);
+  font-size: 0.8rem; line-height: 1; cursor: pointer; font-family: inherit;
+  transition: border-color 150ms ease, color 150ms ease;
+}
+.m-kick:hover { border-color: var(--danger); color: var(--danger); }
 .m-bidding {
   grid-column: 1 / -1; justify-self: start;
   color: var(--live); font-size: 0.5rem; letter-spacing: 0.16em; text-transform: uppercase; font-weight: 700;

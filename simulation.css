@@ -2317,3 +2317,28 @@ tr.is-user td:first-child {
 .result-close:hover {
   color: #ffffff;
 }
+
+
+/* ===================== Auction rooms: host "waiting on" bar =====================
+   Only ever rendered by sim-mp.js for rooms created through Auction mode, and
+   only for the host. Purely additive — no existing selector is modified, so the
+   solo simulation and the multiplayer draft are unaffected. */
+.mp-kickbar {
+  position: fixed; left: 50%; bottom: 1rem; transform: translateX(-50%);
+  z-index: 60; max-width: min(92vw, 640px);
+  display: flex; align-items: center; flex-wrap: wrap; gap: 0.45rem;
+  padding: 0.55rem 0.8rem; border-radius: 999px;
+  background: #141414; border: 1px solid rgba(255, 255, 255, 0.16);
+}
+.mp-kickbar[hidden] { display: none; }
+.mp-kickbar-label, .mp-kickbar-hint {
+  font-size: 0.5rem; letter-spacing: 0.14em; text-transform: uppercase; color: #8a8a8a;
+}
+.mp-kickbar .mp-kick {
+  display: inline-flex; align-items: center; gap: 0.35rem;
+  padding: 0.3rem 0.6rem; border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.28); background: transparent; color: #fff;
+  font-family: inherit; font-size: 0.62rem; font-weight: 700; letter-spacing: 0.08em;
+  cursor: pointer; transition: border-color 150ms ease, color 150ms ease;
+}
+.mp-kickbar .mp-kick:hover { border-color: #ff5e5e; color: #ff5e5e; }

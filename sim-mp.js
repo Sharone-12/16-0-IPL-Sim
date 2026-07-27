@@ -346,7 +346,7 @@ async function mpStartSync(room) {
 // not exist and PostgREST rejects the WHOLE select, which would leave mpPlayers
 // empty and every gate ungated. Fall back to the base columns and carry on
 // without presence rather than breaking the room.
-const MP_BASE_COLS = "id,username,is_bot,sim_ready_step";
+const MP_BASE_COLS = "id,username,is_bot,sim_ready_step,status";
 let mpHasPresence = true;
 
 async function mpRefresh() {
@@ -392,7 +392,11 @@ function mpMaxStep() { return MP_REPLAY_STEP; }
 // local clock, so every client reaches the same verdict regardless of skew.
 const MP_PRESENCE_WINDOW_MS = 60000;
 function mpLiveHumans() {
-  const humans = mpPlayers.filter((p) => !p.is_bot);
+  // A manager the host has removed keeps their TEAM (the league is already
+  // running and every client computed the same fixtures from the same roster —
+  // dropping the row would desync anyone who reloads) but loses their vote, so
+  // they can never hold a gate again.
+  const humans = mpPlayers.filter((p) => !p.is_bot && p.status !== "kicked");
   const stamps = humans
     .map((p) => Date.parse(p.last_seen))
     .filter((t) => Number.isFinite(t));
@@ -555,6 +559,7 @@ function mpTick() {
   }
   mpReveal();
   mpRenderGate();
+  mpRenderKickBar();
   mpTryAdvance();
 }
 
@@ -711,6 +716,76 @@ function mpRenderGate() {
   }
   btn.disabled = false;
   btn.textContent = required.length > 1 ? `${label} (${ready}/${required.length})` : label;
+}
+
+// ---------- host: remove a manager who is holding up the room ----------
+// Closing a tab is already handled: the presence window drops anyone whose
+// heartbeat goes stale. This covers the case presence cannot see — a manager
+// sitting idle with the tab open, who stays "live" and blocks every gate.
+//
+// Auction rooms only. The multiplayer draft's flow is deliberately untouched.
+function mpIsHost() {
+  return !!(mpRoom && mpRoom.host_id && mpRoom.host_id === MP_PID);
+}
+
+// Who the room is currently waiting on, excluding yourself.
+function mpOutstanding() {
+  const ptr = mpRoom.sim_round ?? -1;
+  if (ptr >= mpMaxStep()) return [];
+  const target = ptr >= MP_STAGES.length ? MP_REPLAY_STEP : ptr + 1;
+  const required = mpRequiredVoters(target);
+  if (!required) return [];
+  return mpPlayers.filter(
+    (p) => required.includes(p.id) && p.id !== MP_PID && mpVoteStep(p) < target
+  );
+}
+
+async function mpKick(id) {
+  const p = mpPlayers.find((x) => x.id === id);
+  const name = (p && p.username) || "that manager";
+  if (!window.confirm(
+    `Remove ${name} from the room?\n\nTheir team stays in the league and keeps ` +
+    `playing its fixtures — they just stop holding up the ready votes. This cannot be undone.`
+  )) return;
+  try {
+    await MP_SUPA.from("players").update({ status: "kicked" })
+      .eq("id", id).eq("room_id", MP_ROOM);
+    showToast(`${name} removed — their team plays on`);
+  } catch (err) {
+    console.error("Kick failed:", err);
+    showToast("Could not remove that manager");
+  }
+  mpRefresh();
+}
+
+// One fixed strip rather than a control beside each of the three stage buttons —
+// those live on different screens, so a single host-only bar is both simpler and
+// impossible to strand inside a hidden panel.
+let mpKickBar = null;
+function mpRenderKickBar() {
+  const show = mpMode === "auction" && mpIsHost() && !mpLeagueAnimating;
+  const waiting = show ? mpOutstanding() : [];
+  if (!waiting.length) {
+    if (mpKickBar) mpKickBar.hidden = true;
+    return;
+  }
+  if (!mpKickBar) {
+    mpKickBar = document.createElement("div");
+    mpKickBar.className = "mp-kickbar";
+    mpKickBar.addEventListener("click", (e) => {
+      const b = e.target.closest("[data-kick]");
+      if (b) mpKick(b.dataset.kick);
+    });
+    document.body.appendChild(mpKickBar);
+  }
+  mpKickBar.hidden = false;
+  mpKickBar.innerHTML =
+    '<span class="mp-kickbar-label">Waiting on</span>' +
+    waiting.map((p) =>
+      `<button type="button" class="mp-kick" data-kick="${escapeHtml(p.id)}">` +
+      `${escapeHtml(p.username || "Manager")} <span aria-hidden="true">&times;</span></button>`
+    ).join("") +
+    '<span class="mp-kickbar-hint">Remove to unblock</span>';
 }
 
 // "Play Again" is a whole-room vote, exactly like the league kickoff — it shows

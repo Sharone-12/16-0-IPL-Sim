@@ -144,7 +144,7 @@ async function refresh() {
   try {
     const [r, p, a, b] = await Promise.all([
       SUPA.from("rooms").select("*").eq("id", ROOM).single(),
-      SUPA.from("players").select("id,username,is_bot,purse").eq("room_id", ROOM),
+      SUPA.from("players").select("id,username,is_bot,purse,status").eq("room_id", ROOM),
       SUPA.from("auction_state").select("*").eq("room_id", ROOM).single(),
       SUPA.from("auction_buys").select("*").eq("room_id", ROOM).order("lot_index", { ascending: true }),
     ]);
@@ -153,7 +153,14 @@ async function refresh() {
     // realtime subscription normally does this; the poll is the fallback for
     // when the socket is down, so nobody is left stranded on a dead auction.
     if (r.data) { S.room = r.data; if (r.data.status === "league") gotoSim(); }
-    if (p.data) S.managers = p.data.filter((x) => !x.is_bot);
+    if (p.data) {
+      // A manager the host removed stops counting for anything: bidding
+      // eligibility, the skip-set vote, the room list. Their existing signings
+      // stand and still become a team at Proceed.
+      S.managers = p.data.filter((x) => !x.is_bot && x.status !== "kicked");
+      const me = p.data.find((x) => x.id === PID);
+      if (me && me.status === "kicked") { ejectSelf(); return; }
+    }
     if (a.data) S.auction = a.data;
     if (b.data) { S.buys = b.data; announceSales(); }
     // Our optimistic echo is spent once the server reports an equal-or-better bid.
@@ -222,6 +229,9 @@ function msLeft() {
 let ticking = false;
 async function tick() {
   if (!S.ready || !S.auction || S.auction.status !== "live" || S.finishing) return;
+  // A removed manager's tab lingers for a moment before redirecting; it must not
+  // resolve lots or write its own XI back over the 'kicked' flag in the meantime.
+  if (S.kicked) return;
   renderTimer();
   // setInterval does not wait for an async callback, so without this guard ~8
   // overlapping ticks a second each fire their own resolveLot.
@@ -377,7 +387,7 @@ function bumpedDeadline() {
 
 async function placeBid() {
   const lot = currentLot();
-  if (!lot || !iCanBid()) return;
+  if (S.kicked || !lot || !iCanBid()) return;
   const price = askingPrice();
 
   S.optimistic = { lotIndex: S.auction.lot_index, price };
@@ -483,7 +493,7 @@ function buildXi(id) {
 // players.xi — the exact shape sim-mp.js already consumes, so the league and
 // knockouts run afterwards with no changes at all.
 async function finishAuction() {
-  if (S.finishing) return;
+  if (S.finishing || S.kicked) return;
   S.finishing = true;
   try {
     await SUPA.from("auction_state").update({ status: "done" }).eq("room_id", ROOM);
@@ -604,7 +614,7 @@ async function setUpLeague() {
   let existing = null;
   const incomplete = (p) => !p.is_bot && !(Array.isArray(p.xi) && p.xi.length >= 11);
   for (let i = 0; i < 40; i++) {
-    const { data } = await SUPA.from("players").select("id,is_bot,xi").eq("room_id", ROOM);
+    const { data } = await SUPA.from("players").select("id,is_bot,xi,status").eq("room_id", ROOM);
     existing = data || [];
     if (!existing.some(incomplete)) break;
     await new Promise((res) => setTimeout(res, 250));
@@ -616,7 +626,11 @@ async function setUpLeague() {
   for (const p of (existing || []).filter(incomplete)) {
     const xi = buildXi(p.id);
     if (xi.length >= 11) {
-      await SUPA.from("players").update({ xi, status: "ready_sim" }).eq("id", p.id).eq("room_id", ROOM);
+      // Never clobber 'kicked' — that flag is what keeps a removed manager out
+      // of every ready vote, and they still need the XI so their squad fields a
+      // team. Writing status here would silently reinstate them.
+      const patch = p.status === "kicked" ? { xi } : { xi, status: "ready_sim" };
+      await SUPA.from("players").update(patch).eq("id", p.id).eq("room_id", ROOM);
       p.xi = xi;
     }
   }
@@ -1064,6 +1078,7 @@ function wireSquadDrag() {
 
 function renderManagers() {
   const lot = currentLot();
+  $("mgrList").classList.toggle("has-kick", iAmHost());
   $("mgrList").innerHTML = S.managers.map((m) => {
     const sq = squadOf(m.id);
     const full = sq.length >= A.XI_SIZE;
@@ -1074,6 +1089,9 @@ function renderManagers() {
       <span class="m-name">${esc(m.username || "Manager")}${m.id === PID ? " (you)" : ""}</span>
       <span class="m-squad">${sq.length}/11</span>
       <span class="m-purse">${money(left)}</span>
+      ${!iAmHost() ? "" : m.id === PID
+        ? '<span class="m-kick-spacer"></span>'
+        : `<button type="button" class="m-kick" data-kick="${esc(m.id)}" title="Remove ${esc(m.username || "manager")}">&times;</button>`}
       <span class="m-bar"><span style="width:${pct.toFixed(1)}%"></span></span>
       ${live ? '<span class="m-bidding">still bidding</span>' : ""}
     </li>`;
@@ -1084,6 +1102,42 @@ function renderManagers() {
 // every 2.5s poll, so animating every row would make the whole list twitch on a
 // loop for no reason.
 let lastFeedTop = null;
+// ---------- host: remove a manager ----------
+// An auction is on a clock, so an absent manager cannot stall the bidding — but
+// they DO stall the "Move to Next Set" vote, and they carry a league seat they
+// will never field. Removing them frees both. What they have already bought
+// stays sold: those lots are long past and cannot be re-auctioned.
+function iAmHost() {
+  return !!(S.room && S.room.host_id && S.room.host_id === PID);
+}
+
+async function kickManager(id) {
+  const name = nameOf(id);
+  if (!window.confirm(
+    `Remove ${name} from the auction?\n\nPlayers they have already won stay sold, ` +
+    `and their squad still becomes a team in the league. This cannot be undone.`
+  )) return;
+  try {
+    const { error } = await SUPA.from("players").update({ status: "kicked" })
+      .eq("id", id).eq("room_id", ROOM);
+    if (error) throw error;
+    toast(`${name} removed from the auction`);
+  } catch (err) {
+    console.error("Kick failed:", err);
+    toast("Could not remove that manager", "error");
+  }
+  refresh();
+}
+
+let ejecting = false;
+function ejectSelf() {
+  if (ejecting) return;
+  ejecting = true;
+  S.kicked = true;
+  toast("You were removed from this auction", "error");
+  setTimeout(() => { location.href = "auction.html"; }, 1600);
+}
+
 function renderFeed() {
   const recent = S.buys.slice().sort((a, b) => b.lot_index - a.lot_index).slice(0, 12);
   const topIdx = recent.length ? recent[0].lot_index : null;
@@ -1106,6 +1160,10 @@ function renderFeed() {
 
 // ---------- wiring ----------
 wireSquadDrag();
+$("mgrList").addEventListener("click", (e) => {
+  const b = e.target.closest("[data-kick]");
+  if (b) kickManager(b.dataset.kick);
+});
 $("bidBtn").addEventListener("click", placeBid);
 $("skipBtn").addEventListener("click", voteSkip);
 $("pauseBtn").addEventListener("click", togglePause);

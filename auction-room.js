@@ -158,6 +158,10 @@ async function refresh() {
       // eligibility, the skip-set vote, the room list. Their existing signings
       // stand and still become a team at Proceed.
       S.managers = p.data.filter((x) => !x.is_bot && x.status !== "kicked");
+      // Everyone human, removed or not. Squad completion works off THIS list:
+      // a removed manager still fields the team they part-built, so the players
+      // they did buy are not stranded out of the league entirely.
+      S.allHumans = p.data.filter((x) => !x.is_bot);
       const me = p.data.find((x) => x.id === PID);
       if (me && me.status === "kicked") { ejectSelf(); return; }
     }
@@ -502,7 +506,7 @@ async function finishAuction() {
     // player at base price. Simulation showed the one real stranding case —
     // reaching ten players with no keeper and all four overseas slots spent —
     // so this draws on the wider database when the pool is exhausted.
-    const views = allManagerViews();
+    const views = (S.allHumans || S.managers).map(managerView);
     const taken = S.buys.filter((b) => b.buyer).map((b) => b.player.name);
     const awarded = A.fillShortSquads(views, S.lots, taken, S.reserve || []);
     if (awarded.length) {
@@ -620,12 +624,38 @@ async function setUpLeague() {
     await new Promise((res) => setTimeout(res, 250));
   }
 
+  // Anyone still short of eleven — the manager who bought three players and left
+  // before finishAuction ran — is completed here from the unsold lots at base
+  // price (keeper first if one is still mandatory), falling back to the wider
+  // database. This is the CAS-claimed single writer, so it cannot double-award.
+  await refresh();
+  const shortOnes = (existing || []).filter(
+    (p) => !p.is_bot && squadOf(p.id).length < A.XI_SIZE
+  );
+  if (shortOnes.length) {
+    const views = shortOnes.map(managerView);
+    const taken = S.buys.filter((b) => b.buyer).map((b) => b.player.name);
+    const awarded = A.fillShortSquads(views, S.lots, taken, S.reserve || []);
+    let nextIdx = Math.max(S.lots.length, ...S.buys.map((b) => b.lot_index)) + 1;
+    for (const a of awarded) {
+      try {
+        await SUPA.from("auction_buys").insert({
+          room_id: ROOM, lot_index: nextIdx++, buyer: a.buyer,
+          player: a.player, price: a.price,
+        });
+      } catch (err) {
+        if (!err || err.code !== "23505") console.error("[auction] fill insert failed:", err);
+      }
+    }
+    if (awarded.length) await refresh();
+  }
+
   // Whoever never wrote their own is not here to set a batting order — give them
   // a solver-assigned XI so their squad still takes the field. Only this client
   // does it, so nobody's dragged order can be overwritten by a late writer.
   for (const p of (existing || []).filter(incomplete)) {
     const xi = buildXi(p.id);
-    if (xi.length >= 11) {
+    if (xi.length >= A.XI_SIZE) {
       // Never clobber 'kicked' — that flag is what keeps a removed manager out
       // of every ready vote, and they still need the XI so their squad fields a
       // team. Writing status here would silently reinstate them.

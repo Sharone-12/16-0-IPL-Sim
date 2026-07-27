@@ -493,6 +493,90 @@ vm.runInContext(lift(simSrc, ["mpLiveHumans", "mpTrimToLeague"]), kickBox);
      boot.some((p) => p.id === "bob"));
 }
 
+// ---------- 3e. the manager who buys three players and leaves ----------
+// Their squad is completed from the unsold lots at base price so they still
+// field a legal XI, keep the players they actually bought, and never strand
+// those players outside the league.
+{
+  const p4 = A.buildCuratedPool(auc, mas, { teams: 4 });
+  const mine = makeSquad(3);                       // three real signings
+  const abandoned = { id: "gone", squad: [...mine], purse: A.PURSE - 4000 };
+  const others = [1, 2, 3].map((i) => ({ id: "m" + i, squad: [], purse: A.PURSE }));
+  const taken = mine.map((p) => p.name);
+
+  A.fillShortSquads([abandoned, ...others], p4.lots, taken, p4.lots);
+
+  ok("an abandoned 3-player squad is completed to a full XI",
+     abandoned.squad.length === A.XI_SIZE, `got ${abandoned.squad.length}`);
+  ok("the three they actually bought are still theirs",
+     mine.every((p) => abandoned.squad.some((x) => x.name === p.name)));
+  ok("the completed XI is legal", A.squadFeasible(abandoned.squad));
+  ok("the completed XI has a slot assignment", !!A.assignSlots(abandoned.squad));
+  ok("a keeper reaches the top order", (() => {
+    const slots = A.assignSlots(abandoned.squad);
+    return !!slots && abandoned.squad.some((x, i) => x.isWk && slots[i] < 7);
+  })());
+  ok("the overseas cap still holds",
+     abandoned.squad.filter((x) => x.isOverseas).length <= A.MAX_OVERSEAS);
+  ok("they never overspend", abandoned.purse >= 0, `purse ${abandoned.purse}`);
+  ok("nobody else was handed the same player", (() => {
+    const all = [abandoned, ...others].flatMap((m) => m.squad.map((x) => x.name));
+    return new Set(all).size === all.length;
+  })());
+}
+
+// How good is a walked-away team, really? Measured inside a REAL auction, where
+// the leftovers have already been picked over — filling from the untouched pool
+// would flatter it badly (it comes out level with a fully-bid squad, which is
+// nonsense).
+{
+  const avg = (sq) => sq.reduce((a, x) => a + x.ovr, 0) / sq.length;
+  const results = {};
+  for (const quit of [0, 3, 6, 11]) {
+    const samples = [];
+    for (let r = 0; r < 12; r++) {
+      const teams = 6;
+      const rnd = rng(3300 + r);
+      const p = A.buildCuratedPool(auc, mas, { teams });
+      const ms = Array.from({ length: teams }, (_, i) => ({
+        id: "m" + i, squad: [], purse: A.PURSE, aggression: 0.4 + rnd() * 1.2,
+      }));
+      const quitter = ms[0];
+      for (const lot of p.lots) {
+        if (A.isAuctionComplete(ms)) break;
+        // The quitter stops bidding once they have `quit` players.
+        const active = ms.filter((m) => m !== quitter || m.squad.length < quit);
+        if (A.shouldAutoPass(active, lot, lot.basePrice)) continue;
+        let price = lot.basePrice, leader = null;
+        for (;;) {
+          const ch = active.filter((m) => {
+            if (m.id === (leader && leader.id) || !A.canBidOn(m, lot, price)) return false;
+            const ceiling = A.maxBid(m.purse, A.XI_SIZE - m.squad.length);
+            return price <= Math.min(ceiling,
+              Math.round(lot.basePrice * (1 + m.aggression * (lot.ovr - 70) / 12))) && rnd() < 0.85;
+          });
+          if (!ch.length) break;
+          leader = ch[Math.floor(rnd() * ch.length)];
+          const next = A.nextBid(price);
+          if (!A.canBidOn(leader, lot, next)) break;
+          price = next;
+        }
+        if (leader) { leader.squad.push(lot); leader.purse -= price; }
+      }
+      A.fillShortSquads(ms, p.lots, ms.flatMap((m) => m.squad.map((x) => x.name)), p.lots);
+      ok(`quitter with ${quit} signings still fields a legal XI`,
+         quitter.squad.length === A.XI_SIZE && A.squadFeasible(quitter.squad),
+         `run ${r}: ${quitter.squad.length} players`);
+      samples.push(avg(quitter.squad));
+    }
+    results[quit] = samples.reduce((a, b) => a + b, 0) / samples.length;
+  }
+  console.log("      abandoned-team strength (6-manager auction, 12 runs each):");
+  for (const [k, v] of Object.entries(results)) {
+    console.log(`        quit after ${String(k).padStart(2)} signings -> XI avg OVR ${v.toFixed(1)}`);
+  }
+}
+
 // ---------- 4. full auction → league dry run ----------
 function rng(seed) {
   let a = seed >>> 0;

@@ -504,7 +504,7 @@ vm.runInContext(lift(simSrc, ["mpLiveHumans", "mpTrimToLeague"]), kickBox);
   const others = [1, 2, 3].map((i) => ({ id: "m" + i, squad: [], purse: A.PURSE }));
   const taken = mine.map((p) => p.name);
 
-  A.fillShortSquads([abandoned, ...others], p4.lots, taken, p4.lots);
+  A.fillShortSquads([abandoned, ...others], p4.lots, taken, A.buildReservePool(mas, p4.lots));
 
   ok("an abandoned 3-player squad is completed to a full XI",
      abandoned.squad.length === A.XI_SIZE, `got ${abandoned.squad.length}`);
@@ -530,6 +530,10 @@ vm.runInContext(lift(simSrc, ["mpLiveHumans", "mpTrimToLeague"]), kickBox);
 // would flatter it badly (it comes out level with a fully-bid squad, which is
 // nonsense).
 {
+  const reserve = A.buildReservePool(mas, pool.lots);
+  ok("the reserve is genuinely replacement level",
+     reserve.length > 200 && Math.max(...reserve.map((p) => p.ovr)) < 90,
+     `${reserve.length} players, top ${Math.max(...reserve.map((p) => p.ovr))}`);
   const avg = (sq) => sq.reduce((a, x) => a + x.ovr, 0) / sq.length;
   const results = {};
   for (const quit of [0, 3, 6, 11]) {
@@ -563,7 +567,7 @@ vm.runInContext(lift(simSrc, ["mpLiveHumans", "mpTrimToLeague"]), kickBox);
         }
         if (leader) { leader.squad.push(lot); leader.purse -= price; }
       }
-      A.fillShortSquads(ms, p.lots, ms.flatMap((m) => m.squad.map((x) => x.name)), p.lots);
+      A.fillShortSquads(ms, p.lots, ms.flatMap((m) => m.squad.map((x) => x.name)), reserve);
       ok(`quitter with ${quit} signings still fields a legal XI`,
          quitter.squad.length === A.XI_SIZE && A.squadFeasible(quitter.squad),
          `run ${r}: ${quitter.squad.length} players`);

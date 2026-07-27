@@ -219,14 +219,38 @@
   function normalizeMasterRow(r) {
     return {
       name: r.Player_Name,
+      displayName: r.Player_Name,
       season: r.Season,
+      fr: r.Franchise,
       frFull: r.Franchise_Full,
       ovr: Math.min(+r.OVR || 70, 100),
       bat: +r.Bat_Rat || +r.OVR || 70,
       bowl: +r.Bowl_Rat || +r.OVR || 60,
       primaryRole: r.Primary_Role,
       battingOrder: r.Batting_Order,
+      // Needed by eligibleSlots / the overseas cap when these rows are used as
+      // replacement players. Additive — the curated join ignores them.
+      isWk: r.Is_Wicketkeeper === "1",
+      isOverseas: r.Nationality === "Overseas",
     };
+  }
+
+  // Replacement level: every player in the database who did NOT make the auction
+  // catalogue, one lot per player at their best season, priced at the floor.
+  // This is what a manager who walks away gets — genuine scrubs, not the
+  // unsold leftovers of a premium pool.
+  function buildReservePool(masterRows, lots) {
+    const inPool = new Set((lots || []).map((l) => l.name));
+    const best = bestSeasonPerPlayer(masterRows, -Infinity, Infinity)
+      .filter((p) => !inPool.has(p.name) && p.primaryRole && p.battingOrder);
+    return best
+      .map((p) => Object.assign({}, p, {
+        simOvr: p.ovr,
+        basePrice: MIN_BASE,
+        setId: "reserve",
+        setLabel: "Replacement",
+      }))
+      .sort((a, b) => b.ovr - a.ovr);
   }
 
   // ---------- curated pool (ipl_auction_career_final.csv) ----------
@@ -631,12 +655,21 @@
         const needsKeeper = outstandingNeeds(squad).length > 0;
         const usable = (list) =>
           list.filter((l) => !taken.has(l.name) && l.basePrice <= purse && canAdd(squad, l));
-        let candidates = usable(lots);
-        if (!candidates.length) candidates = usable(extras); // replacement players
+        // Reserve first. Filling from the unsold POOL handed an abandoner the
+        // pick of players nobody happened to bid on, which is why walking away
+        // used to cost almost nothing.
+        let candidates = usable(extras);
+        if (!candidates.length) candidates = usable(lots); // pool leftovers, if legality demands
         if (!candidates.length) break;
-        const pick =
-          (needsKeeper && candidates.find((l) => l.isWk)) ||
-          candidates.reduce((best, l) => (l.ovr > best.ovr ? l : best), candidates[0]);
+        // WEAKEST legal option, not the best. Squad completion only ever fires
+        // for a manager who stopped bidding — a full auction leaves nobody
+        // short — so handing them the pick of the leftovers meant walking away
+        // cost almost nothing. Scraps make abandoning a real competitive
+        // penalty while still guaranteeing a legal XI.
+        const worst = (list) =>
+          list.reduce((low, l) => (l.ovr < low.ovr ? l : low), list[0]);
+        const keepers = needsKeeper ? candidates.filter((l) => l.isWk) : [];
+        const pick = keepers.length ? worst(keepers) : worst(candidates);
         taken.add(pick.name);
         squad.push(pick);
         purse -= pick.basePrice;
@@ -694,5 +727,6 @@
     skipSetVoters,
     outstandingNeeds,
     fillShortSquads,
+    buildReservePool,
   };
 });

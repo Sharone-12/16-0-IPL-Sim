@@ -96,7 +96,10 @@ async function boot() {
     const teams = Math.max(2, Number(st.teams) || 2);
     const pool = A.buildCuratedPool(auc, mas, { teams });
     S.lots = pool.lots;
-    S.reserve = pool.lots;              // accelerated round draws on the same pool
+    // Squad completion draws on players OUTSIDE the auction catalogue, so a
+    // manager who walks away is topped up with replacement level rather than
+    // handed whatever premium lots happened to go unsold.
+    S.reserve = A.buildReservePool(mas, pool.lots);
     if (pool.unmatched.length) {
       console.warn("[auction] lots with no master row (skipped):", pool.unmatched);
     }

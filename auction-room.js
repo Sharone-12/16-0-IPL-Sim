@@ -361,6 +361,20 @@ async function resolveLot(buyer, price) {
 // The timer RESETS on every accepted bid, so a lot only closes once the room
 // has gone quiet for a full bump interval. That is also the anti-snipe: a late
 // bid always buys everyone else another window to respond.
+// A bid EXTENDS the clock; it used to replace it with `now + bump`, which is not
+// what the lobby advertises ("8s · +6s on a bid") and behaved badly in two ways:
+// bidding with 5s left on a brisk clock moved it to 6s — visibly "+1 second" —
+// and the first bid on a relaxed 12s clock SHORTENED it to 8s.
+//
+// Capped at the opening duration so a long bidding war can't inflate the timer
+// without bound, and floored at the bump so a late bid always leaves a fair
+// window to respond.
+function bumpedDeadline() {
+  const left = Math.max(0, msLeft() || 0);
+  const ms = Math.min(Math.max(left + S.clock.bump, S.clock.bump), S.clock.open);
+  return new Date(Date.now() + ms).toISOString();
+}
+
 async function placeBid() {
   const lot = currentLot();
   if (!lot || !iCanBid()) return;
@@ -373,7 +387,7 @@ async function placeBid() {
     .update({
       price,
       high_bidder: PID,
-      ends_at: new Date(Date.now() + S.clock.bump).toISOString(),
+      ends_at: bumpedDeadline(),
       skip_votes: [],
     })
     .eq("room_id", ROOM)

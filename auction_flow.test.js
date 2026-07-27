@@ -401,6 +401,49 @@ const legalLayout = () =>
   ok("loose layout keeps slots in range", loose.every((s) => s >= 0 && s < A.XI_SIZE));
 }
 
+// ---------- 3c. the bid clock ----------
+// A bid must never shorten the countdown and never inflate it without bound.
+// The old behaviour replaced the deadline with `now + bump`, so bidding at 5s
+// on a brisk clock moved it to 6s ("+1 second") and the first bid on a relaxed
+// 12s clock cut it to 8s.
+const clockBox = { console, S: { clock: null }, msLeft: () => clockBox.left, left: 0, Date };
+vm.createContext(clockBox);
+vm.runInContext(lift(roomSrc, ["bumpedDeadline"]), clockBox);
+
+const CLOCKS = {
+  snappy:  { open: 6000,  bump: 5000 },
+  brisk:   { open: 8000,  bump: 6000 },
+  relaxed: { open: 12000, bump: 8000 },
+};
+function newClock(preset, left) {
+  clockBox.S.clock = CLOCKS[preset];
+  clockBox.left = left;
+  return Date.parse(clockBox.bumpedDeadline()) - Date.now();
+}
+const near = (a, b) => Math.abs(a - b) <= 60; // tolerance for the Date.now() gap
+
+ok("brisk: bidding at 5s left extends to the 8s ceiling, not 6s",
+   near(newClock("brisk", 5000), 8000), `got ${newClock("brisk", 5000)}`);
+ok("brisk: a last-gasp bid still buys the full 6s bump",
+   near(newClock("brisk", 0), 6000), `got ${newClock("brisk", 0)}`);
+ok("relaxed: the first bid no longer SHORTENS a 12s clock",
+   near(newClock("relaxed", 11000), 12000), `got ${newClock("relaxed", 11000)}`);
+ok("snappy: capped at its 6s opening duration",
+   near(newClock("snappy", 5000), 6000), `got ${newClock("snappy", 5000)}`);
+
+for (const [name, c] of Object.entries(CLOCKS)) {
+  let neverShortens = true, neverExceeds = true, alwaysMin = true;
+  for (let left = 0; left <= c.open; left += 250) {
+    const got = newClock(name, left);
+    if (got + 60 < left) neverShortens = false;
+    if (got > c.open + 60) neverExceeds = false;
+    if (got + 60 < c.bump) alwaysMin = false;
+  }
+  ok(`${name}: a bid never shortens the clock`, neverShortens);
+  ok(`${name}: a bid never pushes past the opening duration`, neverExceeds);
+  ok(`${name}: a bid always leaves at least the bump`, alwaysMin);
+}
+
 // ---------- 4. full auction → league dry run ----------
 function rng(seed) {
   let a = seed >>> 0;

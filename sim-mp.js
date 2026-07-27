@@ -1978,15 +1978,21 @@ function resultCardHtml(o) {
 // on screen and is downloadable. `container` is the slot to drop it into.
 function showResultCard(outcome, container) {
   if (!container) return;
+  // Auction rooms drop the social buttons: an auction squad is bought against a
+  // specific room's purses, so a score shared out of that context means nothing,
+  // and the verified link submits to the solo/draft leaderboard. Saving the
+  // image and opening the leaderboard stay — neither publishes anything.
+  const social = mpMode !== "auction";
   container.innerHTML = `
     <div class="result-card">${resultCardHtml(outcome)}</div>
     <div class="result-actions">
+      ${social ? `
       <button class="primary-btn ghost btn-wa" type="button" data-act="wa">WhatsApp</button>
       <button class="primary-btn ghost btn-x" type="button" data-act="x">${X_LOGO}</button>
-      <button class="primary-btn ghost btn-copy" type="button" data-act="copy">Copy</button>
+      <button class="primary-btn ghost btn-copy" type="button" data-act="copy">Copy</button>` : ""}
       <button class="primary-btn ghost btn-download" type="button" data-act="download">⬇ Save Image</button>
       <a class="primary-btn ghost btn-leaderboard" href="leaderboard.html">Leaderboard</a>
-      <button class="primary-btn ghost btn-share-link" type="button" data-act="share-link">🔗 Share Verified Link</button>
+      ${social ? '<button class="primary-btn ghost btn-share-link" type="button" data-act="share-link">🔗 Share Verified Link</button>' : ""}
       ${MP ? "" : '<button class="primary-btn btn-again" type="button" data-act="again">Close / Play Again</button>'}
     </div>`;
 
@@ -2021,19 +2027,28 @@ function showResultCard(outcome, container) {
 
   const shareText = `I went ${outcome.wins}-${outcome.losses} and got ${outcome.pts} pts with my drafted IPL XI! ${outcome.stage} Can you beat it? Play at https://16-0game.vercel.app`;
   
-  container.querySelector('[data-act="wa"]').onclick = () =>
-    window.open(`https://wa.me/?text=${encodeURIComponent(shareText)}`, "_blank");
-
-  container.querySelector('[data-act="x"]').onclick = () =>
-    window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}`, "_blank");
-
-  container.querySelector('[data-act="copy"]').onclick = () => {
-    navigator.clipboard.writeText(shareText).catch(() => {});
-    showToast("Copied to clipboard!");
+  // Null-safe: the social buttons are absent in auction rooms, and a bare
+  // querySelector(...).onclick would throw there and take every handler below
+  // it — including Save Image — down with it.
+  const on = (act, fn) => {
+    const el = container.querySelector(`[data-act="${act}"]`);
+    if (el) el.onclick = fn;
+    return el;
   };
 
+  on("wa", () =>
+    window.open(`https://wa.me/?text=${encodeURIComponent(shareText)}`, "_blank"));
+
+  on("x", () =>
+    window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}`, "_blank"));
+
+  on("copy", () => {
+    navigator.clipboard.writeText(shareText).catch(() => {});
+    showToast("Copied to clipboard!");
+  });
+
   const shareLinkBtn = container.querySelector('[data-act="share-link"]');
-  shareLinkBtn.onclick = async () => {
+  if (shareLinkBtn) shareLinkBtn.onclick = async () => {
     const originalText = shareLinkBtn.textContent;
     shareLinkBtn.textContent = "Verifying Score...";
     shareLinkBtn.disabled = true;
@@ -2092,7 +2107,7 @@ function showResultCard(outcome, container) {
   };
 
   const dlBtn = container.querySelector('[data-act="download"]');
-  dlBtn.onclick = async () => {
+  if (dlBtn) dlBtn.onclick = async () => {
     const originalText = dlBtn.textContent;
     dlBtn.textContent = "Generating...";
     dlBtn.style.opacity = "0.7";

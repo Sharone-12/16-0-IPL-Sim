@@ -33,6 +33,11 @@ const S = {
   ready: false,
   finishing: false,
   optimistic: null,  // { lotIndex, price } — our own bid, echoed before the server confirms
+  // Batting order. `order` is the current slot-by-slot layout (player names);
+  // `pinned` is the subset the manager placed by hand, which survives a re-solve
+  // when a new signing doesn't fit around everyone's current position.
+  order: [],
+  pinned: new Set(),
 };
 
 const $ = (id) => document.getElementById(id);
@@ -99,6 +104,7 @@ async function boot() {
       console.warn("[auction] pool shortfalls:", pool.shortfalls);
     }
 
+    loadOrder();
     await refresh();
     subscribe();
     setInterval(refresh, 2500);   // polling fallback
@@ -424,6 +430,40 @@ function shiftRating(value, auctionOvr, masterOvr) {
   return Math.max(30, Math.min(99, Math.round(v + delta)));
 }
 
+// Turn a manager's purchases into the XI shape sim-mp.js consumes. For the local
+// manager the batting order they dragged out is honoured; for anyone else the
+// slot solver picks a legal arrangement.
+function buildXi(id) {
+  const squad = squadOf(id);
+  if (!squad.length) return [];
+  let slots;
+  if (id === PID) {
+    squadLayout(); // refresh S.order against the final squad
+    slots = squad.map((p) => S.order.indexOf(p.name));
+  }
+  if (!slots || slots.some((s) => s < 0)) slots = A.assignSlots(squad) || squad.map((_, i) => i);
+
+  const xi = squad.map((p, i) => ({
+    name: p.displayName || p.name,
+    displayName: p.displayName || p.name,
+    // WYSIWYG: the rating on the card you bid for is the rating that walks out
+    // to bat. The auction's calibrated OVR sits ~5 below the master scale the
+    // engine was tuned on, so bat/bowl are shifted by that same delta —
+    // otherwise the sim would DISPLAY the auction number while PLAYING the
+    // master one, which is the mismatch this removes.
+    ovr: p.ovr, simOvr: p.ovr,
+    bat: shiftRating(p.bat, p.ovr, p.simOvr),
+    bowl: shiftRating(p.bowl, p.ovr, p.simOvr),
+    fr: p.fr, frFull: p.frFull, season: p.season,
+    isWk: p.isWk, isOverseas: p.isOverseas,
+    primaryRole: p.primaryRole, battingOrder: p.battingOrder,
+    slot: slots[i],
+    isCaptain: false,
+  })).sort((a, b) => a.slot - b.slot);
+  if (xi.length) xi[0].isCaptain = true; // top-order anchor captains by default
+  return xi;
+}
+
 // ---------- finishing ----------
 // Convert each manager's purchases into an XI (with slots assigned) written to
 // players.xi — the exact shape sim-mp.js already consumes, so the league and
@@ -455,29 +495,13 @@ async function finishAuction() {
       toast(`${awarded.length} squad slot(s) filled in the accelerated round`);
     }
 
-    for (const m of S.managers) {
-      const squad = squadOf(m.id);
-      const slots = A.assignSlots(squad) || squad.map((_, i) => i);
-      const xi = squad.map((p, i) => ({
-        name: p.displayName || p.name,
-        displayName: p.displayName || p.name,
-        // WYSIWYG: the rating on the card you bid for is the rating that walks
-        // out to bat. The auction's calibrated OVR sits ~5 below the master
-        // scale the engine was tuned on, so bat/bowl are shifted by that same
-        // delta — otherwise the sim would DISPLAY the auction number while
-        // PLAYING the master one, which is the mismatch this removes.
-        ovr: p.ovr, simOvr: p.ovr,
-        bat: shiftRating(p.bat, p.ovr, p.simOvr),
-        bowl: shiftRating(p.bowl, p.ovr, p.simOvr),
-        fr: p.fr, frFull: p.frFull, season: p.season,
-        isWk: p.isWk, isOverseas: p.isOverseas,
-        primaryRole: p.primaryRole, battingOrder: p.battingOrder,
-        slot: slots[i],
-        isCaptain: false,
-      })).sort((a, b) => a.slot - b.slot);
-      if (xi.length) xi[0].isCaptain = true; // top-order anchor captains by default
-      await SUPA.from("players").update({ xi, status: "ready_sim" }).eq("id", m.id).eq("room_id", ROOM);
-    }
+    // Write ONLY our own XI. This used to write every manager's, from every
+    // client — which meant the last writer's auto-assignment overwrote whatever
+    // batting order the manager had dragged out for themselves. Anyone not here
+    // to set their own is filled in later by setUpLeague, which is single-writer.
+    await SUPA.from("players")
+      .update({ xi: buildXi(PID), status: "ready_sim" })
+      .eq("id", PID).eq("room_id", ROOM);
     render();
   } catch (err) {
     console.error(err);
@@ -564,12 +588,23 @@ async function setUpLeague() {
   // the hammer falls could otherwise read a manager mid-write, count them out,
   // and seat a bot in their place.
   let existing = null;
+  const incomplete = (p) => !p.is_bot && !(Array.isArray(p.xi) && p.xi.length >= 11);
   for (let i = 0; i < 40; i++) {
     const { data } = await SUPA.from("players").select("id,is_bot,xi").eq("room_id", ROOM);
     existing = data || [];
-    const pending = existing.filter((p) => !p.is_bot && !(Array.isArray(p.xi) && p.xi.length >= 11));
-    if (!pending.length) break;
+    if (!existing.some(incomplete)) break;
     await new Promise((res) => setTimeout(res, 250));
+  }
+
+  // Whoever never wrote their own is not here to set a batting order — give them
+  // a solver-assigned XI so their squad still takes the field. Only this client
+  // does it, so nobody's dragged order can be overwritten by a late writer.
+  for (const p of (existing || []).filter(incomplete)) {
+    const xi = buildXi(p.id);
+    if (xi.length >= 11) {
+      await SUPA.from("players").update({ xi, status: "ready_sim" }).eq("id", p.id).eq("room_id", ROOM);
+      p.xi = xi;
+    }
   }
   // Only a manager holding a full XI takes a league seat. The simulation ignores
   // anyone short of eleven, so counting them here would leave the league nine
@@ -792,27 +827,113 @@ function nameOf(id) {
   return m ? (m.username || "Manager") : "Manager";
 }
 
-function renderSquad() {
+// Work out where everyone stands, preferring stability over a fresh solve.
+//   1. keep every player exactly where they already are
+//   2. if a new signing won't fit, hold only the hand-placed slots and re-solve
+//   3. if even those are unsatisfiable, start clean and say so
+// The result is written back to S.order, so the layout is the same on the next
+// render instead of shuffling every time the panel repaints.
+// Best-effort seating for a squad the exact solver can't satisfy: most
+// constrained first into a legal free slot, then anything left into any gap.
+function looseLayout(squad) {
+  console.warn("[auction] no legal XI arrangement — falling back to a loose order");
+  const used = new Array(A.XI_SIZE).fill(false);
+  const out = new Array(squad.length).fill(-1);
+  const byOptions = squad
+    .map((p, i) => ({ i, opts: A.eligibleSlots(p) }))
+    .sort((a, b) => a.opts.length - b.opts.length);
+  for (const { i, opts } of byOptions) {
+    const s = opts.find((x) => !used[x]);
+    if (s != null) { used[s] = true; out[i] = s; }
+  }
+  for (let i = 0; i < out.length; i++) {
+    if (out[i] >= 0) continue;
+    const s = used.indexOf(false);
+    if (s < 0) break;
+    used[s] = true; out[i] = s;
+  }
+  return out;
+}
+
+// A refresh mid-auction shouldn't cost you the batting order you set. Stale
+// names need no cleanup: squadLayout rebuilds S.order from the current squad
+// every call, and pins are only consulted for players you still own.
+const ORDER_KEY = `auction_order_${ROOM}_${PID}`;
+function saveOrder() {
+  try {
+    localStorage.setItem(ORDER_KEY, JSON.stringify({ order: S.order, pinned: [...S.pinned] }));
+  } catch (_) {}
+}
+function loadOrder() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(ORDER_KEY) || "null");
+    if (saved && Array.isArray(saved.order)) {
+      S.order = saved.order;
+      S.pinned = new Set(Array.isArray(saved.pinned) ? saved.pinned : []);
+    }
+  } catch (_) {}
+}
+
+function squadLayout() {
   const squad = squadOf(PID);
-  const slots = A.assignSlots(squad) || [];
-  const filled = new Array(11).fill(null);
-  squad.forEach((p, i) => { const s = slots[i]; if (s != null && s >= 0) filled[s] = { p, price: myBuys()[i] ? myBuys()[i].price : null }; });
+  const at = (name) => S.order.indexOf(name);
+  const pinsFor = (test) => {
+    const pins = {};
+    squad.forEach((p, i) => { const s = at(p.name); if (s >= 0 && test(p)) pins[i] = s; });
+    return pins;
+  };
+
+  let slots = A.assignSlots(squad, pinsFor(() => true));
+  if (!slots) slots = A.assignSlots(squad, pinsFor((p) => S.pinned.has(p.name)));
+  if (!slots) {
+    if (S.pinned.size) {
+      S.pinned.clear();
+      toast("Batting order rebuilt to fit the new signing");
+    }
+    slots = A.assignSlots(squad);
+  }
+  // Unreachable while every purchase is gated on squadFeasible, but if it ever
+  // happens, seat people where they legally can go and only then dump the
+  // remainder into whatever is free — an approximate order beats inventing an
+  // illegal one, and beats a blank panel hiding players you paid for.
+  if (!slots) slots = looseLayout(squad);
+
+  S.order = new Array(A.XI_SIZE).fill(null);
+  squad.forEach((p, i) => {
+    const s = slots[i];
+    if (s >= 0 && s < A.XI_SIZE) S.order[s] = p.name;
+  });
+  return squad;
+}
+
+function renderSquad() {
+  const squad = squadLayout();
+  const prices = {};
+  myBuys().forEach((b) => { if (b.player) prices[b.player.name] = b.price; });
+  const byName = {};
+  squad.forEach((p) => (byName[p.name] = p));
 
   $("squadCount").textContent = `${squad.length}/11`;
   $("overseasCount").textContent = `${squad.filter((p) => p.isOverseas).length}/4 overseas`;
   const left = A.XI_SIZE - squad.length;
   $("maxBidVal").textContent = left > 0 ? `max ${money(A.maxBid(purseOf(PID), left))}` : "squad complete";
   $("purseVal").textContent = money(purseOf(PID));
+  const hint = $("squadHint");
+  if (hint) hint.hidden = squad.length < 2;
+
+  // Repainting mid-drag would tear the list out from under the pointer and the
+  // drop would never land — the 2.5s poll alone would make reordering a coin flip.
+  if (dragFrom !== null) return;
 
   $("squadList").innerHTML = SLOT_LABELS.map((label, i) => {
-    const cell = filled[i];
-    if (!cell) {
-      return `<li><span class="slot-num">${i + 1}</span>
+    const p = byName[S.order[i]];
+    if (!p) {
+      return `<li data-slot="${i}"><span class="slot-num">${i + 1}</span>
         <span class="slot-body"><span class="slot-role">${label}</span>
         <span class="slot-player" style="color:#5f5f5f">Empty</span></span></li>`;
     }
-    const { p, price } = cell;
-    return `<li class="is-filled"><span class="slot-num">${i + 1}</span>
+    const price = prices[p.name];
+    return `<li class="is-filled" data-slot="${i}" draggable="true"><span class="slot-num">${i + 1}</span>
       <span class="slot-body">
         <span class="slot-role">${label}</span>
         <span class="slot-player">${esc(p.displayName)}${p.isWk ? " (wk)" : ""}</span>
@@ -820,6 +941,78 @@ function renderSquad() {
       </span>
       <span class="slot-ovr ${ovrClass(p.ovr)}">${p.ovr}</span></li>`;
   }).join("");
+}
+
+// ---------- drag to reorder ----------
+// Same rules as the draft board: a player can only be dropped into a slot their
+// role allows, and on a swap the displaced player must be legal in the slot
+// being vacated. Both moves are hand-placed from then on, so a later signing
+// gets fitted around them rather than shunting them aside.
+let dragFrom = null;
+
+function moveSlot(from, to) {
+  if (from === to || !Number.isInteger(from) || !Number.isInteger(to)) return;
+  const byName = {};
+  squadOf(PID).forEach((p) => (byName[p.name] = p));
+  const moving = byName[S.order[from]];
+  if (!moving) return;
+  const displaced = byName[S.order[to]];
+
+  if (!A.eligibleSlots(moving).includes(to)) {
+    toast(`${moving.displayName} can't bat at ${to + 1}`, "error");
+    return;
+  }
+  if (displaced && !A.eligibleSlots(displaced).includes(from)) {
+    toast(`${displaced.displayName} can't bat at ${from + 1}`, "error");
+    return;
+  }
+
+  S.order[to] = moving.name;
+  S.order[from] = displaced ? displaced.name : null;
+  S.pinned.add(moving.name);
+  if (displaced) S.pinned.add(displaced.name);
+  saveOrder();
+  renderSquad();
+}
+
+// Delegated, because the list is rebuilt from innerHTML on every poll — per-row
+// listeners would be re-attached several times a second.
+function wireSquadDrag() {
+  const list = $("squadList");
+  const rowAt = (e) => e.target.closest("li[data-slot]");
+  const clearMarks = () =>
+    list.querySelectorAll(".is-dragging, .drag-over")
+        .forEach((el) => el.classList.remove("is-dragging", "drag-over"));
+
+  list.addEventListener("dragstart", (e) => {
+    const li = rowAt(e);
+    if (!li || !li.classList.contains("is-filled")) return;
+    dragFrom = Number(li.dataset.slot);
+    li.classList.add("is-dragging");
+    try {
+      e.dataTransfer.effectAllowed = "move";
+      e.dataTransfer.setData("text/plain", String(dragFrom)); // Firefox needs a payload
+    } catch (_) {}
+  });
+  list.addEventListener("dragend", () => { dragFrom = null; clearMarks(); renderSquad(); });
+  list.addEventListener("dragover", (e) => {
+    const li = rowAt(e);
+    if (!li || dragFrom === null || Number(li.dataset.slot) === dragFrom) return;
+    e.preventDefault();
+    li.classList.add("drag-over");
+  });
+  list.addEventListener("dragleave", (e) => {
+    const li = rowAt(e);
+    if (li) li.classList.remove("drag-over");
+  });
+  list.addEventListener("drop", (e) => {
+    e.preventDefault();
+    const li = rowAt(e);
+    const from = dragFrom;
+    dragFrom = null;
+    clearMarks();
+    if (li && from !== null) moveSlot(from, Number(li.dataset.slot));
+  });
 }
 
 function renderManagers() {
@@ -853,6 +1046,7 @@ function renderFeed() {
 }
 
 // ---------- wiring ----------
+wireSquadDrag();
 $("bidBtn").addEventListener("click", placeBid);
 $("skipBtn").addEventListener("click", voteSkip);
 $("pauseBtn").addEventListener("click", togglePause);

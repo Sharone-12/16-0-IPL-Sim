@@ -209,6 +209,198 @@ function scheduleFor(n) {
      seen.size === 10, `${seen.size} of 18 teams got a fixture`);
 }
 
+// ---------- 3b. drag-to-reorder ----------
+// squadLayout/moveSlot/buildXi are lifted out of auction-room.js and run against
+// a stubbed room, so the reorder rules are tested as shipped rather than restated.
+const dragBox = {
+  console,
+  A,
+  PID: "me",
+  S: { order: [], pinned: new Set() },
+  toast: (m) => dragBox.lastToast = m,
+  renderSquad: () => {},
+  squadOf: () => dragBox.squad,
+  squad: [],
+  lastToast: null,
+  SLOT_LABELS: new Array(11).fill(""),
+  // ORDER_KEY is a module-level const, not a function, so it can't be lifted.
+  ORDER_KEY: "auction_order_TEST",
+  localStorage: (() => {
+    const mem = {};
+    return {
+      getItem: (k) => (k in mem ? mem[k] : null),
+      setItem: (k, v) => { mem[k] = String(v); },
+      removeItem: (k) => { delete mem[k]; },
+    };
+  })(),
+};
+vm.createContext(dragBox);
+vm.runInContext(
+  lift(roomSrc, ["squadLayout", "moveSlot", "buildXi", "shiftRating", "saveOrder", "loadOrder", "looseLayout"]),
+  dragBox
+);
+
+// Build a squad the way the auction does: walk the lots and take anything canAdd
+// still allows. Hand-picking by role does not work — Buttler is a keeper who
+// OPENS and Watson an all-rounder who OPENS, so a role-based fixture quietly
+// lands five players who can only bat 1-3 and no legal XI exists. Feasibility
+// also guarantees the squad covers all 11 slots, which is what the drag tests
+// need anyway.
+function makeSquad(size, from) {
+  const out = [];
+  for (let i = from || 0; i < pool.lots.length && out.length < size; i++) {
+    if (A.canAdd(out, pool.lots[i])) out.push(pool.lots[i]);
+  }
+  if (out.length < size) throw new Error(`fixture could only assemble ${out.length}/${size}`);
+  return out;
+}
+
+function loadSquad(players) {
+  dragBox.squad = players;
+  dragBox.S.order = [];
+  dragBox.S.pinned = new Set();
+  return dragBox.squadLayout();
+}
+const slotOf = (name) => dragBox.S.order.indexOf(name);
+const legalLayout = () =>
+  dragBox.S.order.every((n, s) => !n || A.eligibleSlots(dragBox.squad.find((p) => p.name === n)).includes(s));
+
+{
+  // A realistic full XI: 3 openers, 3 middle, a keeper, an all-rounder, 3 bowlers.
+  const squad = makeSquad(11);
+  ok("test fixture builds an 11", squad.length === 11, `got ${squad.length}`);
+  ok("test fixture has no duplicate player",
+     new Set(squad.map((p) => p.name)).size === 11);
+  ok("test fixture is a squad the auction would actually allow", A.squadFeasible(squad));
+
+  loadSquad(squad);
+  ok("auto layout is legal for every slot", legalLayout());
+  ok("auto layout seats all 11", dragBox.S.order.filter(Boolean).length === 11);
+
+  const first = [...dragBox.S.order];
+  dragBox.squadLayout();
+  dragBox.squadLayout();
+  ok("layout does not shuffle between renders",
+     JSON.stringify(dragBox.S.order) === JSON.stringify(first));
+
+  // Legal swap: find two players whose eligible slots overlap both ways.
+  const pair = (() => {
+    for (const x of squad) for (const y of squad) {
+      if (x === y) continue;
+      const sx = slotOf(x.name), sy = slotOf(y.name);
+      if (A.eligibleSlots(x).includes(sy) && A.eligibleSlots(y).includes(sx)) return [x, y, sx, sy];
+    }
+    return null;
+  })();
+  ok("squad contains a legally swappable pair", !!pair);
+  const [x, y, sx, sy] = pair;
+  dragBox.moveSlot(sx, sy);
+  ok("a legal swap moves both players", slotOf(x.name) === sy && slotOf(y.name) === sx);
+  ok("both swapped players become hand-placed",
+     dragBox.S.pinned.has(x.name) && dragBox.S.pinned.has(y.name));
+  ok("layout is still legal after the swap", legalLayout());
+
+  // Illegal: a specialist bowler cannot open.
+  const bowler = squad.find((p) => !A.eligibleSlots(p).includes(0));
+  const before = [...dragBox.S.order];
+  dragBox.lastToast = null;
+  dragBox.moveSlot(slotOf(bowler.name), 0);
+  ok("a player barred from slot 1 cannot be dragged there",
+     JSON.stringify(dragBox.S.order) === JSON.stringify(before));
+  ok("the rejected move explains itself", /can't bat at 1/.test(dragBox.lastToast || ""));
+
+  // A no-op drag onto itself changes nothing.
+  dragBox.moveSlot(3, 3);
+  ok("dropping a player on itself is a no-op",
+     JSON.stringify(dragBox.S.order) === JSON.stringify(before));
+}
+
+{
+  // A hand-placed slot must survive the next signing.
+  // A part-built squad, mid-auction.
+  const full = makeSquad(11);
+  const squad = full.slice(0, 6);
+  loadSquad(squad);
+  // Move somebody to a different legal slot that nobody else is using.
+  const moved = squad.find((p) => A.eligibleSlots(p).some(
+    (s) => s !== slotOf(p.name) && dragBox.S.order[s] == null));
+  ok("part-built squad has somewhere to drag to", !!moved);
+  const target = A.eligibleSlots(moved).find(
+    (s) => s !== slotOf(moved.name) && dragBox.S.order[s] == null);
+  dragBox.moveSlot(slotOf(moved.name), target);
+  ok("player sits where it was dragged", slotOf(moved.name) === target);
+
+  // Sign the rest; the hand-placed slot must hold.
+  dragBox.squad = full;
+  dragBox.squadLayout();
+  ok("a hand-placed slot survives later signings", slotOf(moved.name) === target,
+     `moved to ${slotOf(moved.name)}`);
+  ok("layout stays legal as the squad grows", legalLayout());
+}
+
+{
+  // The dragged order is what reaches players.xi.
+  const squad = makeSquad(11);
+  loadSquad(squad);
+  for (const x of squad) {
+    const alt = A.eligibleSlots(x).find((s) => {
+      const y = squad.find((p) => p.name === dragBox.S.order[s]);
+      return s !== slotOf(x.name) && y && A.eligibleSlots(y).includes(slotOf(x.name));
+    });
+    if (alt != null) { dragBox.moveSlot(slotOf(x.name), alt); break; }
+  }
+  const order = [...dragBox.S.order];
+
+  const xi = dragBox.buildXi("me");
+  ok("buildXi emits 11 in slot order", xi.length === 11 && xi.every((x, i) => x.slot === i));
+  const expected = order.map((n) => (squad.find((p) => p.name === n) || {}).displayName);
+  ok("buildXi honours the dragged batting order",
+     xi.every((x, i) => x.name === expected[i]),
+     `got  ${xi.map((x) => x.name).join(" | ")}\n      want ${expected.join(" | ")}`);
+  ok("only the top-order anchor is captain",
+     xi.filter((x) => x.isCaptain).length === 1 && xi[0].isCaptain);
+  ok("buildXi carries the auction OVR", xi.every((x) => x.simOvr === x.ovr));
+}
+
+{
+  // A refresh mid-auction must not cost you the order you set.
+  const squad = makeSquad(11);
+  loadSquad(squad);
+  for (const x of squad) {
+    const alt = A.eligibleSlots(x).find((s) => {
+      const y = squad.find((p) => p.name === dragBox.S.order[s]);
+      return s !== slotOf(x.name) && y && A.eligibleSlots(y).includes(slotOf(x.name));
+    });
+    if (alt != null) { dragBox.moveSlot(slotOf(x.name), alt); break; }
+  }
+  const kept = [...dragBox.S.order];
+  const pins = [...dragBox.S.pinned];
+
+  // Simulate the reload: wipe in-memory state, restore from storage, re-layout.
+  dragBox.S.order = [];
+  dragBox.S.pinned = new Set();
+  dragBox.loadOrder();
+  dragBox.squadLayout();
+  ok("the batting order survives a page refresh",
+     JSON.stringify(dragBox.S.order) === JSON.stringify(kept),
+     `after ${JSON.stringify(dragBox.S.order)}`);
+  ok("hand-placed pins survive a page refresh",
+     pins.every((n) => dragBox.S.pinned.has(n)));
+}
+
+{
+  // The last-resort layout: an unassignable squad must still show everyone,
+  // each in a distinct slot, rather than vanish or duplicate a position.
+  const impossible = pool.lots.filter((l) => A.eligibleSlots(l).join() === "0,1,2").slice(0, 5);
+  ok("found 5 players who can only bat 1-3", impossible.length === 5);
+  ok("that squad genuinely has no legal XI", A.assignSlots(impossible) === null);
+  const loose = dragBox.looseLayout(impossible);
+  ok("loose layout still seats all five", loose.filter((s) => s >= 0).length === 5);
+  ok("loose layout never doubles up a slot",
+     new Set(loose.filter((s) => s >= 0)).size === loose.filter((s) => s >= 0).length);
+  ok("loose layout keeps slots in range", loose.every((s) => s >= 0 && s < A.XI_SIZE));
+}
+
 // ---------- 4. full auction → league dry run ----------
 function rng(seed) {
   let a = seed >>> 0;

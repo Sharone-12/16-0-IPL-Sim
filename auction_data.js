@@ -485,11 +485,28 @@
   // most-constrained player first. Greedy placement is not enough: buying an
   // opener can force an earlier opener out of slot 2, and only a full search
   // sees that. Returns a slot-per-player array, or null if no arrangement fits.
-  function assignSlots(players) {
+  //
+  // `pins` optionally fixes some players in place ({ playerIndex: slot }) and
+  // fits everyone else around them — that is how a manually dragged batting
+  // order survives the next signing instead of being recomputed from scratch. A
+  // pin that has become illegal or collides is dropped rather than throwing,
+  // because the squad changes under the manager's feet as lots are won.
+  function assignSlots(players, pins) {
     const used = new Array(XI_SIZE).fill(false);
     const out = new Array(players.length).fill(-1);
-    const order = players
-      .map((p, i) => ({ i, opts: eligibleSlots(p) }))
+    const loose = [];
+    for (let i = 0; i < players.length; i++) {
+      const s = pins && pins[i] != null ? Number(pins[i]) : null;
+      if (s == null || !Number.isInteger(s) || s < 0 || s >= XI_SIZE ||
+          used[s] || !eligibleSlots(players[i]).includes(s)) {
+        loose.push(i);
+        continue;
+      }
+      used[s] = true;
+      out[i] = s;
+    }
+    const order = loose
+      .map((i) => ({ i, opts: eligibleSlots(players[i]) }))
       .sort((a, b) => a.opts.length - b.opts.length);
 
     function place(k) {

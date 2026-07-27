@@ -171,7 +171,17 @@ a { color: inherit; }
   display: flex; align-items: center; gap: 0.5rem; padding: 0.4rem 0.55rem;
   border: 1px dashed rgba(255, 255, 255, 0.16); border-radius: 0.55rem; min-height: 2.3rem;
 }
-.squad-list li.is-filled { border-style: solid; background: var(--panel-2); }
+.squad-list li.is-filled { border-style: solid; background: var(--panel-2); cursor: grab; }
+.squad-list li.is-filled:active { cursor: grabbing; }
+.squad-list li.is-dragging { opacity: 0.4; }
+.squad-list li.drag-over {
+  border-color: #fff; border-style: dashed; background: rgba(255, 255, 255, 0.12);
+}
+.squad-hint {
+  margin: 0.5rem 0 0; font-size: 0.5rem; letter-spacing: 0.1em;
+  text-transform: uppercase; color: #6a6a6a; text-align: center;
+}
+.squad-hint[hidden] { display: none; }
 .slot-num {
   display: grid; place-items: center; flex-shrink: 0; width: 1.22rem; height: 1.22rem;
   border-radius: 50%; background: rgba(255, 255, 255, 0.08); color: #8f8f8f;

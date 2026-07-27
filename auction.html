@@ -20,9 +20,11 @@
       --text: #ffffff;
       --muted: #8a8a8a;
       --dim: #6a6a6a;
-      --accent: #ffb020;
-      --accent-dim: rgba(255, 176, 32, 0.14);
-      --accent-line: rgba(255, 176, 32, 0.42);
+      --accent: #5b9fe3;          /* mid sky blue */
+      --accent-soft: #a9cfee;     /* upper-atmosphere pale */
+      --accent-deep: #0b3f86;      /* deep navy */
+      --accent-dim: rgba(91, 159, 227, 0.14);
+      --accent-line: rgba(91, 159, 227, 0.42);
       --danger: #ff5e5e;
     }
     * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -68,7 +70,7 @@
     .btn:hover:not(:disabled) { transform: translateY(-2px); }
     .btn:disabled { opacity: 0.35; cursor: not-allowed; transform: none; }
     .btn.ghost { background: transparent; color: #fff; }
-    .btn.accent { background: var(--accent); border-color: var(--accent); color: #221703; }
+    .btn.accent { background: var(--accent); border-color: var(--accent); color: #06203f; }
     .btn.row { margin-bottom: 0.7rem; }
 
     /* setup groups — mirrors the solo Draft Setup screen */
@@ -129,7 +131,7 @@
     .hidden { display: none !important; }
     .err { color: var(--danger); font-size: 0.78rem; min-height: 1rem; margin: 0.3rem 0 0; }
     .toast { position: fixed; left: 50%; bottom: 1.5rem; transform: translateX(-50%) translateY(2rem); opacity: 0;
-      background: var(--accent); color: #221703; font-weight: 700; font-size: 0.75rem; padding: 0.6rem 1rem; border-radius: 999px;
+      background: var(--accent); color: #06203f; font-weight: 700; font-size: 0.75rem; padding: 0.6rem 1rem; border-radius: 999px;
       transition: all 220ms ease; pointer-events: none; z-index: 50; }
     .toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
 

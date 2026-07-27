@@ -259,15 +259,59 @@ h1 {
 /* Auction = the other headline mode. Amber fill so it reads as a sibling of
    Multiplayer without competing with it. Same pill geometry as every other
    landing button — only the colours differ. */
-.auction-glow {
-  border-color: #ffb020;
-  background: #ffb020;
-  color: #0a0a0a;
+/* The ring is a conic gradient — white through pale blue to deep navy — whose
+   start angle is animated, so the colour travels around the pill. --spin is
+   registered as an <angle> because a plain custom property cannot be
+   interpolated; without @property the gradient simply sits still, which is a
+   fine degradation. ::before paints the ring, ::after masks out the middle, and
+   both sit behind the label on negative z-index. */
+@property --spin {
+  syntax: "<angle>";
+  inherits: false;
+  initial-value: 0deg;
 }
-.auction-glow:hover {
-  border-color: #ffb020;
-  background: #ffc457;
-  color: #0a0a0a;
+.leaderboard-landing-btn.auction-glow {
+  position: relative;
+  z-index: 0;
+  border-color: transparent;
+  background: transparent;
+  color: #fff;
+}
+.auction-glow::before {
+  content: "";
+  position: absolute;
+  inset: -2px;
+  border-radius: inherit;
+  z-index: -2;
+  background: conic-gradient(
+    from var(--spin),
+    #ffffff, #cfe4f7, #7fb8ee, #3f7fc9, #7fb8ee, #cfe4f7, #ffffff
+  );
+  animation: auction-spin 4s linear infinite;
+}
+.auction-glow::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  z-index: -1;
+  background: #0a0a0a;
+}
+@keyframes auction-spin {
+  to { --spin: 360deg; }
+}
+/* Restated so the shared `.leaderboard-landing-btn:hover` (which is more
+   specific than `.auction-glow`) cannot repaint the pill white and hide the
+   ring. Hover just brightens the centre and speeds the travel. */
+.leaderboard-landing-btn.auction-glow:hover {
+  border-color: transparent;
+  background: transparent;
+  color: #fff;
+}
+.leaderboard-landing-btn.auction-glow:hover::after { background: #10233d; }
+.auction-glow:hover::before { animation-duration: 1.8s; }
+@media (prefers-reduced-motion: reduce) {
+  .auction-glow::before { animation: none; }
 }
 
 /* How to Play — outlined pill, matches the Leaderboard button */

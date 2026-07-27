@@ -1,7 +1,7 @@
 /* ===================== 16-0 — Auction =====================
    Same visual language as draft.css / simulation.css: flat near-black panels,
-   hairline borders, Anton display face, OVR tier colours, role badges. Amber is
-   the accent so the mode reads as its own thing.
+   hairline borders, Anton display face, OVR tier colours, role badges. Sky blue
+   is the accent so the mode reads as its own thing.
 
    Deliberately undecorated — no glows, no gradient fills, no blur, no pulsing.
    Colour and type carry the hierarchy; motion is reserved for things that
@@ -20,9 +20,11 @@
   --muted: #8a8a8a;
   --dim: #6a6a6a;
 
-  --accent: #ffb020;
-  --accent-dim: rgba(255, 176, 32, 0.14);
-  --accent-line: rgba(255, 176, 32, 0.42);
+  --accent: #5b9fe3;          /* mid sky blue */
+  --accent-soft: #a9cfee;     /* upper-atmosphere pale */
+  --accent-deep: #0b3f86;      /* deep navy */
+  --accent-dim: rgba(91, 159, 227, 0.14);
+  --accent-line: rgba(91, 159, 227, 0.42);
 
   --live: #00ff87;
   --win: #00ff87;
@@ -74,7 +76,7 @@ a { color: inherit; }
   flex: 1 1 auto; min-width: 24px; height: 5px; border-radius: 999px;
   background: rgba(255, 255, 255, 0.09);
 }
-.set-seg.is-done { background: rgba(255, 176, 32, 0.4); }
+.set-seg.is-done { background: rgba(91, 159, 227, 0.4); }
 .set-seg.is-live { background: var(--accent); }
 
 /* ---------- layout ---------- */
@@ -190,7 +192,7 @@ a { color: inherit; }
 
 .bid-btn {
   width: 100%; padding: 1.05rem; border-radius: 999px;
-  border: 1px solid var(--accent); background: var(--accent); color: #221703;
+  border: 1px solid var(--accent); background: var(--accent); color: #06203f;
   font-family: "Anton", Impact, sans-serif; font-size: 1.15rem;
   letter-spacing: 0.06em; text-transform: uppercase; cursor: pointer;
   transition: transform 140ms ease, opacity 140ms ease;
@@ -276,7 +278,7 @@ a { color: inherit; }
   border-radius: 50%; background: rgba(255, 255, 255, 0.07); color: var(--dim);
   font-size: 0.55rem; font-weight: 700;
 }
-.is-filled .slot-num.ph-top    { background: rgba(255, 176, 32, 0.18); color: var(--accent); }
+.is-filled .slot-num.ph-top    { background: rgba(91, 159, 227, 0.18); color: var(--accent); }
 .is-filled .slot-num.ph-middle { background: rgba(127, 228, 164, 0.16); color: #7fe4a4; }
 .is-filled .slot-num.ph-bowl   { background: rgba(122, 162, 255, 0.16); color: #7aa2ff; }
 
@@ -322,7 +324,7 @@ a { color: inherit; }
 
 .toast {
   position: fixed; left: 50%; bottom: 1.5rem; transform: translateX(-50%) translateY(2rem); opacity: 0;
-  background: var(--accent); color: #221703; font-weight: 700; font-size: 0.75rem;
+  background: var(--accent); color: #06203f; font-weight: 700; font-size: 0.75rem;
   padding: 0.6rem 1rem; border-radius: 999px; transition: all 220ms ease;
   pointer-events: none; z-index: 50;
 }

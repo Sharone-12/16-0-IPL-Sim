@@ -1,0 +1,299 @@
+================================================================================
+16-0 — AUCTION MODE: CONTEXT FOR A NEW SESSION
+Last updated: 2026-07-27   ·   HEAD at time of writing: 813e3fa
+================================================================================
+
+Read this before touching auction-room.js, auction_data.js or sim-mp.js. It is
+not a changelog — it is the set of things that are non-obvious from the code and
+expensive to rediscover.
+
+
+--------------------------------------------------------------------------------
+1. WHAT THE AUCTION IS
+--------------------------------------------------------------------------------
+A third game mode alongside Single Player Draft and Multiplayer Draft. 2-10
+managers bid IPL-style, set by set, one player at a time, for an XI of exactly
+11 (no bench). When the hammer falls on the last lot everyone proceeds into the
+SAME league + knockout simulation the multiplayer draft uses.
+
+HARD CONSTRAINT FROM THE USER, STILL IN FORCE:
+  "this is a new feature dont touch the current multiplayer"
+The MP draft flow (lobby.html, draft-mp.html, draft-mp.js) must keep behaving
+exactly as it does. sim-mp.js and simulation.css ARE shared — changes there must
+either be strictly additive or gated on `mpMode === "auction"`.
+
+Entry points:
+  index.html          .auction-glow button -> auction.html
+  auction.html        lobby: create / join / waiting room (self-contained <style>)
+  auction-room.html   the live auction (uses auction.css)
+  auction-room.js     ~1200 lines, all auction logic
+  auction_data.js     pure functions, UMD, no DOM/network — runs under Node
+  sim-mp.js           league + knockouts, SHARED with the MP draft
+
+
+--------------------------------------------------------------------------------
+2. THE CENTRAL DESIGN IDEA
+--------------------------------------------------------------------------------
+The lot list is NEVER stored. Every client derives the identical ordered pool
+from the CSVs via auction_data.js (same room settings in -> same lots out). The
+only shared state is a pointer: which lot is live and what it is going for.
+
+Same trick as the simulation, which seeds one RNG from the room id so every
+client computes byte-identical match results from one shared `sim_round`.
+
+Contention is always resolved by CONDITIONAL UPDATE, never by locking:
+  - a bid lands only if it beats the stored price
+  - a lot sells once, guarded by PRIMARY KEY (room_id, lot_index)
+  - the pointer advances only from the index the mover actually saw
+  - league setup is claimed by `status='auction' -> 'league_setup'` CAS
+
+
+--------------------------------------------------------------------------------
+3. DATA
+--------------------------------------------------------------------------------
+ipl_auction_career_final.csv  322 hand-curated lots: Auction_Set, Tier,
+                              calibrated OVR, Base_Price_Cr. THE user mapped
+                              these by hand — do not recompute sets or prices.
+ipl_master_calibrated.csv     3354 player-seasons, 808 distinct players. Source
+                              of Bat_Rat / Bowl_Rat / Batting_Order / keeper /
+                              nationality, and of the 486-player reserve.
+
+TWO RATING SCALES, and this caused a real bug:
+  lot.ovr      auction scale (the number on the bid card)
+  lot.simOvr   master scale, ~5 higher (median delta 5, max 13)
+
+The user's decision: the auction OVR is authoritative. finishAuction now writes
+`simOvr: p.ovr` and shifts bat/bowl by the same delta via shiftRating(), so the
+rating you bid for is the rating that plays. Do NOT "fix" this back — writing
+master-scale simOvr means the sim DISPLAYS one number and PLAYS another.
+
+Balance after that change (measured, 230 simulated squads):
+  human auction XI  86.0 avg   |   bot 2026 franchise best-XI  79.9 avg
+
+Money is integer LAKH everywhere (PURSE = 10000 = Rs 100 Cr, MIN_BASE = 50).
+Only the display layer converts. Never use floats for purses.
+
+Key constants:
+  auction_data.js   PURSE 10000 · XI_SIZE 11 · MAX_OVERSEAS 4 · TOP_ORDER_SLOTS 7
+  auction-room.js   LEAGUE_SIZE 10 · CLOCKS snappy/brisk/relaxed
+  sim-mp.js         MP_LEAGUE_SIZE 10 · MP_REPLAY_STEP 5 · MP_PRESENCE_WINDOW_MS 60000
+
+
+--------------------------------------------------------------------------------
+4. THE FLOW, END TO END
+--------------------------------------------------------------------------------
+auction.html      host creates (settings.mode='auction', clock, ratings, era)
+                  -> host presses Start -> rooms.status='auction', purses seeded
+auction-room.js   322 lots under the hammer. tick() runs every 120ms on every
+                  client; whoever notices an expiry first resolves it.
+                  finishAuction(): fillShortSquads, then each client writes ONLY
+                  ITS OWN players.xi (see §6).
+proceed()         CAS claim -> setUpLeague() -> rooms.status='league'
+                  Everyone else follows via realtime (+ a polling fallback).
+sim-mp.js         boots from players.xi, builds 10 teams, then a vote ladder:
+                    -1  nobody started
+                     0  whole 14-round league auto-plays, then the points table
+                     1  Qualifier 1   } gated ONLY on the two humans in it
+                     2  Eliminator    } bots never vote
+                     3  Qualifier 2   } non-qualifiers spectate every scorecard
+                     4  Final
+                     5  Play Again    (every live human)
+
+FIXTURES: 10 teams split into two groups of five off a STABLE id sort. Within
+group home+away (8), cross-group once (5), plus the index-paired rival twice
+(+1) = 14 each, 70 total, dealt into 14 matchdays of 5 by a true 1-factorisation
+(mpPerfectSchedule). Top 4 by pts -> NRR -> wins -> team id go to the bracket.
+
+
+--------------------------------------------------------------------------------
+5. SQL — ALL MIGRATIONS ARE RUN, NONE PENDING
+--------------------------------------------------------------------------------
+mp_schema.sql  mp_sim_sync.sql  mp_replay.sql  mp_presence.sql
+mp_auction.sql  mp_auction_pause.sql  mp_cleanup.sql
+
+All are idempotent. `alter publication ... add table` raises 42710 on a re-run
+and ABORTS the rest of the script, silently skipping the replica identity
+statements after it — every such call is guarded by a pg_publication_tables
+check. Keep it that way.
+
+The host-kick feature deliberately needs NO migration: it reuses players.status.
+
+
+--------------------------------------------------------------------------------
+6. INVARIANTS YOU CAN BREAK WITHOUT NOTICING
+--------------------------------------------------------------------------------
+(a) BOT IDS MUST BE DERIVED, NOT RANDOM.
+    `bot_${ROOM}_${seat}`. Random ids meant two managers clicking Proceed at the
+    same moment each inserted 8 bots -> an 18-team league where only the first
+    10 ids got fixtures, so both humans played 0 matches. This actually shipped.
+
+(b) LEAGUE SETUP RUNS EXACTLY ONCE.
+    It resets every sim_ready_step. A second client running it a moment later
+    wipes votes already cast in the sim and stalls the room on 0/N.
+
+(c) NEVER DELETE A players ROW MID-SEASON.
+    Every client derives fixtures from the roster. Removing a row gives anyone
+    who reloads a different league and desyncs the room. This is why "kick" sets
+    status='kicked' instead: the manager keeps their TEAM, loses their VOTE.
+
+(d) TWO CODE PATHS WRITE players.status AND WILL UN-KICK SOMEONE.
+    finishAuction (own row) and setUpLeague's fill loop. Both now preserve
+    'kicked'. If you add a third writer, preserve it there too.
+
+(e) EACH CLIENT WRITES ONLY ITS OWN players.xi.
+    It used to write everyone's, so the last writer's auto-assignment clobbered
+    whatever batting order a manager had dragged. Absent managers are filled in
+    by setUpLeague, which is the single CAS-claimed writer.
+
+(f) A BID EXTENDS THE CLOCK, IT DOES NOT REPLACE IT.
+    bumpedDeadline() = min(remaining + bump, open). Replacing meant bidding with
+    5s left on a brisk clock moved it to 6s ("+1 second"), and the first bid on a
+    relaxed 12s clock SHORTENED it to 8s.
+
+(g) CSS: AUTHOR `display` BEATS THE [hidden] ATTRIBUTE.
+    Any hideable element whose class sets `display` needs an explicit
+    `.thing[hidden] { display: none }`. Missing this once left the SOLD popup on
+    screen from page load, dimming the whole room.
+
+(h) CSS: A GENERIC :hover OUTRANKS A VARIANT CLASS.
+    `.btn:hover:not(:disabled)` (0,3,0) beats `.btn.accent` (0,2,0), so a hover
+    rule that sets `background` silently strips a variant's fill. Bitten three
+    times: the gold Create button, the active Pause button, the green "You hold
+    the bid". Any variant must RESTATE background/color in its own :hover rule.
+
+
+--------------------------------------------------------------------------------
+7. EVERY DEADLOCK ESCAPE (16 of them — see auction_deadlock.test.js)
+--------------------------------------------------------------------------------
+AUCTION
+  - a lot nobody can bid on is auto-passed (shouldAutoPass)
+  - an unparseable ends_at is cleared so the next tick opens a fresh clock
+  - pause is host-only to SET; after PAUSE_GRACE_MS (2 min) ANY manager can
+    resume, and after PAUSE_AUTO_MS (5 min) it resumes itself. Without this a
+    host closing their tab mid-pause froze the room permanently.
+  - removed managers cannot hold the "Move to Next Set" vote
+  - the auction ends as soon as every squad is full
+HANDOVER
+  - a league_setup claim orphaned by a dead client is taken over after 20s
+  - a failed setup rolls status back to 'auction' so Proceed is retryable
+  - squads under 11 are completed before seats are counted
+  - managers who never press Proceed are pulled in by realtime + polling
+SIMULATION
+  - stale heartbeats (>60s) drop out of every gate
+  - status='kicked' drops out of every gate (covers idle-with-tab-open, which
+    presence cannot see)
+  - an all-bot knockout auto-advances after 5s
+  - the host gets a "Waiting on ..." bar with a Remove button (auction rooms only)
+  - an empty mpPlayers is NEVER read as "nobody needs to vote"
+  - sim_ready_step values above the ladder are clamped (old rooms carry 14-18,
+    which would satisfy every `>= target` and run the whole tournament unattended)
+
+
+--------------------------------------------------------------------------------
+8. THE ABANDONED-MANAGER RULE (user asked for this explicitly)
+--------------------------------------------------------------------------------
+"what if they only pick 3 players and dip?" -> fillShortSquads completes them.
+The user then said: "punish them harder they shd not reach top 6".
+
+So completion now takes the WEAKEST legal player from a RESERVE built out of the
+486 players who never made the 322-lot catalogue (buildReservePool: max OVR 83,
+median 71, floor 55) — not the pick of the unsold premium lots.
+
+Measured inside a real 6-manager auction, 12 runs each:
+  quit after  0 signings -> XI avg 57.5      (bots average 79.9)
+  quit after  3 signings -> XI avg 65.4
+  quit after  6 signings -> XI avg 73.3
+  played it out          -> XI avg 86.3
+Every level is below the weakest bot franchise (MI, 77.4), so an abandoner
+finishes bottom of the ten. Legality still guaranteed: even all ten managers
+buying nothing yields ten legal XIs, keeper in the top 7, overseas cap held, no
+duplicated player.
+
+Known trade-off the user accepted ("idc as long as theres no deadlocks"): this
+also catches the rare genuinely-stranded manager who bid properly but spent all
+four overseas slots with no keeper.
+
+
+--------------------------------------------------------------------------------
+9. TESTS — RUN THESE BEFORE PUSHING
+--------------------------------------------------------------------------------
+  node auction_data.test.js       51 assertions   pure data layer
+  node auction_curated.test.js  1135 assertions   real CSVs, full auctions
+  node auction_sim.test.js      1652 assertions   legacy computed pool
+  node auction_flow.test.js      176 assertions   auction -> simulation handover
+  node auction_deadlock.test.js   16 checks       escape hatches still present
+
+auction_flow.test.js LIFTS THE REAL FUNCTIONS out of sim-mp.js and
+auction-room.js by brace-matching the source and running them in a vm sandbox,
+rather than restating the logic. If a function is renamed the harness throws
+rather than silently testing nothing. Covers: OVR carry-over, seat trimming,
+the fixture scheduler, drag-to-reorder, the bid clock, the kick, the pause
+escape, abandoned squads.
+
+auction_deadlock.test.js is a STRUCTURAL smoke check — it proves the escape code
+is PRESENT, not that it works. Behavioural coverage lives in auction_flow.
+
+Traps found while writing these, worth remembering:
+  - a stub `shuffle` that reset its seed each call made all 50 scheduler retries
+    identical and faked a scheduler failure
+  - building a test squad by role picks 5 players who can only bat 1-3 (Buttler
+    is a keeper who OPENS, Watson an all-rounder who OPENS) — assemble fixtures
+    through A.canAdd instead
+  - measuring an abandoned team against the UNTOUCHED pool said abandoning costs
+    nothing (~90 either way); it must be measured inside a real auction
+
+
+--------------------------------------------------------------------------------
+10. WORKING PRACTICES THE USER EXPECTS
+--------------------------------------------------------------------------------
+  - "push with no commit comments" — EMPTY commit messages
+    (git commit --allow-empty-message -m "")
+  - "no adding urself as author ever" — no Co-Authored-By, no Claude/Anthropic
+    anywhere in author, committer, subject, body or trailers. NOTE: four commits
+    from 2026-06-11/12 (157e92c, b2a157, d3b73a, 45941f) predate this rule and
+    still carry a Co-Authored-By trailer; removing them needs a history rewrite
+    and force-push, which the user has not asked for.
+  - Do not query their Supabase directly (they rejected a curl to the REST API).
+  - Verify UI changes by rendering them — headless Chrome is available:
+      "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" --headless=new
+        --disable-gpu --screenshot=out.png --window-size=1280,860 file://...
+    Chrome clamps its window to 500px minimum: to test a true mobile width, load the
+    page in a 390px <iframe> inside a wider host page.
+    To see :hover states in a still, string-replace ':hover' with a '.fh' class —
+    same specificity weight, same source order, so the cascade resolves identically.
+  - zsh gotcha: `$VAR:auction-room.js` is parsed as the `:a` path modifier. Quote
+    it (`"$VAR":file`) or a `git show` silently returns nothing and every
+    comparison reports "CHANGED".
+
+
+--------------------------------------------------------------------------------
+11. STATE AS OF THIS WRITING
+--------------------------------------------------------------------------------
+DONE AND PUSHED (12 commits, d666905 .. 813e3fa):
+  auction OVR carried into the sim · 18-team race fixed · ready-vote wipe fixed
+  · Play Again returns auction rooms to the auction · drag-to-reorder with
+  pinning + localStorage · blue flat theme (ring only on the landing button)
+  · bid clock extends · share buttons removed from the auction path · host kick
+  in both phases · replacement-level fills for abandoners · pause and setup
+  deadlocks closed
+
+NOT VERIFIED LIVE. Every test runs single-process. These need two real browsers
+against Supabase and have only been reasoned about:
+  - two clients pressing Proceed simultaneously (the 18-team fix)
+  - the bid clock extending under real latency
+  - a kick propagating to the other client
+  - Play Again cycling a whole room back into a live auction
+Tell the user to do one 2-player run before playing properly, and to start a
+FRESH room: a room created before 2026-07-27 can still hold XIs written under
+the old master-scale OVR mapping and bot rows with randomly generated ids.
+
+OPEN, NOT ASKED FOR:
+  - .env is untracked and NOT gitignored; a stray `git add -A` will commit it
+  - auction results still submit to the solo leaderboard (only the share UI was
+    hidden). Those squads are bought against one room's purses, so they are not
+    really comparable to solo drafts.
+  - mp-stage-bar / mp-stage-btn in sim-mp.js have no CSS rule anywhere. They
+    predate this work (commit e67da99) and are shared with the MP draft.
+  - drag-to-reorder is HTML5 mouse drag, so it does not work on touch — same
+    limitation the existing draft boards have. Matched deliberately.
+================================================================================

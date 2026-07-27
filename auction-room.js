@@ -86,21 +86,18 @@ async function boot() {
     const st = room.settings || {};
     S.clock = CLOCKS[st.clock] || CLOCKS.brisk;
 
-    const rows = await loadCsv();
-    S.rows = rows;
+    const { auc, mas } = await loadPool();
+    S.rows = mas;                       // master rows, for deriving bot franchises
     const teams = Math.max(2, Number(st.teams) || 2);
-    let players = rows;
-    if (st.ratings === "prime") {
-      const best = {};
-      for (const p of rows) if (!best[p.name] || p.ovr > best[p.name].ovr) best[p.name] = p;
-      players = rows.map((p) => ({ ...p, ...best[p.name] }));
+    const pool = A.buildCuratedPool(auc, mas, { teams });
+    S.lots = pool.lots;
+    S.reserve = pool.lots;              // accelerated round draws on the same pool
+    if (pool.unmatched.length) {
+      console.warn("[auction] lots with no master row (skipped):", pool.unmatched);
     }
-    S.reserve = A.bestSeasonPerPlayer(players, st.era && st.era !== "all" ? +st.era : 2008, 2026);
-    S.lots = A.buildAuctionPool(players, {
-      teams,
-      eraFrom: st.era && st.era !== "all" ? +st.era : 2008,
-      eraTo: 2026,
-    }).lots;
+    if (pool.shortfalls.length) {
+      console.warn("[auction] pool shortfalls:", pool.shortfalls);
+    }
 
     await refresh();
     subscribe();
@@ -114,29 +111,27 @@ async function boot() {
   }
 }
 
-function loadCsv() {
+// Both CSVs: the curated auction file (sets, tiers, calibrated OVR, base
+// price) and the master file it is joined to for Batting_Order / Bat_Rat /
+// Bowl_Rat, which the XI slot rules and the match engine need.
+function parseCsv(path) {
   return new Promise((resolve, reject) => {
-    Papa.parse("ipl_master_calibrated.csv", {
+    Papa.parse(path, {
       download: true, header: true, skipEmptyLines: true,
-      complete: (res) => resolve((res.data || [])
-        .filter((r) => r.Player_Name && r.Franchise && r.Season)
-        .map((r) => ({
-          name: r.Player_Name,
-          displayName: r.Player_Name,
-          season: r.Season,
-          fr: r.Franchise,
-          frFull: r.Franchise_Full,
-          ovr: Math.min(+r.OVR || 70, 100),
-          bat: +r.Bat_Rat || +r.OVR || 70,
-          bowl: +r.Bowl_Rat || +r.OVR || 60,
-          primaryRole: r.Primary_Role,
-          battingOrder: r.Batting_Order,
-          isWk: r.Is_Wicketkeeper === "1",
-          isOverseas: r.Nationality === "Overseas",
-        }))),
+      complete: (res) => resolve(res.data || []),
       error: reject,
     });
   });
+}
+
+async function loadPool() {
+  const [aucRaw, masRaw] = await Promise.all([
+    parseCsv("ipl_auction_career_final.csv"),
+    parseCsv("ipl_master_calibrated.csv"),
+  ]);
+  const auc = aucRaw.filter((r) => r.Player_Name).map(A.normalizeAuctionRow);
+  const mas = masRaw.filter((r) => r.Player_Name && r.Season).map(A.normalizeMasterRow);
+  return { auc, mas };
 }
 
 async function refresh() {
@@ -454,7 +449,12 @@ async function finishAuction() {
       const xi = squad.map((p, i) => ({
         name: p.displayName || p.name,
         displayName: p.displayName || p.name,
-        ovr: p.ovr, bat: p.bat, bowl: p.bowl,
+        // simOvr is what sim-mp.js actually reads (x.simOvr || x.ovr). The
+        // auction's calibrated OVR sits ~5 points below the master scale the
+        // match engine was tuned on, and bot franchises are built from master —
+        // so the squad goes into the league on the master scale, not this one.
+        ovr: p.ovr, simOvr: p.simOvr != null ? p.simOvr : p.ovr,
+        bat: p.bat, bowl: p.bowl,
         fr: p.fr, frFull: p.frFull, season: p.season,
         isWk: p.isWk, isOverseas: p.isOverseas,
         primaryRole: p.primaryRole, battingOrder: p.battingOrder,

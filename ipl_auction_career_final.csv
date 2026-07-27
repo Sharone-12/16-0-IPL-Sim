@@ -1,0 +1,323 @@
+Display_Name,Player_Name,Nationality,Auction_Role,Season,Franchise,OVR,Career_OVR,Tier,Auction_Set,Base_Price_Cr,Status,Seasons_Played,Is_Wicketkeeper,Batting_Strike_Rate,Batting_Runs,Bowling_Economy,Bowling_Wickets
+Sunil Narine,SP Narine,Overseas,Bowler,2012,KKR,94,98,Marquee,Marquee,2.0,Capped,15,0,128.57,9,5.48,24
+Virat Kohli,V Kohli,Indian,Batter,2016,RCB,93,97,Marquee,Marquee,2.0,Capped,19,0,152.03,973,13.0,0
+David Warner,DA Warner,Overseas,Batter,2019,SRH,93,96,Marquee,Marquee,2.0,Capped,15,0,143.87,692,0.0,0
+Rashid Khan,Rashid Khan,Overseas,Bowler,2020,SRH,92,95,Marquee,Marquee,2.0,Capped,10,0,116.67,35,5.34,20
+Suryakumar Yadav,SA Yadav,Indian,Batter,2025,MI,91,95,Marquee,Marquee,2.0,Capped,14,0,167.92,717,0.0,0
+Chris Gayle,CH Gayle,Overseas,Batter,2012,RCB,91,94,Marquee,Marquee,2.0,Capped,13,0,160.75,733,14.14,0
+Lasith Malinga,SL Malinga,Overseas,Bowler,2011,MI,90,94,Marquee,Marquee,2.0,Capped,9,0,88.89,8,5.95,28
+Jos Buttler,JC Buttler,Overseas,Wicketkeeper,2022,RR,90,94,Marquee,Marquee,2.0,Capped,11,1,149.05,863,0.0,0
+Dwayne Bravo,DJ Bravo,Overseas,Bowler,2013,CSK,90,94,Marquee,Marquee,2.0,Capped,14,0,114.15,121,7.95,32
+Harbhajan Singh,Harbhajan Singh,Indian,Bowler,2013,MI,90,93,Marquee,Marquee,2.0,Capped,13,0,146.84,116,6.51,24
+Faf du Plessis,F du Plessis,Overseas,Batter,2023,RCB,90,93,Marquee,Marquee,2.0,Capped,13,0,153.68,730,0.0,0
+Andre Russell,AD Russell,Overseas,All-Rounder,2019,KKR,89,93,Marquee,Marquee,2.0,Capped,13,0,203.97,514,9.51,11
+Shubman Gill,Shubman Gill,Indian,Batter,2023,GT,89,93,Marquee,Marquee,2.0,Capped,9,0,157.8,890,0.0,0
+MS Dhoni,MS Dhoni,Indian,Wicketkeeper,2014,CSK,88,93,A,Wicketkeepers - A,2.0,Capped,18,1,148.4,371,0.0,0
+KL Rahul,KL Rahul,Indian,Wicketkeeper,2018,PBKS,88,93,A,Wicketkeepers - A,2.0,Capped,13,1,158.41,659,0.0,0
+Ravichandran Ashwin,R Ashwin,Indian,Bowler,2011,CSK,88,93,A,Bowlers - A,2.0,Capped,16,0,33.33,2,6.16,20
+Shane Watson,SR Watson,Overseas,All-Rounder,2013,RR,88,93,A,All-Rounders - A,2.0,Capped,12,0,142.89,543,7.15,13
+AB de Villiers,AB de Villiers,Overseas,Wicketkeeper,2016,RCB,88,92,A,Wicketkeepers - A,2.0,Capped,14,1,168.8,687,0.0,0
+Jasprit Bumrah,JJ Bumrah,Indian,Bowler,2019,MI,88,92,A,Bowlers - A,2.0,Capped,13,0,0.0,0,6.69,20
+Ravindra Jadeja,RA Jadeja,Indian,Bowler,2019,CSK,87,92,A,Bowlers - A,1.5,Capped,18,0,120.45,106,6.35,15
+Dale Steyn,DW Steyn,Overseas,Bowler,2013,SRH,87,92,A,Bowlers - A,1.5,Capped,11,0,147.22,53,5.8,19
+Sai Sudharsan,B Sai Sudharsan,Indian,Batter,2025,GT,87,92,A,Batters - A,1.5,Capped,5,0,156.17,759,0.0,0
+Suresh Raina,SK Raina,Indian,All-Rounder,2010,CSK,87,92,A,All-Rounders - A,1.5,Capped,13,0,143.87,528,7.47,6
+Yusuf Pathan,YK Pathan,Indian,All-Rounder,2011,KKR,87,92,A,All-Rounders - A,1.5,Capped,12,0,140.8,283,6.1,13
+Axar Patel,AR Patel,Indian,Bowler,2014,PBKS,87,92,A,Bowlers - A,1.5,Capped,13,0,103.33,62,6.14,17
+Nicholas Pooran,N Pooran,Overseas,Wicketkeeper,2024,LSG,87,91,A,Wicketkeepers - A,1.5,Capped,8,1,178.21,499,0.0,0
+Amit Mishra,A Mishra,Indian,Bowler,2010,DC,87,91,A,Bowlers - A,1.5,Capped,16,0,76.47,39,6.85,17
+Shakib Al Hasan,Shakib Al Hasan,Overseas,All-Rounder,2014,KKR,87,91,A,All-Rounders - A,1.5,Capped,9,0,148.7,229,6.68,11
+Muthiah Muralidaran,M Muralitharan,Overseas,Bowler,2009,CSK,87,91,A,Bowlers - A,1.5,Capped,7,0,100.0,8,5.22,14
+Bhuvneshwar Kumar,B Kumar,Indian,Bowler,2017,SRH,86,91,A,Bowlers - A,1.5,Capped,16,0,100.0,4,7.05,26
+Heinrich Klaasen,H Klaasen,Overseas,Wicketkeeper,2026,SRH,86,91,A,Wicketkeepers - A,1.5,Capped,6,1,160.0,624,0.0,0
+Jaydev Unadkat,JD Unadkat,Indian,Bowler,2017,RPS,86,90,A,Bowlers - A,1.5,Capped,17,0,40.0,2,7.03,24
+Mitchell Marsh,MR Marsh,Overseas,Batter,2025,LSG,86,90,A,Batters - A,1.5,Capped,10,0,163.71,627,0.0,0
+Rishabh Pant,RR Pant,Indian,Wicketkeeper,2018,DC,86,90,A,Wicketkeepers - A,1.5,Capped,10,1,173.6,684,0.0,0
+Shreyas Iyer,SS Iyer,Indian,Batter,2025,PBKS,86,90,A,Batters - A,1.5,Capped,11,0,175.07,604,0.0,0
+Shaun Marsh,SE Marsh,Overseas,Batter,2008,PBKS,85,90,A,Batters - A,1.5,Capped,9,0,139.68,616,0.0,0
+Yashasvi Jaiswal,YBK Jaiswal,Indian,Batter,2025,RR,85,90,A,Batters - A,1.5,Capped,7,0,159.71,559,0.0,0
+Mohit Sharma,MM Sharma,Indian,Bowler,2013,CSK,85,90,A,Bowlers - A,1.5,Capped,11,0,0.0,0,6.43,20
+Dinesh Karthik,KD Karthik,Indian,Wicketkeeper,2018,KKR,85,90,A,Wicketkeepers - A,1.5,Capped,17,1,147.77,498,0.0,0
+Ishan Kishan,Ishan Kishan,Indian,Wicketkeeper,2026,SRH,85,90,A,Wicketkeepers - A,1.5,Capped,11,1,182.42,602,0.0,0
+Kane Williamson,KS Williamson,Overseas,Batter,2018,SRH,85,90,A,Batters - A,1.5,Capped,10,0,142.44,735,0.0,0
+Glenn Maxwell,GJ Maxwell,Overseas,Batter,2021,RCB,85,90,A,Batters - A,1.5,Capped,13,0,144.1,513,8.44,3
+Robin Uthappa,RV Uthappa,Indian,Wicketkeeper,2014,KKR,85,90,A,Wicketkeepers - A,1.5,Capped,15,1,137.79,660,0.0,0
+Ruturaj Gaikwad,RD Gaikwad,Indian,Batter,2023,CSK,85,89,A,Batters - A,1.5,Capped,7,0,147.5,590,0.0,0
+Hardik Pandya,HH Pandya,Indian,All-Rounder,2022,GT,85,89,A,All-Rounders - A,1.5,Capped,12,0,131.27,487,7.28,8
+Harshal Patel,HV Patel,Indian,Bowler,2021,RCB,85,89,A,Bowlers - A,1.5,Capped,14,0,128.26,59,8.15,32
+Jofra Archer,JC Archer,Overseas,Bowler,2020,RR,84,89,A,Bowlers - A,1.0,Capped,6,0,179.37,113,6.56,20
+Yuzvendra Chahal,YS Chahal,Indian,Bowler,2020,RCB,84,89,A,Bowlers - A,1.0,Capped,14,0,33.33,1,7.08,21
+Vaibhav Sooryavanshi,V Suryavanshi,Indian,Batter,2026,RR,84,89,A,Batters - A,1.0,Capped,2,0,237.31,776,0.0,0
+Ajinkya Rahane,AM Rahane,Indian,Batter,2015,RR,84,89,A,Batters - A,1.0,Capped,18,0,130.75,540,0.0,0
+Krunal Pandya,KH Pandya,Indian,All-Rounder,2018,MI,84,89,A,All-Rounders - A,1.0,Capped,11,0,145.22,228,7.07,12
+Ashish Nehra,A Nehra,Indian,Bowler,2009,DC,84,89,A,Bowlers - A,1.0,Capped,9,0,100.0,1,6.78,19
+Pragyan Ojha,PP Ojha,Indian,Bowler,2009,DCH,84,89,A,Bowlers - A,1.0,Capped,8,0,14.29,1,6.5,18
+Shikhar Dhawan,S Dhawan,Indian,Batter,2012,DCH,84,89,A,Batters - A,1.0,Capped,17,0,129.61,569,9.17,3
+Gautam Gambhir,G Gambhir,Indian,Batter,2008,DC,84,89,A,Batters - A,1.0,Capped,11,0,140.9,534,0.0,0
+Chris Morris,CH Morris,Overseas,All-Rounder,2016,DC,84,89,A,All-Rounders - A,1.0,Capped,8,0,178.9,195,7.0,13
+Varun Chakravarthy,CV Varun,Indian,Bowler,2021,KKR,84,89,A,Bowlers - A,1.0,Capped,8,0,50.0,2,6.59,18
+Abhishek Sharma,Abhishek Sharma,Indian,Batter,2024,SRH,84,88,A,Batters - A,1.0,Capped,9,0,204.22,484,7.29,2
+Ambati Rayudu,AT Rayudu,Indian,Wicketkeeper,2018,CSK,84,88,A,Wicketkeepers - A,1.0,Capped,14,1,149.75,602,0.0,0
+Irfan Pathan,IK Pathan,Indian,All-Rounder,2008,PBKS,84,88,A,All-Rounders - A,1.0,Capped,9,0,112.93,131,6.6,15
+Shivam Dube,S Dube,Indian,Batter,2023,CSK,84,88,A,Batters - A,1.0,Capped,8,0,158.33,418,0.0,0
+Rahul Tewatia,R Tewatia,Indian,All-Rounder,2020,RR,84,88,A,All-Rounders - A,1.0,Capped,12,0,139.34,255,7.09,10
+Sanju Samson,SV Samson,Indian,Wicketkeeper,2024,RR,84,88,A,Wicketkeepers - A,1.0,Capped,14,1,153.47,531,0.0,0
+David Miller,DA Miller,Overseas,Batter,2014,PBKS,84,88,A,Batters - A,1.0,Capped,15,0,149.16,446,0.0,0
+Rajat Patidar,RM Patidar,Indian,Batter,2026,RCB,84,88,A,Batters - A,1.0,Capped,5,0,192.69,501,0.0,0
+Quinton de Kock,Q de Kock,Overseas,Wicketkeeper,2016,DC,84,88,A,Wicketkeepers - A,1.0,Capped,13,1,136.09,445,0.0,0
+Riyan Parag,R Parag,Indian,Batter,2024,RR,84,88,A,Batters - A,1.0,Capped,8,0,149.22,573,9.0,0
+P Simran Singh,P Simran Singh,Indian,Wicketkeeper,2026,PBKS,84,88,A,Wicketkeepers - A,1.0,Capped,8,1,168.87,510,0.0,0
+Kagiso Rabada,K Rabada,Overseas,Bowler,2019,DC,84,88,A,Bowlers - A,1.0,Capped,9,0,93.33,14,7.81,26
+Jean-Paul Duminy,JP Duminy,Overseas,All-Rounder,2009,MI,83,88,B,All-Rounders - B,1.0,Capped,8,0,114.46,372,5.31,4
+Kieron Pollard,KA Pollard,Overseas,All-Rounder,2010,MI,83,88,B,All-Rounders - B,1.0,Capped,13,0,185.71,273,7.41,15
+Morne Morkel,M Morkel,Overseas,Bowler,2012,DC,83,88,B,Bowlers - B,1.0,Capped,8,0,60.0,3,7.19,25
+Imran Tahir,Imran Tahir,Overseas,Bowler,2019,CSK,83,88,B,Bowlers - B,1.0,Capped,8,0,0.0,0,6.7,26
+Rinku Singh,RK Singh,Indian,Batter,2023,KKR,83,88,B,Batters - B,1.0,Capped,8,0,149.53,474,0.0,0
+Sandeep Sharma,Sandeep Sharma,Indian,Bowler,2020,SRH,83,87,B,Bowlers - B,1.0,Capped,14,0,80.0,12,7.19,14
+Shahbaz Nadeem,S Nadeem,Indian,Bowler,2013,DC,83,87,B,Bowlers - B,1.0,Capped,11,0,51.85,14,5.89,9
+Aaron Finch,AJ Finch,Overseas,Batter,2016,GL,83,87,B,Batters - B,1.0,Capped,11,0,131.44,393,0.0,0
+Venkatesh Iyer,VR Iyer,Indian,Batter,2021,KKR,83,87,B,Batters - B,1.0,Capped,6,0,128.47,370,8.12,3
+Karn Sharma,KV Sharma,Indian,Bowler,2013,SRH,83,87,B,Bowlers - B,1.0,Capped,12,0,98.84,85,6.6,11
+Washington Sundar,Washington Sundar,Indian,Bowler,2020,RCB,83,87,B,Bowlers - B,1.0,Capped,10,0,116.84,111,5.96,8
+Sohail Tanvir,Sohail Tanvir,Overseas,Bowler,2008,RR,82,87,B,Bowlers - B,1.0,Capped,1,0,124.14,36,6.46,22
+Andrew Symonds,A Symonds,Overseas,All-Rounder,2009,DCH,82,87,B,All-Rounders - B,1.0,Capped,4,0,150.0,249,6.67,7
+Sachithra Senanayake,SMSM Senanayake,Overseas,Bowler,2013,KKR,82,87,B,Bowlers - B,1.0,Capped,1,0,58.82,10,6.53,9
+RP Singh,RP Singh,Indian,Bowler,2009,DCH,82,87,B,Bowlers - B,1.0,Capped,7,0,47.06,8,6.99,23
+Piyush Chawla,PP Chawla,Indian,Bowler,2009,PBKS,82,87,B,Bowlers - B,1.0,Capped,16,0,86.11,31,6.87,12
+Dwayne Smith,DR Smith,Overseas,Batter,2014,CSK,82,87,B,Batters - B,1.0,Capped,9,0,136.06,566,9.5,4
+Rohit Sharma,RG Sharma,Indian,Batter,2008,DCH,82,87,B,Batters - B,1.0,Capped,19,0,147.99,404,6.25,1
+Rahul Sharma,R Sharma,Indian,Bowler,2011,PWI,82,87,B,Bowlers - B,1.0,Capped,5,0,114.29,24,5.46,16
+Pawan Negi,P Negi,Indian,All-Rounder,2017,RCB,82,87,B,All-Rounders - B,1.0,Capped,8,0,129.73,144,6.12,16
+Munaf Patel,MM Patel,Indian,Bowler,2011,MI,82,87,B,Bowlers - B,1.0,Capped,7,0,0.0,0,6.59,22
+Murali Vijay,M Vijay,Indian,Batter,2016,PBKS,82,87,B,Batters - B,1.0,Capped,11,0,124.45,453,8.0,0
+Jacques Kallis,JH Kallis,Overseas,All-Rounder,2010,RCB,82,87,B,All-Rounders - B,1.0,Capped,7,0,115.79,572,8.35,13
+Iqbal Abdulla,Iqbal Abdulla,Indian,Bowler,2011,KKR,82,87,B,Bowlers - B,1.0,Capped,9,0,125.0,15,6.1,16
+Mayank Agarwal,MA Agarwal,Indian,Batter,2020,PBKS,82,87,B,Batters - B,1.0,Capped,15,0,158.24,432,0.0,0
+Mohammed Shami,Mohammed Shami,Indian,Bowler,2021,PBKS,82,87,B,Bowlers - B,1.0,Capped,12,0,76.47,13,7.5,19
+Umesh Yadav,UT Yadav,Indian,Bowler,2022,KKR,82,87,B,Bowlers - B,1.0,Capped,14,0,137.5,55,7.06,16
+Praveen Kumar,P Kumar,Indian,Bowler,2013,PBKS,82,86,B,Bowlers - B,1.0,Capped,10,0,120.51,47,6.62,12
+Yuvraj Singh,Yuvraj Singh,Indian,All-Rounder,2011,PWI,82,86,B,All-Rounders - B,1.0,Capped,11,0,131.42,343,6.62,9
+Daniel Vettori,DL Vettori,Overseas,Bowler,2011,RCB,81,86,B,Bowlers - B,0.75,Capped,5,0,82.14,23,6.02,12
+Rahul Chahar,RD Chahar,Indian,Bowler,2019,MI,81,86,B,Bowlers - B,0.75,Capped,9,0,109.09,12,6.55,13
+Shimron Hetmyer,SO Hetmyer,Overseas,Batter,2022,RR,81,86,B,Batters - B,0.75,Capped,8,0,153.92,314,0.0,0
+Sachin Tendulkar,SR Tendulkar,Indian,Batter,2010,MI,81,86,B,Batters - B,0.75,Capped,6,0,132.62,618,0.0,0
+Devdutt Padikkal,D Padikkal,Indian,Batter,2026,RCB,81,86,B,Batters - B,0.75,Capped,7,0,168.73,464,0.0,0
+Brendon McCullum,BB McCullum,Overseas,Wicketkeeper,2015,CSK,81,86,B,Wicketkeepers - B,0.75,Capped,11,1,155.71,436,0.0,0
+Ravi Bishnoi,Ravi Bishnoi,Indian,Bowler,2021,PBKS,81,86,B,Bowlers - B,0.75,Capped,7,0,25.0,1,6.39,12
+Ishant Sharma,I Sharma,Indian,Bowler,2009,KKR,81,86,B,Bowlers - B,0.75,Capped,15,0,123.08,16,6.91,11
+Albie Morkel,JA Morkel,Overseas,All-Rounder,2008,CSK,81,86,B,All-Rounders - B,0.75,Capped,9,0,147.85,241,8.31,17
+Nitish Rana,N Rana,Indian,Batter,2023,KKR,81,86,B,Batters - B,0.75,Capped,11,0,140.96,413,8.49,3
+Mitchell Johnson,MG Johnson,Overseas,Bowler,2013,MI,81,86,B,Bowlers - B,0.75,Capped,6,0,108.33,39,7.17,24
+Matthew Hayden,ML Hayden,Overseas,Batter,2009,CSK,81,86,B,Batters - B,0.75,Capped,3,0,144.81,572,0.0,0
+Moises Henriques,MC Henriques,Overseas,All-Rounder,2015,SRH,81,86,B,All-Rounders - B,0.75,Capped,8,0,136.02,287,6.32,11
+Michael Hussey,MEK Hussey,Overseas,Batter,2013,CSK,81,86,B,Batters - B,0.75,Capped,7,0,129.51,733,0.0,0
+Jason Holder,JO Holder,Overseas,Bowler,2020,SRH,81,86,B,Bowlers - B,0.75,Capped,8,0,124.53,66,8.32,14
+Manish Pandey,MK Pandey,Indian,Batter,2017,KKR,81,86,B,Batters - B,0.75,Capped,19,0,128.57,396,0.0,0
+Tim David,TH David,Overseas,Batter,2022,MI,81,86,B,Batters - B,0.75,Capped,6,0,216.28,186,0.0,0
+Virender Sehwag,V Sehwag,Indian,Batter,2008,DC,81,86,B,Batters - B,0.75,Capped,8,0,184.55,406,12.09,3
+Khaleel Ahmed,KK Ahmed,Indian,Bowler,2019,SRH,81,86,B,Bowlers - B,0.75,Capped,9,0,0.0,0,8.24,19
+Tilak Varma,Tilak Varma,Indian,Batter,2023,MI,81,86,B,Batters - B,0.75,Capped,5,0,164.11,343,7.0,0
+Tristan Stubbs,T Stubbs,Overseas,Wicketkeeper,2024,DC,81,86,B,Wicketkeepers - B,0.75,Capped,5,1,190.91,378,7.5,3
+Aiden Markram,AK Markram,Overseas,Batter,2025,LSG,81,86,B,Batters - B,0.75,Capped,6,0,148.83,445,9.27,4
+Anil Kumble,A Kumble,Indian,Bowler,2009,RCB,81,86,B,Bowlers - B,0.75,Capped,3,0,84.21,16,5.86,21
+Ashok Dinda,AB Dinda,Indian,Bowler,2010,KKR,81,85,B,Bowlers - B,0.75,Capped,10,0,0.0,0,6.56,9
+Lakshmipathy Balaji,L Balaji,Indian,Bowler,2012,KKR,81,85,B,Bowlers - B,0.75,Capped,7,0,0.0,0,5.4,11
+Lendl Simmons,LMP Simmons,Overseas,Batter,2015,MI,81,85,B,Batters - B,0.75,Capped,4,0,122.45,540,0.0,0
+Murali Kartik,M Kartik,Indian,Bowler,2010,KKR,81,85,B,Bowlers - B,0.75,Capped,7,0,100.0,22,6.49,9
+Jonny Bairstow,JM Bairstow,Overseas,Wicketkeeper,2019,SRH,81,85,B,Wicketkeepers - B,0.75,Capped,6,1,157.24,445,0.0,0
+Karun Nair,KK Nair,Indian,Batter,2014,RR,81,85,B,Batters - B,0.75,Capped,11,0,142.24,330,0.0,0
+Wriddhiman Saha,WP Saha,Indian,Wicketkeeper,2020,SRH,81,85,B,Wicketkeepers - B,0.75,Uncapped,17,1,139.87,214,0.0,0
+Trent Boult,TA Boult,Overseas,Bowler,2020,MI,81,85,B,Bowlers - B,0.75,Capped,12,0,0.0,0,8.14,25
+Josh Inglis,JP Inglis,Overseas,Wicketkeeper,2026,LSG,81,85,B,Wicketkeepers - B,0.75,Uncapped,2,1,186.01,266,0.0,0
+Vinay Kumar,R Vinay Kumar,Indian,Bowler,2013,RCB,81,85,B,Bowlers - B,0.75,Capped,11,0,159.09,70,8.39,23
+Deepak Hooda,DJ Hooda,Indian,Batter,2022,LSG,81,85,B,Batters - B,0.75,Capped,11,0,136.67,451,10.75,1
+Zaheer Khan,Z Khan,Indian,Bowler,2012,RCB,80,85,B,Bowlers - B,0.75,Capped,10,0,70.59,12,7.55,17
+Steven Smith,SPD Smith,Overseas,Batter,2012,PWI,80,85,B,Batters - B,0.75,Capped,9,0,135.58,362,15.0,0
+Shane Warne,SK Warne,Overseas,Bowler,2011,RR,80,85,B,Bowlers - B,0.75,Capped,4,0,50.0,10,6.32,13
+Cooper Connolly,C Connolly,Overseas,Batter,2026,PBKS,80,85,B,Batters - B,0.75,Capped,1,0,163.12,491,0.0,0
+Chris Lynn,CA Lynn,Overseas,Batter,2017,KKR,80,85,B,Batters - B,0.75,Capped,7,0,180.98,295,0.0,0
+Glenn McGrath,GD McGrath,Overseas,Bowler,2008,DC,80,85,B,Bowlers - B,0.75,Capped,1,0,80.0,4,6.61,12
+Phil Salt,PD Salt,Overseas,Batter,2024,KKR,80,85,B,Batters - B,0.75,Capped,4,0,182.01,435,0.0,0
+Prithvi Shaw,PP Shaw,Indian,Batter,2021,DC,80,85,B,Batters - B,0.75,Capped,7,0,159.14,479,0.0,0
+Priyansh Arya,Priyansh Arya,Indian,Batter,2025,PBKS,80,85,B,Batters - B,0.75,Capped,2,0,182.27,545,0.0,0
+Deepak Chahar,DL Chahar,Indian,Bowler,2019,CSK,80,85,B,Bowlers - B,0.75,Capped,10,0,77.78,7,7.47,22
+Dan Christian,DT Christian,Overseas,Bowler,2017,RPS,80,85,B,Bowlers - B,0.75,Capped,6,0,161.22,79,7.45,11
+Nathan Coulter-Nile,NM Coulter-Nile,Overseas,Bowler,2015,DC,80,85,B,Bowlers - B,0.75,Capped,8,0,111.11,20,7.55,15
+Mohammed Siraj,Mohammed Siraj,Indian,Bowler,2021,RCB,80,85,B,Bowlers - B,0.75,Capped,10,0,76.92,20,6.79,11
+Parthiv Patel,PA Patel,Indian,Wicketkeeper,2017,MI,80,84,B,Wicketkeepers - B,0.75,Capped,12,1,134.81,395,0.0,0
+Kevin Pietersen,KP Pietersen,Overseas,All-Rounder,2010,RCB,80,84,B,All-Rounders - B,0.75,Capped,5,0,150.32,236,7.7,3
+Johan Botha,J Botha,Overseas,All-Rounder,2011,RR,80,84,B,All-Rounders - B,0.75,Capped,5,0,116.16,230,6.64,7
+Lungi Ngidi,L Ngidi,Overseas,Bowler,2018,CSK,80,84,B,Bowlers - B,0.75,Capped,5,0,0.0,0,6.0,11
+Kuldeep Yadav,Kuldeep Yadav,Indian,Bowler,2025,DC,80,84,B,Bowlers - B,0.75,Capped,10,0,112.5,18,7.36,15
+Vijay Shankar,V Shankar,Indian,Batter,2018,DC,79,84,B,Batters - B,0.75,Capped,10,0,143.24,212,11.6,1
+Kumar Sangakkara,KC Sangakkara,Overseas,Wicketkeeper,2008,PBKS,79,84,B,Wicketkeepers - B,0.75,Capped,6,1,161.62,320,0.0,0
+Anrich Nortje,A Nortje,Overseas,Bowler,2021,DC,79,84,B,Bowlers - B,0.75,Capped,7,0,0.0,0,6.16,12
+Travis Head,TM Head,Overseas,Batter,2024,SRH,79,84,B,Batters - B,0.75,Capped,5,0,191.55,567,19.2,0
+Saurabh Tiwary,SS Tiwary,Indian,Batter,2010,MI,79,84,B,Batters - B,0.75,Capped,11,0,135.6,419,0.0,0
+Siddharth Trivedi,SK Trivedi,Indian,Bowler,2013,RR,79,84,B,Bowlers - B,0.75,Capped,6,0,42.86,3,6.85,12
+Devon Conway,DP Conway,Overseas,Batter,2023,CSK,79,84,B,Batters - B,0.75,Capped,3,0,139.71,672,0.0,0
+Dhruv Jurel,Dhruv Jurel,Indian,Wicketkeeper,2026,RR,79,84,B,Wicketkeepers - B,0.75,Capped,4,1,154.65,515,0.0,0
+Dhawal Kulkarni,DS Kulkarni,Indian,Bowler,2015,RR,79,84,B,Bowlers - B,0.75,Capped,14,0,36.36,4,7.91,13
+Finn Allen,FH Allen,Overseas,Batter,2026,KKR,79,84,B,Batters - B,0.75,Capped,1,0,214.11,349,0.0,0
+Eoin Morgan,EJG Morgan,Overseas,Batter,2020,KKR,79,84,B,Batters - B,0.75,Capped,8,0,137.83,419,0.0,0
+Sreenath Aravind,S Aravind,Indian,Bowler,2016,RCB,79,84,B,Bowlers - B,0.75,Capped,5,0,0.0,0,7.41,11
+Mitchell Starc,MA Starc,Overseas,Bowler,2015,RCB,79,84,B,Bowlers - B,0.75,Capped,5,0,78.57,11,6.77,20
+James Faulkner,JP Faulkner,Overseas,Bowler,2013,RR,79,84,B,Bowlers - B,0.75,Capped,7,0,100.0,57,6.76,28
+Marcus Stoinis,MP Stoinis,Overseas,Batter,2023,LSG,79,84,B,Batters - B,0.75,Capped,11,0,150.0,408,9.23,5
+Moeen Ali,MM Ali,Overseas,All-Rounder,2019,RCB,79,84,B,All-Rounders - B,0.75,Capped,8,0,165.41,220,6.76,6
+Jitesh Sharma,JM Sharma,Indian,Wicketkeeper,2025,RCB,79,84,B,Wicketkeepers - B,0.75,Capped,5,1,176.35,261,0.0,0
+Manoj Tiwary,MK Tiwary,Indian,Batter,2011,KKR,79,84,B,Batters - B,0.75,Capped,10,0,110.46,359,11.5,0
+Rajat Bhatia,R Bhatia,Indian,Bowler,2012,KKR,79,84,B,Bowlers - B,0.75,Capped,10,0,125.0,35,7.32,13
+Ryan Rickelton,RD Rickelton,Overseas,Wicketkeeper,2025,MI,79,84,B,Wicketkeepers - B,0.75,Capped,2,1,150.97,388,0.0,0
+Avesh Khan,Avesh Khan,Indian,Bowler,2021,DC,79,84,B,Bowlers - B,0.75,Capped,10,0,166.67,5,7.38,24
+Shreyas Gopal,S Gopal,Indian,Bowler,2019,RR,79,84,B,Bowlers - B,0.75,Capped,9,0,136.96,63,7.23,20
+Rahul Tripathi,RA Tripathi,Indian,Batter,2022,SRH,79,84,B,Batters - B,0.75,Capped,9,0,158.24,413,0.0,0
+Ryan Harris,RJ Harris,Overseas,Bowler,2010,DCH,78,84,C,Bowlers - C,0.5,Capped,5,0,115.38,45,7.6,14
+S Badrinath,S Badrinath,Indian,Batter,2011,CSK,78,84,C,Batters - C,0.5,Capped,6,0,126.52,396,0.0,0
+Adam Gilchrist,AC Gilchrist,Overseas,Wicketkeeper,2009,DCH,78,84,C,Wicketkeepers - C,0.5,Capped,6,1,152.31,495,0.0,0
+Tillakaratne Dilshan,TM Dilshan,Overseas,Batter,2009,DC,78,83,C,Batters - C,0.5,Capped,6,0,122.58,418,6.12,0
+Liam Livingstone,LS Livingstone,Overseas,All-Rounder,2022,PBKS,78,83,C,All-Rounders - C,0.5,Capped,7,0,182.08,437,8.78,6
+Ravi Rampaul,R Rampaul,Overseas,Bowler,2013,RCB,78,83,C,Bowlers - C,0.5,Capped,2,0,102.7,38,7.03,15
+Roelof van der Merwe,RE van der Merwe,Overseas,All-Rounder,2009,RCB,78,83,C,All-Rounders - C,0.5,Capped,5,0,124.49,122,7.29,9
+Ashutosh Sharma,Ashutosh Sharma,Indian,Batter,2026,DC,78,83,C,Batters - C,0.5,Capped,3,0,181.91,171,0.0,0
+Arshdeep Singh,Arshdeep Singh,Indian,Bowler,2021,PBKS,78,83,C,Bowlers - C,0.5,Capped,8,0,66.67,2,8.27,18
+Cameron White,CL White,Overseas,Batter,2012,DCH,78,83,C,Batters - C,0.5,Capped,5,0,149.69,479,9.0,0
+Shane Bond,SE Bond,Overseas,Bowler,2010,KKR,78,83,C,Bowlers - C,0.5,Capped,1,0,50.0,1,7.23,9
+Shadab Jakati,SB Jakati,Indian,Bowler,2010,CSK,78,83,C,Bowlers - C,0.5,Capped,7,0,0.0,0,7.66,13
+Doug Bollinger,DE Bollinger,Overseas,Bowler,2011,CSK,78,83,C,Bowlers - C,0.5,Capped,3,0,0.0,0,7.0,17
+Paul Collingwood,PD Collingwood,Overseas,All-Rounder,2010,DC,78,83,C,All-Rounders - C,0.5,Capped,1,0,130.13,203,6.81,5
+Pat Cummins,PJ Cummins,Overseas,All-Rounder,2020,KKR,78,83,C,All-Rounders - C,0.5,Capped,9,0,128.07,146,7.87,12
+Matheesha Pathirana,M Pathirana,Overseas,Bowler,2024,CSK,78,83,C,Bowlers - C,0.5,Uncapped,5,0,0.0,0,7.68,13
+Shashank Singh,Shashank Singh,Indian,Batter,2024,PBKS,78,83,C,Batters - C,0.5,Capped,4,0,164.65,354,5.0,1
+Wayne Parnell,WD Parnell,Overseas,Bowler,2012,PWI,78,83,C,Bowlers - C,0.5,Uncapped,5,0,70.37,19,6.1,5
+Angkrish Raghuvanshi,A Raghuvanshi,Indian,Wicketkeeper,2026,KKR,78,83,C,Wicketkeepers - C,0.5,Capped,3,1,146.53,422,0.0,0
+Mustafizur Rahman,Mustafizur Rahman,Overseas,Bowler,2016,SRH,78,83,C,Bowlers - C,0.5,Capped,8,0,0.0,0,6.9,17
+Pathum Nissanka,P Nissanka,Overseas,Batter,2026,DC,78,83,C,Batters - C,0.5,Capped,1,0,158.86,278,0.0,0
+Mahela Jayawardene,DPMD Jayawardene,Overseas,Batter,2010,PBKS,78,83,C,Batters - C,0.5,Capped,6,0,148.33,445,0.0,0
+Manan Vohra,M Vohra,Indian,Batter,2014,PBKS,78,83,C,Batters - C,0.5,Capped,9,0,139.06,324,0.0,0
+Mandeep Singh,Mandeep Singh,Indian,Batter,2012,PBKS,78,83,C,Batters - C,0.5,Capped,14,0,126.32,432,0.0,0
+Ben Stokes,BA Stokes,Overseas,All-Rounder,2017,RPS,78,82,C,All-Rounders - C,0.5,Capped,6,0,142.99,316,7.18,12
+Brad Hodge,BJ Hodge,Overseas,Batter,2013,RR,78,82,C,Batters - C,0.5,Capped,7,0,134.4,293,3.0,0
+Stuart Binny,STR Binny,Indian,All-Rounder,2013,RR,78,82,C,All-Rounders - C,0.5,Capped,10,0,147.24,293,6.75,6
+Brett Lee,B Lee,Overseas,Bowler,2009,PBKS,78,82,C,Bowlers - C,0.5,Uncapped,6,0,82.35,28,5.55,5
+Tim Southee,TG Southee,Overseas,Bowler,2022,KKR,78,82,C,Bowlers - C,0.5,Capped,10,0,16.67,2,7.86,14
+Harpreet Brar,Harpreet Brar,Indian,All-Rounder,2021,PBKS,78,82,C,All-Rounders - C,0.5,Capped,8,0,110.34,64,6.04,5
+Mithun Manhas,M Manhas,Indian,Bowler,2008,DC,78,82,C,Bowlers - C,0.5,Uncapped,7,0,0.0,0,0.0,0
+Ross Taylor,LRPL Taylor,Overseas,Batter,2008,RCB,78,82,C,Batters - C,0.5,Uncapped,7,0,183.95,149,0.0,0
+Kyle Mayers,KR Mayers,Overseas,Batter,2023,LSG,78,82,C,Batters - C,0.5,Capped,1,0,144.11,379,8.43,0
+Abishek Porel,Abishek Porel,Indian,Batter,2024,DC,78,82,C,Batters - C,0.5,Capped,4,0,159.51,327,0.0,0
+Dimitri Mascarenhas,AD Mascarenhas,Overseas,Bowler,2012,PBKS,78,82,C,Bowlers - C,0.5,Uncapped,5,0,87.5,14,6.56,7
+Umar Gul,Umar Gul,Overseas,Bowler,2008,KKR,78,82,C,Bowlers - C,0.5,Uncapped,1,0,205.26,39,8.18,12
+Ayush Badoni,A Badoni,Indian,Batter,2025,LSG,78,82,C,Batters - C,0.5,Capped,5,0,148.2,329,7.8,2
+Lockie Ferguson,LH Ferguson,Overseas,Bowler,2021,KKR,78,82,C,Bowlers - C,0.5,Capped,9,0,163.64,18,7.47,13
+Ayush Mhatre,A Mhatre,Indian,Batter,2025,CSK,78,82,C,Batters - C,0.5,Capped,2,0,188.98,240,0.0,0
+Dilhara Fernando,CRD Fernando,Overseas,Bowler,2010,MI,78,82,C,Bowlers - C,0.5,Uncapped,2,0,100.0,2,7.26,7
+David Hussey,DJ Hussey,Overseas,Batter,2012,PBKS,78,82,C,Batters - C,0.5,Capped,7,0,129.84,396,7.0,3
+Noor Ahmad,Noor Ahmad,Overseas,Bowler,2025,CSK,78,82,C,Bowlers - C,0.5,Capped,4,0,41.18,7,8.16,24
+Mitchell McClenaghan,MJ McClenaghan,Overseas,Bowler,2016,MI,78,82,C,Bowlers - C,0.5,Capped,5,0,147.83,34,8.17,17
+Josh Hazlewood,JR Hazlewood,Overseas,Bowler,2022,RCB,78,82,C,Bowlers - C,0.5,Capped,6,0,69.23,18,8.11,20
+Siddarth Kaul,S Kaul,Indian,Bowler,2017,SRH,77,82,C,Bowlers - C,0.5,Capped,8,0,0.0,0,8.41,16
+Naman Ojha,NV Ojha,Indian,Wicketkeeper,2012,DC,77,82,C,Wicketkeepers - C,0.5,Capped,10,1,113.84,255,0.0,0
+Fidel Edwards,FH Edwards,Overseas,Bowler,2009,DCH,77,82,C,Bowlers - C,0.5,Uncapped,1,0,80.0,4,6.6,5
+Rahul Dravid,R Dravid,Indian,Batter,2013,RR,77,82,C,Batters - C,0.5,Capped,6,0,110.82,471,0.0,0
+Farveez Maharoof,MF Maharoof,Overseas,Bowler,2008,DC,77,82,C,Bowlers - C,0.5,Capped,3,0,158.23,125,6.92,15
+Sarfaraz Khan,SN Khan,Indian,Batter,2019,PBKS,77,81,C,Batters - C,0.5,Capped,9,0,125.87,180,18.0,0
+Shardul Thakur,SN Thakur,Indian,Bowler,2021,CSK,77,81,C,Bowlers - C,0.5,Capped,11,0,100.0,5,8.81,21
+Dirk Nannes,DP Nannes,Overseas,Bowler,2010,DC,77,81,C,Bowlers - C,0.5,Capped,4,0,30.77,4,6.52,7
+Shaun Pollock,SM Pollock,Overseas,All-Rounder,2008,MI,77,81,C,All-Rounders - C,0.5,Capped,1,0,132.43,147,6.54,11
+Abdul Samad,Abdul Samad,Indian,Batter,2023,SRH,77,81,C,Batters - C,0.5,Capped,7,0,132.03,169,0.0,0
+Shahid Afridi,Shahid Afridi,Overseas,Bowler,2008,DCH,77,81,C,Bowlers - C,0.5,Capped,1,0,176.09,81,7.5,9
+Kevon Cooper,KK Cooper,Overseas,Bowler,2012,RR,77,81,C,Bowlers - C,0.5,Uncapped,3,0,190.0,38,7.25,10
+M Shahrukh Khan,M Shahrukh Khan,Indian,Batter,2025,GT,77,81,C,Batters - C,0.5,Capped,6,0,179.0,179,13.0,1
+Ajit Chandila,A Chandila,Indian,Bowler,2013,RR,77,81,C,Bowlers - C,0.5,Capped,2,0,66.67,4,6.24,6
+Adam Zampa,A Zampa,Overseas,Bowler,2016,RPS,77,81,C,Bowlers - C,0.5,Uncapped,5,0,0.0,0,6.76,12
+Makhaya Ntini,M Ntini,Overseas,Bowler,2008,CSK,77,81,C,Bowlers - C,0.5,Capped,1,0,61.11,11,6.91,7
+Naman Dhir,Naman Dhir,Indian,Batter,2025,MI,77,81,C,Batters - C,0.5,Capped,3,0,182.61,252,5.25,0
+Pradeep Sangwan,PJ Sangwan,Indian,Bowler,2009,DC,77,81,C,Bowlers - C,0.5,Capped,9,0,60.0,6,7.71,15
+Brad Hogg,GB Hogg,Overseas,Bowler,2012,RR,77,81,C,Bowlers - C,0.5,Capped,4,0,93.75,15,7.03,10
+Evin Lewis,E Lewis,Overseas,Batter,2018,MI,77,81,C,Batters - C,0.5,Capped,4,0,138.41,382,0.0,0
+Sreesanth,S Sreesanth,Indian,Bowler,2011,KTK,77,81,C,Bowlers - C,0.5,Capped,5,0,11.11,1,6.47,7
+Sourav Ganguly,SC Ganguly,Indian,Batter,2010,KKR,77,81,C,Batters - C,0.5,Capped,5,0,117.66,493,10.75,0
+Ben Hilfenhaus,BW Hilfenhaus,Overseas,Bowler,2012,CSK,77,81,C,Bowlers - C,0.5,Capped,2,0,0.0,0,6.85,14
+Gurkeerat Singh Mann,Gurkeerat Singh,Indian,Wicketkeeper,2017,PBKS,76,81,C,Wicketkeepers - C,0.5,Uncapped,7,1,0.0,0,0.0,0
+Harmeet Singh,Harmeet Singh,Indian,Bowler,2010,DCH,76,81,C,Bowlers - C,0.5,Capped,6,0,0.0,0,7.25,8
+Murugan Ashwin,M Ashwin,Indian,Bowler,2020,PBKS,76,81,C,Bowlers - C,0.5,Capped,7,0,100.0,4,7.46,10
+Kartik Sharma,Kartik Sharma,Indian,Batter,2026,CSK,76,81,C,Batters - C,0.5,Capped,1,0,136.57,295,0.0,0
+Kedar Jadhav,KM Jadhav,Indian,Wicketkeeper,2017,RCB,76,81,C,Wicketkeepers - C,0.5,Capped,12,1,143.55,267,0.0,0
+Varun Aaron,VR Aaron,Indian,Bowler,2014,RCB,76,81,C,Bowlers - C,0.5,Capped,9,0,102.94,35,8.15,16
+Prasidh Krishna,M Prasidh Krishna,Indian,Bowler,2025,GT,76,81,C,Bowlers - C,0.5,Capped,7,0,0.0,0,8.27,25
+Krishnappa Gowtham,K Gowtham,Indian,Bowler,2018,RR,76,80,C,Bowlers - C,0.5,Capped,6,0,196.88,126,7.8,11
+Thisara Perera,NLTC Perera,Overseas,All-Rounder,2013,SRH,76,80,C,All-Rounders - C,0.5,Capped,6,0,142.42,235,8.01,19
+Nehal Wadhera,N Wadhera,Indian,Batter,2025,PBKS,76,80,C,Batters - C,0.5,Capped,4,0,145.85,369,10.8,0
+Jason Roy,JJ Roy,Overseas,Batter,2023,KKR,76,80,C,Batters - C,0.5,Capped,4,0,151.6,285,0.0,0
+Andrew Tye,AJ Tye,Overseas,Bowler,2018,PBKS,76,80,C,Bowlers - C,0.5,Capped,5,0,84.21,32,8.0,24
+Amit Singh,A Singh,Indian,Bowler,2009,RR,76,80,C,Bowlers - C,0.5,Uncapped,3,0,33.33,1,5.43,9
+Mitchell Santner,MJ Santner,Overseas,Bowler,2023,CSK,76,80,C,Bowlers - C,0.5,Uncapped,7,0,50.0,2,6.75,3
+T Natarajan,T Natarajan,Indian,Bowler,2020,SRH,76,80,C,Bowlers - C,0.5,Capped,8,0,60.0,3,8.02,16
+Ish Sodhi,IS Sodhi,Overseas,Bowler,2018,RR,76,80,C,Bowlers - C,0.5,Uncapped,2,0,16.67,1,5.87,5
+Angelo Mathews,AD Mathews,Overseas,All-Rounder,2012,PWI,76,80,C,All-Rounders - C,0.5,Capped,6,0,117.59,127,7.38,7
+Maheesh Theekshana,M Theekshana,Overseas,Bowler,2022,CSK,76,80,C,Bowlers - C,0.5,Capped,4,0,100.0,7,7.46,12
+Bipul Sharma,Bipul Sharma,Indian,Bowler,2011,PBKS,76,80,C,Bowlers - C,0.5,Uncapped,7,0,127.78,23,6.5,4
+Ramesh Powar,RR Powar,Indian,Bowler,2009,PBKS,76,80,C,Bowlers - C,0.5,Capped,5,0,104.55,23,6.29,5
+Rachin Ravindra,R Ravindra,Overseas,Batter,2024,CSK,76,80,C,Batters - C,0.5,Capped,2,0,160.87,222,3.5,0
+Rovman Powell,R Powell,Overseas,Batter,2022,DC,76,80,C,Batters - C,0.5,Capped,5,0,149.7,250,17.0,0
+Mohsin Khan,Mohsin Khan,Indian,Bowler,2022,LSG,75,80,C,Bowlers - C,0.3,Capped,4,0,143.75,23,5.97,14
+Mohammad Nabi,Mohammad Nabi,Overseas,Bowler,2017,SRH,75,80,C,Bowlers - C,0.3,Uncapped,6,0,66.67,2,5.27,2
+Dewald Brevis,D Brevis,Overseas,Batter,2025,CSK,75,80,C,Batters - C,0.3,Uncapped,4,0,180.0,225,0.0,0
+Sanath Jayasuriya,ST Jayasuriya,Overseas,All-Rounder,2008,MI,75,80,C,All-Rounders - C,0.3,Capped,3,0,166.34,514,7.57,4
+Hashim Amla,HM Amla,Overseas,Batter,2017,PBKS,75,80,C,Batters - C,0.3,Capped,2,0,145.83,420,0.0,0
+Wanindu Hasaranga,PWH de Silva,Overseas,Bowler,2022,RCB,75,80,C,Bowlers - C,0.3,Capped,4,0,88.37,38,7.54,26
+Rishi Dhawan,R Dhawan,Indian,Bowler,2014,PBKS,75,80,C,Bowlers - C,0.3,Capped,7,0,109.33,82,7.71,13
+Parvinder Awana,P Awana,Indian,Bowler,2013,PBKS,75,80,C,Bowlers - C,0.3,Capped,3,0,11.11,1,7.63,15
+Sandeep Lamichhane,S Lamichhane,Overseas,Bowler,2018,DC,75,80,C,Bowlers - C,0.3,Uncapped,2,0,0.0,0,6.83,5
+Sam Curran,SM Curran,Overseas,All-Rounder,2020,CSK,75,79,C,All-Rounders - C,0.3,Capped,6,0,131.91,186,8.19,13
+Cameron Green,C Green,Overseas,All-Rounder,2024,RCB,75,79,C,All-Rounders - C,0.3,Capped,3,0,143.26,255,8.62,10
+Sherfane Rutherford,SE Rutherford,Overseas,Batter,2025,GT,75,79,C,Batters - C,0.3,Capped,4,0,157.3,291,0.0,0
+Aniket Verma,Aniket Verma,Indian,Batter,2025,SRH,75,79,C,Batters - C,0.3,Capped,2,0,166.2,236,0.0,0
+Abhishek Nayar,AM Nayar,Indian,Batter,2008,MI,75,79,C,Batters - C,0.3,Capped,7,0,149.28,206,9.71,1
+Adam Voges,AC Voges,Overseas,Batter,2010,RR,75,79,C,Batters - C,0.3,Capped,1,0,126.57,181,8.44,0
+Kamran Akmal,Kamran Akmal,Overseas,Wicketkeeper,2008,RR,75,79,C,Wicketkeepers - C,0.3,Uncapped,1,1,164.1,128,0.0,0
+George Bailey,GJ Bailey,Overseas,Batter,2014,PBKS,75,79,C,Batters - C,0.3,Capped,5,0,135.26,257,0.0,0
+Herschelle Gibbs,HH Gibbs,Overseas,Batter,2009,DCH,75,79,C,Batters - C,0.3,Capped,4,0,112.08,371,0.0,0
+Eshan Malinga,E Malinga,Overseas,Bowler,2025,SRH,75,79,C,Bowlers - C,0.3,Capped,2,0,0.0,0,8.92,13
+Pravin Tambe,PV Tambe,Indian,Bowler,2014,RR,75,79,C,Bowlers - C,0.3,Capped,4,0,55.56,5,7.27,15
+Mujeeb Ur Rahman,Mujeeb Ur Rahman,Overseas,Bowler,2018,PBKS,75,79,C,Bowlers - C,0.3,Capped,5,0,142.86,10,6.99,14
+Nitish Kumar Reddy,Nithish Kumar Reddy,Indian,Batter,2024,SRH,75,79,C,Batters - C,0.3,Capped,4,0,142.92,303,11.62,3
+Morne van Wyk,MN van Wyk,Overseas,Batter,2009,KKR,75,79,C,Batters - C,0.3,Uncapped,1,0,126.52,167,0.0,0
+Thilan Thushara,T Thushara,Overseas,Bowler,2010,CSK,75,79,C,Bowlers - C,0.3,Uncapped,2,0,90.91,10,6.97,5
+Tirumalasetti Suman,TL Suman,Indian,All-Rounder,2009,DCH,75,79,C,All-Rounders - C,0.3,Capped,5,0,124.74,237,7.2,5
+Jayant Yadav,J Yadav,Indian,Bowler,2015,DC,75,79,C,Bowlers - C,0.3,Uncapped,7,0,0.0,0,4.14,2
+Jamie Overton,J Overton,Overseas,All-Rounder,2026,CSK,75,79,C,All-Rounders - C,0.3,Capped,2,0,158.14,136,8.89,14
+Kedar Devdhar,KH Devdhar,Indian,Wicketkeeper,2011,DCH,75,79,C,Wicketkeepers - C,0.3,Uncapped,1,1,0.0,0,0.0,0
+Owais Shah,OA Shah,Overseas,Batter,2012,RR,75,79,C,Batters - C,0.3,Capped,4,0,132.81,340,0.0,0
+Ben Cutting,BCJ Cutting,Overseas,All-Rounder,2016,SRH,75,79,C,All-Rounders - C,0.3,Uncapped,5,0,191.18,65,7.16,5
+Azhar Mahmood,Azhar Mahmood,Overseas,All-Rounder,2012,PBKS,75,79,C,All-Rounders - C,0.3,Capped,3,0,130.99,186,7.71,14
+Manpreet Gony,MS Gony,Indian,Bowler,2008,CSK,75,79,C,Bowlers - C,0.3,Capped,7,0,152.17,35,7.38,17
+Jesse Ryder,JD Ryder,Overseas,Batter,2011,PWI,75,78,C,Batters - C,0.3,Capped,3,0,148.22,292,7.7,4
+Jerome Taylor,JE Taylor,Overseas,Bowler,2011,PWI,75,78,C,Bowlers - C,0.3,Uncapped,1,0,100.0,3,8.05,6
+Jake Fraser-McGurk,J Fraser-McGurk,Overseas,Batter,2024,DC,75,78,C,Batters - C,0.3,Capped,2,0,234.04,330,0.0,0
+Will Jacks,WG Jacks,Overseas,Batter,2024,RCB,75,78,C,Batters - C,0.3,Capped,3,0,175.57,230,11.11,2
+Ankit Sharma,Ankit Sharma,Indian,Bowler,2012,DCH,75,78,C,Bowlers - C,0.3,Capped,7,0,138.46,18,6.83,4
+Alfonso Thomas,AC Thomas,Overseas,Bowler,2011,PWI,75,78,C,Bowlers - C,0.3,Capped,2,0,25.0,1,7.71,11
+Andrew McDonald,AB McDonald,Overseas,All-Rounder,2012,RCB,75,78,C,All-Rounders - C,0.3,Uncapped,5,0,134.29,47,6.1,5
+Jagadeesha Suchith,J Suchith,Indian,Bowler,2022,SRH,75,78,C,Bowlers - C,0.3,Uncapped,5,0,25.0,2,7.78,7
+Himmat Singh,Himmat Singh,Indian,Bowler,2025,LSG,75,78,C,Bowlers - C,0.3,Uncapped,2,0,0.0,0,0.0,0
+Abu Nechim,AN Ahmed,Indian,Bowler,2013,MI,74,78,C,Bowlers - C,0.3,Uncapped,6,0,0.0,0,6.43,3
+Chaminda Vaas,WPUJC Vaas,Overseas,Bowler,2010,DCH,74,78,C,Bowlers - C,0.3,Uncapped,3,0,88.24,30,6.32,9
+Mukul Choudhary,MD Choudhary,Indian,Batter,2026,LSG,74,78,C,Batters - C,0.3,Capped,1,0,141.67,170,0.0,0
+Graeme Smith,GC Smith,Overseas,Batter,2008,RR,74,78,C,Batters - C,0.3,Capped,4,0,121.82,441,0.0,0
+Domnic Muthuswami,DJ Muthuswami,Indian,Bowler,2015,DC,74,78,C,Bowlers - C,0.3,Uncapped,1,0,33.33,1,7.21,4
+Naveen-ul-Haq,Naveen-ul-Haq,Overseas,Bowler,2023,LSG,74,78,C,Bowlers - C,0.3,Capped,2,0,76.19,16,7.82,11
+Oshane Thomas,O Thomas,Overseas,Bowler,2019,RR,74,78,C,Bowlers - C,0.3,Uncapped,1,0,0.0,0,7.9,5
+Manvinder Bisla,MS Bisla,Indian,Wicketkeeper,2012,KKR,74,78,C,Wicketkeepers - C,0.3,Capped,6,1,133.12,213,0.0,0
+Ramandeep Singh,Ramandeep Singh,Indian,Batter,2024,KKR,74,78,C,Batters - C,0.3,Capped,4,0,201.61,125,13.5,0
+Sai Kishore,R Sai Kishore,Indian,Bowler,2022,GT,74,78,C,Bowlers - C,0.3,Uncapped,4,0,0.0,0,7.56,6
+Romario Shepherd,R Shepherd,Overseas,Batter,2024,MI,74,78,C,Batters - C,0.3,Uncapped,5,0,271.43,57,13.25,1
+Ben Rohrer,BJ Rohrer,Overseas,Batter,2013,DC,74,78,C,Batters - C,0.3,Capped,1,0,136.88,193,12.0,0
+Dillon du Preez,D du Preez,Overseas,Bowler,2009,RCB,74,78,C,Bowlers - C,0.3,Uncapped,1,0,76.92,10,8.0,4
+Chandrasekar Ganapathy,C Ganapathy,Indian,Batter,2010,CSK,74,78,C,Batters - C,0.3,Uncapped,1,0,0.0,0,13.0,0
+Charl Langeveldt,CK Langeveldt,Overseas,Bowler,2010,KKR,74,78,C,Bowlers - C,0.3,Uncapped,3,0,0.0,0,8.0,5
+Shai Hope,SD Hope,Overseas,Batter,2024,DC,74,78,C,Batters - C,0.3,Capped,1,0,150.0,183,0.0,0
+Shaun Tait,SW Tait,Overseas,Bowler,2012,RR,74,78,C,Bowlers - C,0.3,Uncapped,4,0,0.0,0,6.61,6
+Salil Arora,Salil Arora,Indian,Batter,2026,SRH,74,78,C,Batters - C,0.3,Capped,1,0,159.18,156,0.0,0
+Salman Butt,Salman Butt,Overseas,Batter,2008,KKR,74,78,C,Batters - C,0.3,Capped,1,0,119.88,193,0.0,0

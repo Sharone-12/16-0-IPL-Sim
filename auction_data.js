@@ -60,8 +60,18 @@
   }
 
   // ---------- sets ----------
-  // Ordered exactly as they come under the hammer. Marquee first, then the
-  // role sets split A/B by rating, then unsold players get an accelerated round.
+  // The pool is CURATED, not computed: ipl_auction_career_final.csv carries the
+  // set, tier, calibrated OVR and base price for every lot. This is the running
+  // order those sets come under the hammer in — Marquee first, then each tier
+  // cycling through the roles so no role ever runs as one long block.
+  const SET_ORDER = [
+    "Marquee",
+    "Batters - A", "Wicketkeepers - A", "All-Rounders - A", "Bowlers - A",
+    "Batters - B", "Wicketkeepers - B", "All-Rounders - B", "Bowlers - B",
+    "Batters - C", "Wicketkeepers - C", "All-Rounders - C", "Bowlers - C",
+  ];
+
+  // Retained only for the legacy computed-pool path used by older tests.
   const SETS = [
     { id: "marquee", label: "Marquee" },
     { id: "openersA", label: "Openers — Tier A" },
@@ -184,6 +194,118 @@
   // Per-team quota → absolute count.
   function quotaFor(perTeam, teams) {
     return Math.max(1, Math.ceil(perTeam * teams));
+  }
+
+  // Row mappings for the two CSVs, defined once so the lobby, the room and the
+  // test harness cannot drift apart on column names.
+  function normalizeAuctionRow(r) {
+    return {
+      name: r.Player_Name,
+      displayName: r.Display_Name || r.Player_Name,
+      season: r.Season,
+      fr: r.Franchise,
+      ovr: +r.OVR || 0,
+      careerOvr: +r.Career_OVR || 0,
+      tier: r.Tier,
+      status: r.Status,
+      auctionSet: r.Auction_Set,
+      auctionRole: r.Auction_Role,
+      basePrice: Math.round(parseFloat(r.Base_Price_Cr || 0) * LAKH_PER_CRORE),
+      isWk: r.Is_Wicketkeeper === "1",
+      isOverseas: r.Nationality === "Overseas",
+    };
+  }
+
+  function normalizeMasterRow(r) {
+    return {
+      name: r.Player_Name,
+      season: r.Season,
+      frFull: r.Franchise_Full,
+      ovr: Math.min(+r.OVR || 70, 100),
+      bat: +r.Bat_Rat || +r.OVR || 70,
+      bowl: +r.Bowl_Rat || +r.OVR || 60,
+      primaryRole: r.Primary_Role,
+      battingOrder: r.Batting_Order,
+    };
+  }
+
+  // ---------- curated pool (ipl_auction_career_final.csv) ----------
+  // The auction file is authoritative for everything the AUCTION cares about:
+  // which set a player is in, their tier, their calibrated OVR and their base
+  // price. It carries no Batting_Order / Bat_Rat / Bowl_Rat, so those are joined
+  // from ipl_master_calibrated.csv on (Player_Name, Season) — a join verified to
+  // cover all 322 rows exactly.
+  //
+  // TWO RATING SCALES, DELIBERATELY:
+  //   ovr    — the auction file's calibrated rating. Drives the card, the tier
+  //            and the base price. Runs about 5 points below the master scale.
+  //   simOvr/bat/bowl — master's ratings, handed to the simulation untouched.
+  // They are kept apart on purpose. Bot franchises are built from master, so
+  // feeding the compressed scale into human squads alone would quietly weaken
+  // every human team, and would invalidate the 100k-season balance tuning the
+  // match engine was calibrated against.
+  function buildCuratedPool(auctionRows, masterRows, opts) {
+    const teams = Math.max(1, Number(opts && opts.teams) || 10);
+    const master = new Map();
+    for (const m of masterRows || []) {
+      master.set(`${String(m.name || "").trim()}|${String(m.season || "").trim()}`, m);
+    }
+
+    const lots = [];
+    const unmatched = [];
+    for (const r of auctionRows || []) {
+      if (!r.name) continue;
+      const m = master.get(`${String(r.name).trim()}|${String(r.season).trim()}`);
+      if (!m) { unmatched.push(r.name); continue; }
+      lots.push({
+        name: r.name,
+        displayName: r.displayName || r.name,
+        season: r.season,
+        fr: r.fr,
+        frFull: m.frFull || r.fr,
+        // auction-facing
+        ovr: r.ovr,
+        careerOvr: r.careerOvr,
+        tier: r.tier,
+        status: r.status,
+        basePrice: r.basePrice,
+        setId: r.auctionSet,
+        setLabel: r.auctionSet,
+        auctionRole: r.auctionRole,
+        // simulation-facing (master scale — see note above)
+        simOvr: m.ovr,
+        bat: m.bat,
+        bowl: m.bowl,
+        primaryRole: m.primaryRole,
+        battingOrder: m.battingOrder,
+        isWk: r.isWk,
+        isOverseas: r.isOverseas,
+      });
+    }
+
+    // Order by the canonical running order; anything with an unrecognised set
+    // is appended rather than dropped, so a new set in the CSV still shows up.
+    const rank = (id) => {
+      const i = SET_ORDER.indexOf(id);
+      return i === -1 ? SET_ORDER.length : i;
+    };
+    lots.sort((a, b) => rank(a.setId) - rank(b.setId) || b.ovr - a.ovr ||
+      String(a.name).localeCompare(String(b.name)));
+
+    const seen = [];
+    for (const l of lots) {
+      const row = seen.find((s) => s.id === l.setId);
+      if (row) row.got++;
+      else seen.push({ id: l.setId, label: l.setLabel, got: 1 });
+    }
+
+    return {
+      lots,
+      sets: seen,
+      purse: PURSE,
+      unmatched,
+      shortfalls: checkSupply(lots, teams),
+    };
   }
 
   /**
@@ -537,6 +659,10 @@
     roleFor,
     bestSeasonPerPlayer,
     buildAuctionPool,
+    buildCuratedPool,
+    normalizeAuctionRow,
+    normalizeMasterRow,
+    SET_ORDER,
     checkSupply,
     maxBid,
     XI_SIZE,

@@ -63,35 +63,30 @@ function requireSupa() {
   return true;
 }
 
-// ---------- player pool, for the lobby preview ----------
-let poolRows = null;
-function loadPool() {
-  if (poolRows) return Promise.resolve(poolRows);
+// ---------- pool preview for the lobby ----------
+// Same two CSVs and same builder the room uses, so the preview cannot promise
+// an auction different from the one that actually runs.
+let poolCache = null;
+function parseCsv(path) {
   return new Promise((resolve) => {
-    Papa.parse("ipl_master_calibrated.csv", {
+    Papa.parse(path, {
       download: true, header: true, skipEmptyLines: true,
-      complete: (res) => {
-        poolRows = (res.data || [])
-          .filter((r) => r.Player_Name && r.Franchise && r.Season)
-          .map((r) => ({
-            name: r.Player_Name,
-            displayName: r.Player_Name,
-            season: r.Season,
-            fr: r.Franchise,
-            frFull: r.Franchise_Full,
-            ovr: Math.min(+r.OVR || 70, 100),
-            bat: +r.Bat_Rat || +r.OVR || 70,
-            bowl: +r.Bowl_Rat || +r.OVR || 60,
-            primaryRole: r.Primary_Role,
-            battingOrder: r.Batting_Order,
-            isWk: r.Is_Wicketkeeper === "1",
-            isOverseas: r.Nationality === "Overseas",
-          }));
-        resolve(poolRows);
-      },
+      complete: (res) => resolve(res.data || []),
       error: () => resolve([]),
     });
   });
+}
+async function loadPool() {
+  if (poolCache) return poolCache;
+  const [aucRaw, masRaw] = await Promise.all([
+    parseCsv("ipl_auction_career_final.csv"),
+    parseCsv("ipl_master_calibrated.csv"),
+  ]);
+  poolCache = {
+    auc: aucRaw.filter((r) => r.Player_Name).map(AuctionData.normalizeAuctionRow),
+    mas: masRaw.filter((r) => r.Player_Name && r.Season).map(AuctionData.normalizeMasterRow),
+  };
+  return poolCache;
 }
 
 // ---------- create ----------
@@ -256,16 +251,10 @@ async function render() {
     </li>`;
   }).join("");
 
-  // Preview the auction that will actually be generated for this room size.
-  const rows = await loadPool();
-  if (rows.length && typeof AuctionData !== "undefined") {
-    const s = state.room.settings || {};
-    const teams = Math.max(2, humans.length);
-    const pool = AuctionData.buildAuctionPool(rows, {
-      teams,
-      eraFrom: s.era && s.era !== "all" ? +s.era : 2008,
-      eraTo: 2026,
-    });
+  // Preview the actual auction that will run.
+  const { auc, mas } = await loadPool();
+  if (auc.length && typeof AuctionData !== "undefined") {
+    const pool = AuctionData.buildCuratedPool(auc, mas, { teams: Math.max(2, humans.length) });
     $("wPreview").innerHTML = pool.sets.map((set, i) =>
       `<li><span class="rank">${i + 1}</span><span class="bname">${escapeHtml(set.label)}</span>
         <span class="bovr">${set.got} lots</span></li>`

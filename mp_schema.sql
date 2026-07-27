@@ -67,9 +67,21 @@ end $$;
 
 -- ---------- realtime ----------
 -- Broadcast row changes to subscribed clients (postgres_changes).
-alter publication supabase_realtime add table rooms;
-alter publication supabase_realtime add table players;
-alter publication supabase_realtime add table matches;
+-- Guarded: `add table` raises 42710 if the table is already published, which
+-- aborts the rest of the script and silently skips the replica identity
+-- statements below.
+do $$
+declare t text;
+begin
+  foreach t in array array['rooms', 'players', 'matches'] loop
+    if not exists (
+      select 1 from pg_publication_tables
+      where pubname = 'supabase_realtime' and schemaname = 'public' and tablename = t
+    ) then
+      execute format('alter publication supabase_realtime add table %I', t);
+    end if;
+  end loop;
+end $$;
 
 -- Ensure full row payloads on updates/deletes (so realtime handlers get old+new).
 alter table rooms   replica identity full;

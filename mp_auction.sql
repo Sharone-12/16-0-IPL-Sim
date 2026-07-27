@@ -63,7 +63,27 @@ begin
 end $$;
 
 -- ---------- realtime ----------
-alter publication supabase_realtime add table auction_state;
-alter publication supabase_realtime add table auction_buys;
+-- `alter publication ... add table` is NOT idempotent: re-running it raises
+-- 42710 ("already member of publication") and aborts the rest of the script,
+-- which would silently skip the replica identity statements below. Guarded so
+-- this file can be run as many times as you like.
+do $$
+begin
+  if not exists (
+    select 1 from pg_publication_tables
+    where pubname = 'supabase_realtime' and schemaname = 'public' and tablename = 'auction_state'
+  ) then
+    alter publication supabase_realtime add table auction_state;
+  end if;
+
+  if not exists (
+    select 1 from pg_publication_tables
+    where pubname = 'supabase_realtime' and schemaname = 'public' and tablename = 'auction_buys'
+  ) then
+    alter publication supabase_realtime add table auction_buys;
+  end if;
+end $$;
+
+-- Full row payloads on update/delete, so realtime handlers see old + new.
 alter table auction_state replica identity full;
 alter table auction_buys  replica identity full;

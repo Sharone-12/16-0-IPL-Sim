@@ -143,7 +143,10 @@ async function refresh() {
       SUPA.from("auction_buys").select("*").eq("room_id", ROOM).order("lot_index", { ascending: true }),
     ]);
     if (a.error && a.error.code !== "PGRST116") console.error("[auction] state read failed:", a.error);
-    if (r.data) S.room = r.data;
+    // Managers who never pressed Proceed are pulled into the league too. The
+    // realtime subscription normally does this; the poll is the fallback for
+    // when the socket is down, so nobody is left stranded on a dead auction.
+    if (r.data) { S.room = r.data; if (r.data.status === "league") gotoSim(); }
     if (p.data) S.managers = p.data.filter((x) => !x.is_bot);
     if (a.data) S.auction = a.data;
     if (b.data) { S.buys = b.data; announceSales(); }
@@ -412,6 +415,15 @@ async function voteSkip() {
   refresh();
 }
 
+// Move a sub-rating by the same amount the headline OVR moved between the two
+// scales, so a player's batting/bowling stay in proportion to the OVR shown.
+function shiftRating(value, auctionOvr, masterOvr) {
+  const v = Number(value);
+  if (!Number.isFinite(v)) return v;
+  const delta = Number.isFinite(Number(masterOvr)) ? Number(auctionOvr) - Number(masterOvr) : 0;
+  return Math.max(30, Math.min(99, Math.round(v + delta)));
+}
+
 // ---------- finishing ----------
 // Convert each manager's purchases into an XI (with slots assigned) written to
 // players.xi — the exact shape sim-mp.js already consumes, so the league and
@@ -449,12 +461,14 @@ async function finishAuction() {
       const xi = squad.map((p, i) => ({
         name: p.displayName || p.name,
         displayName: p.displayName || p.name,
-        // simOvr is what sim-mp.js actually reads (x.simOvr || x.ovr). The
-        // auction's calibrated OVR sits ~5 points below the master scale the
-        // match engine was tuned on, and bot franchises are built from master —
-        // so the squad goes into the league on the master scale, not this one.
-        ovr: p.ovr, simOvr: p.simOvr != null ? p.simOvr : p.ovr,
-        bat: p.bat, bowl: p.bowl,
+        // WYSIWYG: the rating on the card you bid for is the rating that walks
+        // out to bat. The auction's calibrated OVR sits ~5 below the master
+        // scale the engine was tuned on, so bat/bowl are shifted by that same
+        // delta — otherwise the sim would DISPLAY the auction number while
+        // PLAYING the master one, which is the mismatch this removes.
+        ovr: p.ovr, simOvr: p.ovr,
+        bat: shiftRating(p.bat, p.ovr, p.simOvr),
+        bowl: shiftRating(p.bowl, p.ovr, p.simOvr),
         fr: p.fr, frFull: p.frFull, season: p.season,
         isWk: p.isWk, isOverseas: p.isOverseas,
         primaryRole: p.primaryRole, battingOrder: p.battingOrder,
@@ -494,35 +508,47 @@ function botTeamsByStrength() {
     .sort((a, b) => b.ovr - a.ovr);
 }
 
-function botId() {
-  return "bot_" + Math.random().toString(36).slice(2, 10) + Date.now().toString(36).slice(-4);
+// Bot ids are DERIVED, not random. Every client that clicks Proceed computes the
+// identical seat list, so concurrent setup attempts collide on players.id and
+// the upsert dedupes them. Random ids meant two managers clicking together each
+// inserted a full set of eight — a league of eighteen teams, of which only ten
+// got fixtures.
+function botId(seat) {
+  return `bot_${ROOM}_${seat}`;
 }
 
+// Exactly one client sets the league up. Everyone else waits for it, because the
+// setup RESETS every ready-vote: a second client running it a moment later would
+// wipe the votes already cast in the simulation and stall the room on 0/N.
 async function proceed() {
   const btn = $("proceedBtn");
   btn.disabled = true;
   btn.textContent = "Setting up the league…";
   try {
-    const { data: existing } = await SUPA.from("players").select("id,is_bot").eq("room_id", ROOM);
-    const humans = (existing || []).filter((p) => !p.is_bot);
-    const alreadyBots = (existing || []).filter((p) => p.is_bot).length;
-    const need = Math.max(0, LEAGUE_SIZE - humans.length - alreadyBots);
+    const { data: claimed, error: claimErr } = await SUPA.from("rooms")
+      .update({ status: "league_setup" })
+      .eq("id", ROOM)
+      .eq("status", "auction")
+      .select("id");
+    if (claimErr) throw claimErr;
 
-    if (need) {
-      const bots = botTeamsByStrength().slice(0, need);
-      if (bots.length) {
-        await SUPA.from("players").insert(bots.map((t) => ({
-          id: botId(), room_id: ROOM, username: t.name,
-          is_host: false, is_bot: true, bot_team: t.name,
-          status: "done", xi: null, sim_ready_step: -1,
-        })));
+    if (claimed && claimed.length) {
+      try {
+        await setUpLeague();
+      } catch (e) {
+        // Hand the claim back, or the room is wedged in league_setup for good
+        // and nobody can ever retry.
+        await SUPA.from("rooms").update({ status: "auction" }).eq("id", ROOM);
+        throw e;
+      }
+    } else {
+      // Someone else won the claim — wait for them to finish before entering.
+      for (let i = 0; i < 80; i++) {
+        const { data: r } = await SUPA.from("rooms").select("status").eq("id", ROOM).single();
+        if (r && r.status === "league") break;
+        await new Promise((res) => setTimeout(res, 250));
       }
     }
-
-    // Start the shared progression from the top: kickoff vote, 14 rounds, then
-    // the per-fixture knockout gates — all handled by sim-mp.js unchanged.
-    await SUPA.from("players").update({ sim_ready_step: -1 }).eq("room_id", ROOM);
-    await SUPA.from("rooms").update({ status: "league", sim_round: -1 }).eq("id", ROOM);
   } catch (err) {
     console.error(err);
     btn.disabled = false;
@@ -531,6 +557,54 @@ async function proceed() {
     return;
   }
   gotoSim();
+}
+
+async function setUpLeague() {
+  // finishAuction writes each XI asynchronously. Clicking Proceed the instant
+  // the hammer falls could otherwise read a manager mid-write, count them out,
+  // and seat a bot in their place.
+  let existing = null;
+  for (let i = 0; i < 40; i++) {
+    const { data } = await SUPA.from("players").select("id,is_bot,xi").eq("room_id", ROOM);
+    existing = data || [];
+    const pending = existing.filter((p) => !p.is_bot && !(Array.isArray(p.xi) && p.xi.length >= 11));
+    if (!pending.length) break;
+    await new Promise((res) => setTimeout(res, 250));
+  }
+  // Only a manager holding a full XI takes a league seat. The simulation ignores
+  // anyone short of eleven, so counting them here would leave the league nine
+  // teams strong — an odd number, which has no 14-round fixture list at all.
+  const humans = (existing || []).filter((p) => !p.is_bot && Array.isArray(p.xi) && p.xi.length >= 11);
+  const need = Math.max(0, LEAGUE_SIZE - humans.length);
+
+  if (need) {
+    const bots = botTeamsByStrength().slice(0, need);
+    // A part-filled league has no 14-game slate — better to say so than to start
+    // a season where half the table plays nothing.
+    if (bots.length < need) {
+      throw new Error(`only ${humans.length + bots.length} of ${LEAGUE_SIZE} league seats could be filled`);
+    }
+    if (bots.length) {
+      await SUPA.from("players").upsert(
+        bots.map((t, i) => ({
+          id: botId(i), room_id: ROOM, username: t.name,
+          is_host: false, is_bot: true, bot_team: t.name,
+          status: "done", xi: null, sim_ready_step: -1,
+        })),
+        { onConflict: "id" }
+      );
+      // Sweep any bot that isn't one of these seats — randomly-named strays left
+      // by a room that ran the old duplicating setup.
+      await SUPA.from("players").delete()
+        .eq("room_id", ROOM).eq("is_bot", true)
+        .not("id", "in", `(${bots.map((_, i) => botId(i)).join(",")})`);
+    }
+  }
+
+  // Start the shared progression from the top: kickoff vote, 14 rounds, then
+  // the per-fixture knockout gates — all handled by sim-mp.js unchanged.
+  await SUPA.from("players").update({ sim_ready_step: -1 }).eq("room_id", ROOM);
+  await SUPA.from("rooms").update({ status: "league", sim_round: -1 }).eq("id", ROOM);
 }
 let goingSim = false;
 function gotoSim() {

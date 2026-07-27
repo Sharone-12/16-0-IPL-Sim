@@ -132,6 +132,8 @@ async function mpBoot() {
       return;
     }
     const s = room.settings || {};
+    // How this room built its squads decides where "Play Again" sends everyone.
+    mpMode = s.mode === "auction" ? "auction" : "draft";
     state.config = {
       difficulty: s.difficulty || "normal",
       playerRatings: s.ratings || s.playerRatings || "career",
@@ -148,8 +150,8 @@ async function mpBoot() {
     // Humans must have drafted an XI; bots are franchises — their XI is built
     // here from the real 2026 squad (the base game's best-XI logic), so they
     // never need to "draft" and are always a complete 11.
-    const rows = (pl || []).filter(
-      (p) => p.is_bot || (Array.isArray(p.xi) && p.xi.length >= 11)
+    const rows = mpTrimToLeague(
+      (pl || []).filter((p) => p.is_bot || (Array.isArray(p.xi) && p.xi.length >= 11))
     );
     if (rows.length < 2) {
       window.location.href = "lobby.html";
@@ -198,6 +200,26 @@ async function mpBoot() {
     console.error(err);
     window.location.href = "lobby.html";
   }
+}
+
+// The league is ten teams and the fixture list is built for ten. If a room ever
+// carries more seats than that, only the first ten get fixtures and the rest
+// stand in the table having played nothing — so trim here rather than render a
+// broken season. Humans always keep their seat; surplus bots are dropped last
+// first. Deterministic (joined_at then id), so every client trims identically.
+const MP_LEAGUE_SIZE = 10;
+function mpTrimToLeague(rows) {
+  if (rows.length <= MP_LEAGUE_SIZE) return rows;
+  const order = [...rows].sort((a, b) => {
+    const ta = Date.parse(a.joined_at || 0) || 0;
+    const tb = Date.parse(b.joined_at || 0) || 0;
+    return ta - tb || String(a.id).localeCompare(String(b.id));
+  });
+  const humans = order.filter((p) => !p.is_bot).slice(0, MP_LEAGUE_SIZE);
+  const bots = order.filter((p) => p.is_bot).slice(0, MP_LEAGUE_SIZE - humans.length);
+  const keep = new Set([...humans, ...bots].map((p) => p.id));
+  console.warn(`[mp] room has ${rows.length} seats, trimming to ${MP_LEAGUE_SIZE}`);
+  return rows.filter((p) => keep.has(p.id));
 }
 
 // Build a league team for each seat. Humans use their drafted XI; bot
@@ -276,6 +298,8 @@ let mpLeagueDone = false;
 // somebody hit Play Again and every client follows them back to the draft.
 let mpSeason = 0;
 let mpReplaying = false;
+// "draft" (lobby → draft-mp.html) or "auction" (auction.html → auction-room.html).
+let mpMode = "draft";
 
 async function mpStartSync(room) {
   mpRoom = room;
@@ -535,10 +559,15 @@ function mpTick() {
 }
 
 let mpDraftRedirecting = false;
+// Back to wherever this room's squads came from. An auction room re-enters the
+// live auction (lot 0, purses restored) — sending it to the draft board would
+// have handed everyone a drafting UI for a room with no draft.
 function mpGotoDraft() {
   if (mpDraftRedirecting) return;
   mpDraftRedirecting = true;
-  location.href = `draft-mp.html?room=${MP_ROOM}`;
+  location.href = mpMode === "auction"
+    ? `auction-room.html?room=${MP_ROOM}`
+    : `draft-mp.html?room=${MP_ROOM}`;
 }
 
 // ---------- play again, same room ----------
@@ -555,14 +584,22 @@ async function mpPlayAgain() {
   mpReplaying = true;
   mpRenderReplayGate();
   try {
+    if (mpMode === "auction") await mpResetAuction();
+
     await MP_SUPA
       .from("players")
-      .update({ xi: null, status: "waiting", sim_ready_step: -1 })
+      .update(mpMode === "auction"
+        ? { xi: [], status: "waiting", sim_ready_step: -1, purse: mpAuctionPurse() }
+        : { xi: null, status: "waiting", sim_ready_step: -1 })
       .eq("room_id", MP_ROOM);
 
     const { data, error } = await MP_SUPA
       .from("rooms")
-      .update({ season: mpSeason + 1, sim_round: -1, status: "drafting" })
+      .update({
+        season: mpSeason + 1,
+        sim_round: -1,
+        status: mpMode === "auction" ? "auction" : "drafting",
+      })
       .eq("id", MP_ROOM)
       .eq("season", mpSeason)
       .select("id");
@@ -576,6 +613,33 @@ async function mpPlayAgain() {
     mpRenderReplayGate();
     showToast("Could not restart — run mp_replay.sql on the database.");
   }
+}
+
+function mpAuctionPurse() {
+  return (window.AuctionData && window.AuctionData.PURSE) || 10000;
+}
+
+// Wind an auction room all the way back to lot 0: every signing voided, the
+// hammer reset, and the bot franchises removed so the next Proceed re-seats them
+// (they'd otherwise count against the ten league slots before anyone has bid).
+// A null ends_at is the auction's own "not started" state — the first client in
+// opens a fresh clock on it, so the auction simply resumes from the top.
+async function mpResetAuction() {
+  await MP_SUPA.from("players").delete().eq("room_id", MP_ROOM).eq("is_bot", true);
+  await MP_SUPA.from("auction_buys").delete().eq("room_id", MP_ROOM);
+
+  const base = {
+    room_id: MP_ROOM,
+    lot_index: 0, price: null, high_bidder: null, ends_at: null,
+    status: "live", skip_votes: [],
+  };
+  // paused/remaining_ms arrive with mp_auction_pause.sql. If that migration
+  // hasn't been run, PostgREST rejects the whole write for the unknown columns —
+  // so retry without them rather than leave Play Again permanently broken.
+  const { error } = await MP_SUPA
+    .from("auction_state")
+    .upsert({ ...base, paused: false, remaining_ms: null });
+  if (error) await MP_SUPA.from("auction_state").upsert(base);
 }
 
 // Render the single control for the current step. Only managers who are in the

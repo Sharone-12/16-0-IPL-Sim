@@ -229,6 +229,9 @@
     </div>
 
     <script src="report.js"></script>
+    <!-- Pure data module, no side effects. Loaded so "Play Again" in an auction
+         room can reset the auction from the one authoritative PURSE constant. -->
+    <script src="auction_data.js"></script>
     <script src="sim-mp.js"></script>
     <!-- Vercel Web Analytics (static-site script; enable Analytics in the Vercel dashboard) -->
     <script defer src="/_vercel/insights/script.js"></script>

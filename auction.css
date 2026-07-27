@@ -224,6 +224,28 @@ a { color: inherit; }
 .stamp.sold { color: var(--win); border: 2px solid var(--win); }
 .stamp.unsold { color: var(--danger); border: 2px solid var(--danger); }
 
+/* ---------- paused ---------- */
+/* Author `display` beats the [hidden] attribute, so every rule that sets
+   display on a hideable element needs this guard (see .sale-pop). */
+.pause-banner[hidden] { display: none; }
+.pause-banner {
+  display: flex; align-items: center; gap: 0.6rem;
+  padding: 0.7rem 1rem; margin-bottom: 1rem;
+  border: 1px solid var(--accent); border-radius: 0.7rem;
+  background: var(--accent-dim); color: var(--accent);
+  font-size: 0.68rem; letter-spacing: 0.14em; text-transform: uppercase; font-weight: 700;
+}
+.pause-dot {
+  width: 0.5rem; height: 0.5rem; border-radius: 50%; background: var(--accent);
+  animation: pauseBlink 1.4s ease-in-out infinite;
+}
+@keyframes pauseBlink { 50% { opacity: 0.25; } }
+
+.timer-ring.is-paused { border-color: var(--accent); box-shadow: none; animation: none; }
+.timer-ring.is-paused .timer-num { color: var(--accent); }
+.ghost-btn.is-active { border-color: var(--accent); color: var(--accent); }
+@media (prefers-reduced-motion: reduce) { .pause-dot { animation: none; } }
+
 /* ---------- hammer-fall announcement ---------- */
 /* `display: grid` below beats the browser default for [hidden] (display:none),
    so without this rule the overlay is on screen from page load — dimming the

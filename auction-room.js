@@ -71,6 +71,7 @@ function askingPrice() {
 function iCanBid() {
   const lot = currentLot();
   if (!lot || !S.auction || S.auction.status !== "live") return false;
+  if (S.auction.paused) return false;
   if (S.auction.high_bidder === PID) return false; // already leading
   return A.canBidOn(managerView({ id: PID }), lot, askingPrice());
 }
@@ -225,7 +226,47 @@ async function tick() {
   try { await tickOnce(); } finally { ticking = false; }
 }
 
+function isPaused() { return !!(S.auction && S.auction.paused); }
+function isHost() { return !!(S.room && S.room.host_id === PID); }
+
+// ---------- host pause ----------
+// Banks the time LEFT on the current lot and clears the deadline. Without that
+// the absolute deadline would quietly expire during the pause and the lot would
+// hammer the instant play resumed.
+async function togglePause() {
+  if (!isHost() || !S.auction) return;
+  const btn = $("pauseBtn");
+  btn.disabled = true;
+  try {
+    if (isPaused()) {
+      const banked = Number(S.auction.remaining_ms);
+      const patch = { paused: false, remaining_ms: null };
+      // A lot paused before its clock ever opened just starts fresh on resume.
+      if (Number.isFinite(banked) && banked > 0) {
+        patch.ends_at = new Date(Date.now() + banked).toISOString();
+      }
+      const { error } = await SUPA.from("auction_state").update(patch).eq("room_id", ROOM);
+      if (error) throw error;
+    } else {
+      const left = msLeft();
+      const { error } = await SUPA.from("auction_state").update({
+        paused: true,
+        remaining_ms: Number.isFinite(left) ? Math.max(0, left) : null,
+        ends_at: null,
+      }).eq("room_id", ROOM);
+      if (error) throw error;
+    }
+  } catch (err) {
+    console.error("[auction] pause failed:", err);
+    toast("Pause failed — has mp_auction_pause.sql been run?", "error");
+  }
+  btn.disabled = false;
+  refresh();
+}
+
 async function tickOnce() {
+  // Paused: no clock opens, nothing resolves, nothing auto-passes.
+  if (isPaused()) return;
 
   const lot = currentLot();
   if (!lot) { finishAuction(); return; }
@@ -349,6 +390,7 @@ async function placeBid() {
 
 // ---------- move to next set ----------
 async function voteSkip() {
+  if (isPaused()) return;
   const idx = S.auction.lot_index;
   const votes = new Set(S.auction.skip_votes || []);
   if (votes.has(PID)) return;
@@ -527,6 +569,7 @@ function render() {
   renderSquad();
   renderManagers();
   renderFeed();
+  renderPause();
   renderTimer();
 
   const done = S.auction.status === "done" || !currentLot();
@@ -596,7 +639,8 @@ function renderBid() {
   const leading = leader === PID;
   btn.classList.toggle("is-leading", leading);
 
-  if (leading) { btn.disabled = true; btn.textContent = "You hold the bid"; }
+  if (isPaused()) { btn.disabled = true; btn.textContent = "Paused"; }
+  else if (leading) { btn.disabled = true; btn.textContent = "You hold the bid"; }
   else if (iCanBid()) { btn.disabled = false; btn.textContent = `Bid ${money(ask)}`; }
   else { btn.disabled = true; btn.textContent = `Bid ${money(ask)}`; }
 
@@ -636,10 +680,33 @@ function renderBid() {
   }
 }
 
+function renderPause() {
+  const paused = isPaused();
+  const banner = $("pauseBanner");
+  banner.hidden = !paused;
+  if (paused) {
+    $("pauseText").textContent = isHost()
+      ? "You have the auction paused"
+      : "Auction paused by the host";
+  }
+  const btn = $("pauseBtn");
+  btn.hidden = !isHost();
+  if (isHost()) {
+    btn.textContent = paused ? "Resume Auction" : "Pause Auction";
+    btn.classList.toggle("is-active", paused);
+  }
+}
+
 function renderTimer() {
-  const ms = msLeft();
   const ring = $("timerRing");
   const num = $("timerNum");
+  if (isPaused()) {
+    const banked = Number(S.auction.remaining_ms);
+    num.textContent = Number.isFinite(banked) ? Math.max(0, Math.ceil(banked / 1000)) : "II";
+    ring.className = "timer-ring is-paused";
+    return;
+  }
+  const ms = msLeft();
   if (ms == null || !currentLot()) { num.textContent = "—"; ring.className = "timer-ring"; return; }
   const secs = Math.max(0, Math.ceil(ms / 1000));
   num.textContent = secs;
@@ -714,6 +781,7 @@ function renderFeed() {
 // ---------- wiring ----------
 $("bidBtn").addEventListener("click", placeBid);
 $("skipBtn").addEventListener("click", voteSkip);
+$("pauseBtn").addEventListener("click", togglePause);
 $("proceedBtn").addEventListener("click", proceed);
 // Space bar bids — auctions are fast and the mouse is slow.
 document.addEventListener("keydown", (e) => {

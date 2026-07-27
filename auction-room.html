@@ -19,6 +19,12 @@
   <!-- set progress -->
   <div class="set-bar" id="setBar"></div>
 
+  <!-- shown to everyone while the host has the auction paused -->
+  <div class="pause-banner" id="pauseBanner" hidden>
+    <span class="pause-dot"></span>
+    <span id="pauseText">Auction paused by the host</span>
+  </div>
+
   <main class="ar-layout">
 
     <!-- ============ the lot under the hammer ============ -->
@@ -50,6 +56,7 @@
 
         <div class="stage-actions">
           <button class="ghost-btn" type="button" id="skipBtn" hidden>Move to Next Set</button>
+          <button class="ghost-btn" type="button" id="pauseBtn" hidden>Pause Auction</button>
         </div>
       </div>
 

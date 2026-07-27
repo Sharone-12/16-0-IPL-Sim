@@ -694,11 +694,14 @@ function renderSetBar() {
   const order = [];
   S.lots.forEach((l) => { if (!order.includes(l.setId)) order.push(l.setId); });
   const pos = order.indexOf(currentSet);
-  $("setBar").innerHTML = order.map((id, i) =>
-    `<span class="set-seg ${i < pos ? "is-done" : i === pos ? "is-live" : ""}"></span>`
-  ).join("");
+  // Thirteen sets won't fit as labels, so each segment names itself on hover.
+  $("setBar").innerHTML = order.map((id, i) => {
+    const n = S.lots.filter((l) => l.setId === id).length;
+    return `<span class="set-seg ${i < pos ? "is-done" : i === pos ? "is-live" : ""}" title="${esc(id)} · ${n} lots"></span>`;
+  }).join("");
 }
 
+let lastLotIndex = -1;
 function renderLot() {
   const lot = currentLot();
   const card = $("lotCard");
@@ -710,17 +713,22 @@ function renderLot() {
     return;
   }
   const badge = roleBadge(lot);
-  card.className = "lot-card";
+  // Only animate when the hammer actually moves on — renderLot runs on every
+  // poll and every bid, and re-triggering the entrance each time would strobe.
+  const fresh = S.auction.lot_index !== lastLotIndex;
+  lastLotIndex = S.auction.lot_index;
+  card.className = "lot-card" + (fresh ? " is-new" : "");
   card.innerHTML = `
+    <div class="lot-watermark ${ovrClass(lot.ovr)}">${lot.ovr}</div>
     <div class="lot-main">
       <h2 class="lot-name">${esc(lot.displayName)}</h2>
-      <div class="lot-sub">${esc(lot.fr)} ${esc(lot.season)} &middot; base ${money(lot.basePrice)}</div>
+      <div class="lot-sub">${esc(lot.fr)} ${esc(lot.season)} &middot; base <b>${money(lot.basePrice)}</b></div>
       <div class="lot-badges">
         <span class="badge ${badge.cls}">${badge.label}</span>
         ${lot.isWk ? '<span class="badge wk">Wicketkeeper</span>' : ""}
         ${lot.isOverseas ? '<span class="badge overseas">Overseas</span>' : ""}
-        <span class="badge">BAT ${lot.bat}</span>
-        <span class="badge">BOWL ${lot.bowl}</span>
+        <span class="badge stat">BAT ${lot.bat}</span>
+        <span class="badge stat">BOWL ${lot.bowl}</span>
       </div>
     </div>
     <div class="lot-ovr ${ovrClass(lot.ovr)}">${lot.ovr}</div>`;
@@ -806,6 +814,12 @@ function renderPause() {
   }
 }
 
+// The ring sweeps from full to empty. Its total is captured the first time we
+// see a given deadline, because the clock length varies — an opening bid gets
+// longer than a bump, and an auto-pass shorter than either.
+let ringDeadline = null;
+let ringTotal = 1;
+
 function renderTimer() {
   const ring = $("timerRing");
   const num = $("timerNum");
@@ -813,13 +827,30 @@ function renderTimer() {
     const banked = Number(S.auction.remaining_ms);
     num.textContent = Number.isFinite(banked) ? Math.max(0, Math.ceil(banked / 1000)) : "II";
     ring.className = "timer-ring is-paused";
+    ringDeadline = null;
     return;
   }
   const ms = msLeft();
-  if (ms == null || !currentLot()) { num.textContent = "—"; ring.className = "timer-ring"; return; }
+  if (ms == null || !currentLot()) {
+    num.textContent = "—";
+    ring.className = "timer-ring";
+    ring.style.setProperty("--p", 0);
+    ringDeadline = null;
+    return;
+  }
+  // A fresh deadline snaps the ring back to full without animating, so a bid
+  // that resets the clock doesn't look like the timer running backwards.
+  const reset = S.auction.ends_at !== ringDeadline;
+  if (reset) {
+    ringDeadline = S.auction.ends_at;
+    ringTotal = Math.max(1, ms);
+  }
   const secs = Math.max(0, Math.ceil(ms / 1000));
   num.textContent = secs;
-  ring.className = "timer-ring" + (secs <= 3 ? " is-crit" : secs <= 5 ? " is-warn" : "");
+  ring.className = "timer-ring" +
+    (secs <= 3 ? " is-crit" : secs <= 5 ? " is-warn" : "") +
+    (reset ? " is-reset" : "");
+  ring.style.setProperty("--p", Math.max(0, Math.min(100, (ms / ringTotal) * 100)).toFixed(1));
 }
 
 function nameOf(id) {
@@ -925,15 +956,18 @@ function renderSquad() {
   // drop would never land — the 2.5s poll alone would make reordering a coin flip.
   if (dragFrom !== null) return;
 
+  // Slot numbers are tinted by phase of the innings: top order, middle, bowling.
+  const phase = (i) => (i < 3 ? "ph-top" : i < 7 ? "ph-middle" : "ph-bowl");
+
   $("squadList").innerHTML = SLOT_LABELS.map((label, i) => {
     const p = byName[S.order[i]];
     if (!p) {
-      return `<li data-slot="${i}"><span class="slot-num">${i + 1}</span>
+      return `<li data-slot="${i}"><span class="slot-num ${phase(i)}">${i + 1}</span>
         <span class="slot-body"><span class="slot-role">${label}</span>
         <span class="slot-player" style="color:#5f5f5f">Empty</span></span></li>`;
     }
     const price = prices[p.name];
-    return `<li class="is-filled" data-slot="${i}" draggable="true"><span class="slot-num">${i + 1}</span>
+    return `<li class="is-filled" data-slot="${i}" draggable="true"><span class="slot-num ${phase(i)}">${i + 1}</span>
       <span class="slot-body">
         <span class="slot-role">${label}</span>
         <span class="slot-player">${esc(p.displayName)}${p.isWk ? " (wk)" : ""}</span>
@@ -1021,25 +1055,37 @@ function renderManagers() {
     const sq = squadOf(m.id);
     const full = sq.length >= A.XI_SIZE;
     const live = lot && A.canBidOn(managerView(m), lot, askingPrice());
+    const left = purseOf(m.id);
+    const pct = Math.max(0, Math.min(100, (left / A.PURSE) * 100));
     return `<li class="${m.id === PID ? "is-you " : ""}${full ? "is-full" : ""}">
       <span class="m-name">${esc(m.username || "Manager")}${m.id === PID ? " (you)" : ""}</span>
       <span class="m-squad">${sq.length}/11</span>
-      ${live ? '<span class="m-bidding">in</span>' : ""}
-      <span class="m-purse">${money(purseOf(m.id))}</span>
+      <span class="m-purse">${money(left)}</span>
+      <span class="m-bar"><span style="width:${pct.toFixed(1)}%"></span></span>
+      ${live ? '<span class="m-bidding">still bidding</span>' : ""}
     </li>`;
   }).join("");
 }
 
+// Only the genuinely new row slides in. The feed is rebuilt from innerHTML on
+// every 2.5s poll, so animating every row would make the whole list twitch on a
+// loop for no reason.
+let lastFeedTop = null;
 function renderFeed() {
   const recent = S.buys.slice().sort((a, b) => b.lot_index - a.lot_index).slice(0, 12);
-  $("soldFeed").innerHTML = recent.map((b) => {
+  const topIdx = recent.length ? recent[0].lot_index : null;
+  const fresh = topIdx !== null && topIdx !== lastFeedTop && lastFeedTop !== null;
+  lastFeedTop = topIdx;
+
+  $("soldFeed").innerHTML = recent.map((b, i) => {
+    const anim = i === 0 && fresh ? " is-new" : "";
     if (!b.buyer) {
       const lot = S.lots[b.lot_index];
-      return `<div class="sold-row is-unsold"><span class="s-name">${esc(lot ? lot.displayName : "Lot")}</span>
+      return `<div class="sold-row is-unsold${anim}"><span class="s-name">${esc(lot ? lot.displayName : "Lot")}</span>
         <span class="s-buyer">unsold</span></div>`;
     }
     const p = b.player || {};
-    return `<div class="sold-row"><span class="s-name">${esc(p.displayName || p.name)}</span>
+    return `<div class="sold-row${anim}"><span class="s-name">${esc(p.displayName || p.name)}</span>
       <span class="s-buyer">${esc(nameOf(b.buyer))}</span>
       <span class="s-price">${money(b.price)}</span></div>`;
   }).join("");

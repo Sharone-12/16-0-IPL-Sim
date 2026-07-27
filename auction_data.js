@@ -93,6 +93,9 @@
     { id: "bowler", perTeam: 6 },
   ];
   const MARQUEE_PER_TEAM = 2;
+  // Smallest room the catalogue is ever sized for. A 2-player auction gets the
+  // same breadth of players as a 6-player one; only the scarcity differs.
+  const DEFAULT_MIN_DEPTH = 6;
 
   // The player's role for quota purposes — independent of rating.
   function roleFor(p) {
@@ -195,6 +198,14 @@
     const eraFrom = Number(opts && opts.eraFrom) || 2008;
     const eraTo = Number(opts && opts.eraTo) || 2026;
 
+    // DEPTH IS NOT THE SAME AS SCARCITY. Quotas were originally scaled by team
+    // count alone, which meant a two-manager room got 45 lots and a four-player
+    // Marquee — no Dhoni, no Gill, no Raina. Those managers only need 22 players
+    // between them, so a bigger catalogue costs them nothing but choice. Sizing
+    // therefore uses a FLOOR: small rooms get the same breadth as a mid-size
+    // one, while scarcity still comes from real demand (11 x teams).
+    const depth = Math.max(teams, Number(opts && opts.minDepth) || DEFAULT_MIN_DEPTH);
+
     const unique = bestSeasonPerPlayer(players, eraFrom, eraTo);
 
     // 1) Marquee: the very best overall, capped so it stays a showcase. Anyone
@@ -202,7 +213,7 @@
     //    their own role set, exactly as the real auction does.
     const byOvr = [...unique].sort((a, b) => b.ovr - a.ovr || a.name.localeCompare(b.name));
     const marqueeCount = Math.min(
-      quotaFor(MARQUEE_PER_TEAM, teams),
+      quotaFor(MARQUEE_PER_TEAM, depth),
       byOvr.filter((p) => p.ovr >= MARQUEE_MIN).length
     );
     const marquee = new Set(byOvr.slice(0, marqueeCount).map((p) => p.name));
@@ -216,7 +227,7 @@
     for (const role of ROLE_QUOTAS) {
       const pool = byOvr.filter((p) => !marquee.has(p.name) && roleFor(p) === role.id);
       roleAvailable[role.id] = pool.length;
-      const take = pool.slice(0, quotaFor(role.perTeam, teams));
+      const take = pool.slice(0, quotaFor(role.perTeam, depth));
       selected.push(...take);
       // Split this role's chosen players at their own median (they are already
       // sorted best-first), so both tier sets are populated and the role's lots
@@ -514,6 +525,7 @@
     PURSE,
     MIN_BASE,
     MAX_OVERSEAS,
+    DEFAULT_MIN_DEPTH,
     SETS,
     basePriceFor,
     bidIncrement,

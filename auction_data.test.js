@@ -99,6 +99,26 @@ for (const teams of [2, 4, 6, 8, 10]) {
   );
 }
 ok("pool always supplies enough Indians for the overseas cap", overseasSafe);
+
+// ---------- 3c. depth floor ----------
+// Quotas scaled by team count alone gave a 2-manager room 45 lots and a
+// four-player Marquee — no Dhoni, no Gill, no Raina. Depth is now floored so a
+// small room browses the same catalogue as a mid-size one.
+const small = A.buildAuctionPool(rows, { teams: 2, eraFrom: 2008, eraTo: 2026 });
+const mid = A.buildAuctionPool(rows, { teams: 6, eraFrom: 2008, eraTo: 2026 });
+ok("a 2-manager room gets the same breadth as a 6-manager one",
+   small.lots.length === mid.lots.length, `${small.lots.length} vs ${mid.lots.length}`);
+ok("small-room Marquee is a real set, not a handful",
+   small.lots.filter((l) => l.setId === "marquee").length >= 10);
+ok("the household names reach a 2-manager auction", (() => {
+  const inPool = new Set(small.lots.map((l) => l.name));
+  const missing = ["MS Dhoni", "Shubman Gill", "SK Raina", "CH Gayle", "JJ Bumrah", "RG Sharma"]
+    .filter((n) => rows.some((r) => r.name === n) && !inPool.has(n));
+  if (missing.length) console.log("      missing: " + missing.join(", "));
+  return missing.length === 0;
+})());
+ok("depth floor never breaks legality at any room size", [2, 3, 4, 5].every(
+  (t) => A.buildAuctionPool(rows, { teams: t, eraFrom: 2008, eraTo: 2026 }).shortfalls.length === 0));
 ok("checkSupply now catches an all-overseas pool", (() => {
   const allForeign = uniq.map((p) => Object.assign({}, p, { isOverseas: true }));
   return A.checkSupply(allForeign, 4).some((s) => s.what.includes("indian"));

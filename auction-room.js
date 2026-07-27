@@ -719,7 +719,6 @@ function renderLot() {
   lastLotIndex = S.auction.lot_index;
   card.className = "lot-card" + (fresh ? " is-new" : "");
   card.innerHTML = `
-    <div class="lot-watermark ${ovrClass(lot.ovr)}">${lot.ovr}</div>
     <div class="lot-main">
       <h2 class="lot-name">${esc(lot.displayName)}</h2>
       <div class="lot-sub">${esc(lot.fr)} ${esc(lot.season)} &middot; base <b>${money(lot.basePrice)}</b></div>

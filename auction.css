@@ -1,48 +1,43 @@
 /* ===================== 16-0 — Auction =====================
-   "Auction house under the lights." Keeps the base game's bones — near-black
-   surfaces, hairline borders, Anton display face, OVR tier colours — but stages
-   them: a warm spotlight behind the room, gold as a gradient rather than a flat
-   swatch, and the lot under the hammer treated as the hero object on screen.
+   Same visual language as draft.css / simulation.css: flat near-black panels,
+   hairline borders, Anton display face, OVR tier colours, role badges. Amber is
+   the accent so the mode reads as its own thing.
 
-   Scoped to the auction (auction.html / auction-room.html). The draft and
-   simulation stylesheets are deliberately untouched. */
+   Deliberately undecorated — no glows, no gradient fills, no blur, no pulsing.
+   Colour and type carry the hierarchy; motion is reserved for things that
+   actually changed (a new lot, a new sale).
+
+   Scoped to the auction. The draft and simulation stylesheets are untouched. */
 
 :root {
-  --bg: #08070a;
-  --panel: #131218;
-  --panel-2: #1b1a22;
-  --panel-3: #22212b;
-  --line: rgba(255, 255, 255, 0.09);
-  --line-2: rgba(255, 255, 255, 0.16);
-  --text: #f6f4f1;
-  --muted: #8d8a96;
-  --dim: #6a6875;
+  --bg: #0a0a0a;
+  --panel: #141414;
+  --panel-2: #1c1c1c;
+  --panel-3: #232323;
+  --line: rgba(255, 255, 255, 0.12);
+  --line-2: rgba(255, 255, 255, 0.28);
+  --text: #ffffff;
+  --muted: #8a8a8a;
+  --dim: #6a6a6a;
 
-  /* Gold is the auction's identity — used as a gradient for anything that
-     should feel struck rather than printed. */
-  --gold: #ffc247;
-  --gold-2: #ff8f1f;
-  --gold-grad: linear-gradient(135deg, #ffd875 0%, #ffb020 48%, #ff8f1f 100%);
-  --accent: #ffb020;           /* kept: existing rules and JS reference it */
-  --accent-dim: rgba(255, 176, 32, 0.15);
-  --accent-line: rgba(255, 176, 32, 0.34);
+  --accent: #ffb020;
+  --accent-dim: rgba(255, 176, 32, 0.14);
+  --accent-line: rgba(255, 176, 32, 0.42);
 
-  --live: #21e6a0;             /* you are leading / still in */
-  --win: #21e6a0;
-  --danger: #ff5470;
-  --overseas: #c9a2ff;
+  --live: #00ff87;
+  --win: #00ff87;
+  --danger: #ff5e5e;
+  --overseas: #cbb0ff;
 
-  --r-lg: 1.1rem;
-  --r-md: 0.75rem;
+  --r-lg: 1rem;
+  --r-md: 0.7rem;
   --r-sm: 0.5rem;
-  --shadow: 0 18px 44px rgba(0, 0, 0, 0.55);
 }
 
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 html, body { margin: 0; }
 
 body {
-  position: relative;
   min-height: 100svh;
   background: var(--bg);
   color: var(--text);
@@ -51,18 +46,6 @@ body {
   flex-direction: column;
   padding: calc(env(safe-area-inset-top) + 0.9rem) 1rem calc(env(safe-area-inset-bottom) + 1.5rem);
 }
-
-/* The room lighting: a warm key light overhead, a cold fill low and left, and a
-   vignette to stop the corners floating. Fixed, so it never scrolls away. */
-body::before {
-  content: "";
-  position: fixed; inset: 0; z-index: -1; pointer-events: none;
-  background:
-    radial-gradient(120% 70% at 50% -18%, rgba(255, 176, 32, 0.15), transparent 62%),
-    radial-gradient(90% 60% at 8% 108%, rgba(88, 92, 255, 0.11), transparent 60%),
-    radial-gradient(140% 100% at 50% 50%, transparent 42%, rgba(0, 0, 0, 0.62) 100%);
-}
-
 a { color: inherit; }
 
 /* ---------- header ---------- */
@@ -72,44 +55,27 @@ a { color: inherit; }
 }
 .back-link {
   font-size: 0.58rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted);
-  text-decoration: none; border: 1px solid var(--line); border-radius: 999px;
-  padding: 0.45rem 0.85rem; background: rgba(255, 255, 255, 0.02);
-  transition: color 160ms ease, border-color 160ms ease, background 160ms ease;
+  text-decoration: none; border: 1px solid var(--line); border-radius: 999px; padding: 0.45rem 0.85rem;
+  transition: color 160ms ease, border-color 160ms ease;
 }
-.back-link:hover { color: var(--text); border-color: var(--line-2); background: rgba(255, 255, 255, 0.05); }
+.back-link:hover { color: var(--text); border-color: var(--line-2); }
 
-.wordmark {
-  font-family: "Anton", Impact, sans-serif; font-size: 1.6rem; letter-spacing: -0.02em;
-  background: var(--gold-grad); -webkit-background-clip: text; background-clip: text;
-  -webkit-text-fill-color: transparent; color: var(--gold);
-}
+.wordmark { font-family: "Anton", Impact, sans-serif; font-size: 1.5rem; letter-spacing: -0.02em; }
 
 .phase-pill {
-  display: inline-flex; align-items: center; gap: 0.4rem;
   font-size: 0.54rem; letter-spacing: 0.16em; text-transform: uppercase; font-weight: 700;
-  color: var(--gold); border: 1px solid var(--accent-line); background: var(--accent-dim);
+  color: var(--accent); border: 1px solid var(--accent-line); background: var(--accent-dim);
   border-radius: 999px; padding: 0.42rem 0.75rem;
 }
-.phase-pill::before {
-  content: ""; width: 0.36rem; height: 0.36rem; border-radius: 50%;
-  background: var(--gold); box-shadow: 0 0 8px var(--gold);
-  animation: livePulse 2s ease-in-out infinite;
-}
-@keyframes livePulse { 50% { opacity: 0.3; } }
 
 /* ---------- set progress ---------- */
-.set-bar { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 0.95rem; }
+.set-bar { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 0.95rem; }
 .set-seg {
-  flex: 1 1 auto; min-width: 24px; height: 6px; border-radius: 999px;
-  background: rgba(255, 255, 255, 0.07);
-  transition: background 260ms ease, box-shadow 260ms ease, transform 260ms ease;
+  flex: 1 1 auto; min-width: 24px; height: 5px; border-radius: 999px;
+  background: rgba(255, 255, 255, 0.09);
 }
-.set-seg.is-done { background: rgba(255, 176, 32, 0.38); }
-.set-seg.is-live {
-  background: var(--gold-grad);
-  box-shadow: 0 0 14px rgba(255, 176, 32, 0.5);
-  transform: scaleY(1.5);
-}
+.set-seg.is-done { background: rgba(255, 176, 32, 0.4); }
+.set-seg.is-live { background: var(--accent); }
 
 /* ---------- layout ---------- */
 .ar-layout {
@@ -124,87 +90,49 @@ a { color: inherit; }
 @media (max-width: 900px) { .ar-layout { grid-template-columns: 1fr; } }
 
 .ar-stage, .ar-side {
-  position: relative;
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.045), rgba(255, 255, 255, 0) 34%),
-    var(--panel);
-  border: 1px solid var(--line);
-  border-radius: var(--r-lg);
-  padding: 1.15rem;
-  box-shadow: var(--shadow);
+  background: var(--panel); border: 1px solid var(--line);
+  border-radius: var(--r-lg); padding: 1.15rem;
 }
 
 /* ---------- the lot under the hammer ---------- */
 .lot-meta { display: flex; justify-content: space-between; align-items: baseline; gap: 0.6rem; margin-bottom: 0.65rem; }
-.lot-set {
-  font-size: 0.6rem; letter-spacing: 0.2em; text-transform: uppercase;
-  color: var(--gold); font-weight: 700;
-}
+.lot-set { font-size: 0.6rem; letter-spacing: 0.2em; text-transform: uppercase; color: var(--accent); font-weight: 700; }
 .lot-count { font-size: 0.58rem; letter-spacing: 0.1em; color: var(--dim); text-align: right; }
 
 .lot-card {
-  position: relative; overflow: hidden;
-  border: 1px solid var(--line); border-radius: var(--r-md);
-  background:
-    radial-gradient(120% 130% at 88% 8%, rgba(255, 176, 32, 0.13), transparent 55%),
-    linear-gradient(160deg, var(--panel-3) 0%, var(--panel-2) 58%, #17161d 100%);
-  padding: 1.25rem 1.3rem; min-height: 158px;
+  border: 1px solid var(--line); border-radius: var(--r-md); background: var(--panel-2);
+  padding: 1.25rem 1.3rem; min-height: 152px;
   display: flex; align-items: center; gap: 1.1rem;
 }
-/* Struck gold edge along the top of the hero card. */
-.lot-card::before {
-  content: ""; position: absolute; inset: 0 0 auto 0; height: 2px;
-  background: var(--gold-grad); opacity: 0.9;
-}
-.lot-card.is-new { animation: lotIn 340ms cubic-bezier(0.2, 0.9, 0.3, 1); }
-@keyframes lotIn {
-  from { opacity: 0; transform: translateY(10px) scale(0.985); }
-  to   { opacity: 1; transform: none; }
-}
-
-/* The rating ghosted huge as background texture. It sits LEFT: on the right it
-   lands directly behind the real OVR badge and the two numbers overlap, which
-   reads as a rendering fault rather than a flourish. */
-.lot-watermark {
-  position: absolute; left: -1.2rem; bottom: -3.4rem; margin: 0; z-index: 0;
-  font-family: "Anton", Impact, sans-serif; font-size: 10.5rem; line-height: 1;
-  color: currentColor; opacity: 0.05; pointer-events: none; user-select: none;
-}
+.lot-card.is-new { animation: lotIn 200ms ease; }
+@keyframes lotIn { from { opacity: 0; } to { opacity: 1; } }
 
 .lot-loading, .lot-empty { color: var(--muted); font-size: 0.85rem; margin: auto; }
-.lot-main { position: relative; z-index: 1; flex: 1; min-width: 0; }
+.lot-main { flex: 1; min-width: 0; }
 .lot-name {
-  font-family: "Anton", Impact, sans-serif; font-size: 2.15rem; line-height: 1.04;
+  font-family: "Anton", Impact, sans-serif; font-size: 2.1rem; line-height: 1.04;
   margin: 0 0 0.3rem; letter-spacing: 0.01em;
-  text-shadow: 0 2px 18px rgba(0, 0, 0, 0.5);
 }
-.lot-sub {
-  font-size: 0.66rem; letter-spacing: 0.13em; text-transform: uppercase;
-  color: var(--muted); font-weight: 700;
-}
-.lot-sub b { color: var(--gold); font-weight: 700; }
+.lot-sub { font-size: 0.66rem; letter-spacing: 0.13em; text-transform: uppercase; color: var(--muted); font-weight: 700; }
+.lot-sub b { color: var(--accent); font-weight: 700; }
 .lot-badges { display: flex; flex-wrap: wrap; gap: 0.36rem; margin-top: 0.8rem; }
 
 .badge {
   font-size: 0.53rem; letter-spacing: 0.12em; text-transform: uppercase; font-weight: 700;
   border-radius: 999px; padding: 0.28rem 0.62rem;
-  border: 1px solid var(--line-2); color: #cbc8d2; background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--line); color: #cfcfcf;
 }
-.badge.role-opener   { color: #ff9d78; border-color: rgba(255, 157, 120, 0.42); background: rgba(255, 157, 120, 0.08); }
-.badge.role-middle   { color: #7fe4a4; border-color: rgba(127, 228, 164, 0.42); background: rgba(127, 228, 164, 0.08); }
-.badge.role-finisher { color: #f5c451; border-color: rgba(245, 196, 81, 0.42);  background: rgba(245, 196, 81, 0.08); }
-.badge.role-lower    { color: #8fb0ff; border-color: rgba(143, 176, 255, 0.42); background: rgba(143, 176, 255, 0.08); }
-.badge.overseas      { color: var(--overseas); border-color: rgba(201, 162, 255, 0.42); background: rgba(201, 162, 255, 0.08); }
-.badge.wk            { color: var(--gold); border-color: var(--accent-line); background: var(--accent-dim); }
-.badge.stat { font-family: "Anton", Impact, sans-serif; letter-spacing: 0.08em; font-size: 0.6rem; }
+.badge.role-opener   { color: #ff8f6b; border-color: rgba(255, 143, 107, 0.4); }
+.badge.role-middle   { color: #7fe4a4; border-color: rgba(127, 228, 164, 0.4); }
+.badge.role-finisher { color: #f5c451; border-color: rgba(245, 196, 81, 0.4); }
+.badge.role-lower    { color: #7aa2ff; border-color: rgba(122, 162, 255, 0.4); }
+.badge.overseas      { color: var(--overseas); border-color: rgba(203, 176, 255, 0.4); }
+.badge.wk            { color: var(--accent); border-color: var(--accent-line); }
+.badge.stat          { color: var(--muted); }
 
-.lot-ovr {
-  position: relative; z-index: 1;
-  font-family: "Anton", Impact, sans-serif; font-size: 3.6rem; line-height: 1; flex-shrink: 0;
-  text-shadow: 0 0 34px currentColor;
-}
-.ovr-gold  { color: #ffcc5c; }
-.ovr-blue  { color: #7fb4ff; }
+.lot-ovr { font-family: "Anton", Impact, sans-serif; font-size: 3.4rem; line-height: 1; flex-shrink: 0; }
+.ovr-gold  { color: #f5c451; }
+.ovr-blue  { color: #6ea8ff; }
 .ovr-green { color: var(--live); }
 .ovr-white { color: #ffffff; }
 
@@ -213,22 +141,20 @@ a { color: inherit; }
 .bid-state {
   display: flex; align-items: center; justify-content: space-between; gap: 1rem;
   margin-bottom: 0.9rem; padding: 0.85rem 1rem;
-  border: 1px solid var(--line); border-radius: var(--r-md);
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.035), rgba(255, 255, 255, 0)), var(--panel-2);
+  border: 1px solid var(--line); border-radius: var(--r-md); background: var(--panel-2);
 }
 .bid-block { min-width: 0; }
 .bid-label { display: block; font-size: 0.55rem; letter-spacing: 0.2em; text-transform: uppercase; color: var(--dim); }
 .bid-price {
-  display: block; font-family: "Anton", Impact, sans-serif; font-size: 2.35rem; line-height: 1.12;
-  background: var(--gold-grad); -webkit-background-clip: text; background-clip: text;
-  -webkit-text-fill-color: transparent; color: var(--gold);
+  display: block; font-family: "Anton", Impact, sans-serif; font-size: 2.2rem; line-height: 1.12;
+  color: var(--accent);
 }
 .bid-holder { font-size: 0.7rem; color: var(--muted); }
 .bid-holder.is-you { color: var(--live); font-weight: 700; }
 
 /* Countdown ring. The sweep is a conic gradient driven by --p (0-100), set by
    renderTimer; the inner disc is a pseudo-element so the number sits on panel
-   colour rather than on the gradient.
+   colour rather than on the arc.
 
    Registering --p as a <number> is what lets it TRANSITION — a plain custom
    property jumps, and the clock only ticks ~8x a second, so the sweep would
@@ -240,81 +166,59 @@ a { color: inherit; }
 }
 .timer-ring {
   --p: 100;
-  --ring: rgba(255, 255, 255, 0.5);
-  position: relative; width: 78px; height: 78px; flex-shrink: 0; border-radius: 50%;
+  --ring: rgba(255, 255, 255, 0.45);
+  position: relative; width: 74px; height: 74px; flex-shrink: 0; border-radius: 50%;
   display: grid; place-items: center;
-  background: conic-gradient(var(--ring) calc(var(--p) * 1%), rgba(255, 255, 255, 0.07) 0);
-  transition: box-shadow 200ms ease, --p 150ms linear;
+  background: conic-gradient(var(--ring) calc(var(--p) * 1%), rgba(255, 255, 255, 0.08) 0);
+  transition: --p 150ms linear;
 }
-/* A new lot resets the clock to full; sweeping backwards to get there looks
-   like the timer running in reverse, so that one jump is instant. */
-.timer-ring.is-reset { transition: box-shadow 200ms ease; }
 .timer-ring::after {
   content: ""; position: absolute; inset: 5px; border-radius: 50%;
   background: var(--panel-2); border: 1px solid var(--line);
 }
 .timer-num {
   position: relative; z-index: 1;
-  font-family: "Anton", Impact, sans-serif; font-size: 2rem; line-height: 1;
-  transition: color 160ms ease;
+  font-family: "Anton", Impact, sans-serif; font-size: 1.9rem; line-height: 1;
 }
-.timer-ring.is-warn { --ring: var(--gold); box-shadow: 0 0 20px rgba(255, 176, 32, 0.28); }
-.timer-ring.is-warn .timer-num { color: var(--gold); }
-.timer-ring.is-crit {
-  --ring: var(--danger); box-shadow: 0 0 24px rgba(255, 84, 112, 0.4);
-  animation: pulse 0.7s ease-in-out infinite;
-}
+.timer-ring.is-warn { --ring: var(--accent); }
+.timer-ring.is-warn .timer-num { color: var(--accent); }
+.timer-ring.is-crit { --ring: var(--danger); }
 .timer-ring.is-crit .timer-num { color: var(--danger); }
-@keyframes pulse { 50% { transform: scale(1.06); } }
+/* A new lot resets the clock to full; sweeping backwards to get there looks
+   like the timer running in reverse, so that one jump is instant. */
+.timer-ring.is-reset { transition: none; }
 
 .bid-btn {
-  position: relative; overflow: hidden;
-  width: 100%; padding: 1.1rem; border-radius: 999px; border: none;
-  background: var(--gold-grad); color: #241704;
-  font-family: "Anton", Impact, sans-serif; font-size: 1.2rem;
-  letter-spacing: 0.08em; text-transform: uppercase; cursor: pointer;
-  box-shadow: 0 8px 26px rgba(255, 143, 31, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.45);
-  transition: transform 140ms ease, box-shadow 140ms ease, opacity 140ms ease;
+  width: 100%; padding: 1.05rem; border-radius: 999px;
+  border: 1px solid var(--accent); background: var(--accent); color: #221703;
+  font-family: "Anton", Impact, sans-serif; font-size: 1.15rem;
+  letter-spacing: 0.06em; text-transform: uppercase; cursor: pointer;
+  transition: transform 140ms ease, opacity 140ms ease;
 }
-.bid-btn:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 12px 32px rgba(255, 143, 31, 0.42), inset 0 1px 0 rgba(255, 255, 255, 0.5); }
-.bid-btn:active:not(:disabled) { transform: translateY(0); }
+.bid-btn:hover:not(:disabled) { transform: translateY(-2px); }
+.bid-btn:active:not(:disabled) { transform: none; }
 .bid-btn:disabled {
-  background: var(--panel-3); color: var(--dim);
-  box-shadow: none; cursor: not-allowed; transform: none;
-  border: 1px solid var(--line);
+  background: transparent; border-color: var(--line); color: var(--dim);
+  cursor: not-allowed; transform: none;
 }
-.bid-btn.is-leading {
-  background: rgba(33, 230, 160, 0.1); color: var(--live);
-  border: 1px solid var(--live); box-shadow: 0 0 22px rgba(33, 230, 160, 0.18);
-}
-/* A live, affordable lot quietly asks to be hit — quietly being the point, so
-   the glow breathes rather than flashes. */
-.bid-btn:not(:disabled):not(.is-leading) { animation: bidBreathe 2.8s ease-in-out infinite; }
-@keyframes bidBreathe {
-  50% { box-shadow: 0 8px 28px rgba(255, 143, 31, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.45); }
-}
+.bid-btn.is-leading { background: transparent; color: var(--live); border-color: var(--live); }
 
-.bid-note {
-  font-size: 0.66rem; color: var(--muted); text-align: center;
-  margin: 0.65rem 0 0; min-height: 1rem; line-height: 1.5;
-}
+.bid-note { font-size: 0.66rem; color: var(--muted); text-align: center; margin: 0.65rem 0 0; min-height: 1rem; line-height: 1.5; }
 
 .stage-actions { display: flex; gap: 0.55rem; margin-top: 0.85rem; }
 .ghost-btn {
   flex: 1; padding: 0.72rem; border-radius: 999px; border: 1px solid var(--line);
-  background: rgba(255, 255, 255, 0.02); color: #c6c3ce; font-size: 0.62rem; font-weight: 700;
+  background: transparent; color: #cfcfcf; font-size: 0.62rem; font-weight: 700;
   letter-spacing: 0.16em; text-transform: uppercase; cursor: pointer; font-family: inherit;
-  transition: border-color 150ms ease, color 150ms ease, background 150ms ease;
+  transition: border-color 150ms ease, color 150ms ease;
 }
-.ghost-btn:hover:not(:disabled) { border-color: var(--line-2); color: #fff; background: rgba(255, 255, 255, 0.06); }
+.ghost-btn:hover:not(:disabled) { border-color: #fff; color: #fff; }
 .ghost-btn:disabled { opacity: 0.4; cursor: default; }
-.ghost-btn.is-active { border-color: var(--accent-line); color: var(--gold); background: var(--accent-dim); }
-/* Restated for hover: `.ghost-btn:hover:not(:disabled)` outranks `.ghost-btn
-   .is-active`, so an active Pause button would otherwise drop its amber tint
-   the moment the pointer touched it. */
-.ghost-btn.is-active:hover:not(:disabled) {
-  border-color: var(--gold); color: var(--gold); background: rgba(255, 176, 32, 0.22);
-}
+.ghost-btn.is-active { border-color: var(--accent-line); color: var(--accent); }
+/* Restated for hover: `.ghost-btn:hover:not(:disabled)` outranks
+   `.ghost-btn.is-active`, so an active Pause button would otherwise drop its
+   amber the moment the pointer touched it. */
+.ghost-btn.is-active:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
 
 /* ---------- sold feed ---------- */
 .sold-feed {
@@ -328,28 +232,20 @@ a { color: inherit; }
   display: flex; align-items: center; gap: 0.6rem; font-size: 0.73rem;
   padding: 0.5rem 0.7rem; border-radius: var(--r-sm);
   background: var(--panel-2); border: 1px solid var(--line);
-  border-left: 3px solid var(--gold);
 }
-.sold-row.is-new { animation: feedIn 280ms ease; }
-@keyframes feedIn { from { opacity: 0; transform: translateX(-8px); } to { opacity: 1; transform: none; } }
-.sold-row.is-unsold { opacity: 0.5; border-left-color: var(--dim); }
+.sold-row.is-new { animation: feedIn 220ms ease; }
+@keyframes feedIn { from { opacity: 0; } to { opacity: 1; } }
+.sold-row.is-unsold { opacity: 0.5; }
 .sold-row .s-name { flex: 1; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.sold-row .s-buyer { color: var(--gold); font-size: 0.6rem; letter-spacing: 0.1em; text-transform: uppercase; }
+.sold-row .s-buyer { color: var(--accent); font-size: 0.6rem; letter-spacing: 0.1em; text-transform: uppercase; }
 .sold-row .s-price { font-family: "Anton", Impact, sans-serif; font-size: 0.95rem; }
 
 /* ---------- side: squad ---------- */
 .side-head { display: flex; align-items: baseline; justify-content: space-between; gap: 0.6rem; margin-bottom: 0.55rem; }
-.side-title {
-  font-family: "Anton", Impact, sans-serif; font-size: 1.1rem; margin: 0;
-  letter-spacing: 0.06em; text-transform: uppercase;
-}
+.side-title { font-family: "Anton", Impact, sans-serif; font-size: 1.1rem; margin: 0; letter-spacing: 0.04em; }
 .purse-pill { text-align: right; }
 .purse-label { display: block; font-size: 0.48rem; letter-spacing: 0.18em; text-transform: uppercase; color: var(--dim); }
-.purse-pill strong {
-  font-family: "Anton", Impact, sans-serif; font-size: 1.35rem;
-  background: var(--gold-grad); -webkit-background-clip: text; background-clip: text;
-  -webkit-text-fill-color: transparent; color: var(--gold);
-}
+.purse-pill strong { font-family: "Anton", Impact, sans-serif; font-size: 1.3rem; color: var(--accent); }
 
 .squad-meta {
   display: flex; justify-content: space-between; gap: 0.4rem; flex-wrap: wrap;
@@ -360,21 +256,14 @@ a { color: inherit; }
 .squad-list, .mgr-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.26rem; }
 .squad-list li {
   display: flex; align-items: center; gap: 0.5rem; padding: 0.42rem 0.55rem;
-  border: 1px dashed rgba(255, 255, 255, 0.12); border-radius: var(--r-sm); min-height: 2.35rem;
-  transition: border-color 150ms ease, background 150ms ease, transform 150ms ease;
+  border: 1px dashed rgba(255, 255, 255, 0.14); border-radius: var(--r-sm); min-height: 2.35rem;
+  transition: border-color 150ms ease;
 }
-.squad-list li.is-filled {
-  border-style: solid; border-color: var(--line);
-  background: linear-gradient(90deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.015));
-  cursor: grab;
-}
-.squad-list li.is-filled:hover { border-color: var(--line-2); transform: translateX(2px); }
+.squad-list li.is-filled { border-style: solid; background: var(--panel-2); cursor: grab; }
+.squad-list li.is-filled:hover { border-color: var(--line-2); }
 .squad-list li.is-filled:active { cursor: grabbing; }
 .squad-list li.is-dragging { opacity: 0.35; }
-.squad-list li.drag-over {
-  border-color: var(--gold); border-style: dashed;
-  background: var(--accent-dim); transform: none;
-}
+.squad-list li.drag-over { border-color: #fff; border-style: dashed; background: rgba(255, 255, 255, 0.1); }
 .squad-hint {
   margin: 0.55rem 0 0; font-size: 0.48rem; letter-spacing: 0.14em;
   text-transform: uppercase; color: var(--dim); text-align: center;
@@ -387,25 +276,25 @@ a { color: inherit; }
   border-radius: 50%; background: rgba(255, 255, 255, 0.07); color: var(--dim);
   font-size: 0.55rem; font-weight: 700;
 }
-.is-filled .slot-num.ph-top    { background: rgba(255, 176, 32, 0.2);  color: var(--gold); }
-.is-filled .slot-num.ph-middle { background: rgba(127, 228, 164, 0.18); color: #7fe4a4; }
-.is-filled .slot-num.ph-bowl   { background: rgba(143, 176, 255, 0.18); color: #8fb0ff; }
+.is-filled .slot-num.ph-top    { background: rgba(255, 176, 32, 0.18); color: var(--accent); }
+.is-filled .slot-num.ph-middle { background: rgba(127, 228, 164, 0.16); color: #7fe4a4; }
+.is-filled .slot-num.ph-bowl   { background: rgba(122, 162, 255, 0.16); color: #7aa2ff; }
 
 .slot-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 0.08rem; }
 .slot-role { font-size: 0.45rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--dim); }
 .slot-player { font-size: 0.72rem; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.slot-paid { font-size: 0.48rem; letter-spacing: 0.08em; color: var(--gold); font-weight: 700; }
-.slot-ovr { font-family: "Anton", Impact, sans-serif; font-size: 1.08rem; flex-shrink: 0; }
+.slot-paid { font-size: 0.48rem; letter-spacing: 0.08em; color: var(--accent); font-weight: 700; }
+.slot-ovr { font-family: "Anton", Impact, sans-serif; font-size: 1.05rem; flex-shrink: 0; }
 
 /* ---------- side: managers ---------- */
-.mgr-list { gap: 0.3rem; }
+.mgr-list { gap: 0.28rem; }
 .mgr-list li {
   display: grid; grid-template-columns: 1fr auto auto; align-items: center;
   column-gap: 0.55rem; row-gap: 0.3rem; padding: 0.5rem 0.6rem; font-size: 0.76rem;
-  border: 1px solid var(--line); border-radius: var(--r-sm); background: rgba(255, 255, 255, 0.018);
+  border: 1px solid var(--line); border-radius: var(--r-sm);
 }
-.mgr-list li.is-you { border-color: var(--accent-line); background: var(--accent-dim); }
-.mgr-list li.is-you .m-name { color: var(--gold); }
+.mgr-list li.is-you { border-color: var(--accent-line); }
+.mgr-list li.is-you .m-name { color: var(--accent); }
 .mgr-list li.is-full { opacity: 0.45; }
 .m-name { font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .m-squad { color: var(--muted); font-size: 0.62rem; letter-spacing: 0.06em; }
@@ -416,29 +305,26 @@ a { color: inherit; }
 }
 /* How much of the original purse each manager still holds — the fastest read of
    who can still hurt you in a bidding war. */
-.m-bar { grid-column: 1 / -1; height: 3px; border-radius: 999px; background: rgba(255, 255, 255, 0.07); overflow: hidden; }
-.m-bar span { display: block; height: 100%; border-radius: 999px; background: var(--gold-grad); transition: width 400ms ease; }
+.m-bar { grid-column: 1 / -1; height: 2px; border-radius: 999px; background: rgba(255, 255, 255, 0.09); overflow: hidden; }
+.m-bar span { display: block; height: 100%; background: var(--accent); transition: width 300ms ease; }
 .mgr-list li.is-full .m-bar span { background: var(--dim); }
 
 /* ---------- shared ---------- */
 .primary-btn {
-  padding: 1rem; border-radius: 999px; border: none;
-  background: var(--gold-grad); color: #241704;
-  font-family: "Anton", Impact, sans-serif; letter-spacing: 0.12em; text-transform: uppercase;
-  font-size: 0.85rem; cursor: pointer;
-  box-shadow: 0 8px 24px rgba(255, 143, 31, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.4);
-  transition: transform 140ms ease, box-shadow 140ms ease;
+  padding: 0.95rem; border-radius: 999px; border: 1px solid #fff; background: #fff; color: #000;
+  font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; font-size: 0.72rem;
+  cursor: pointer; font-family: inherit; transition: transform 140ms ease;
 }
-.primary-btn:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 12px 30px rgba(255, 143, 31, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.45); }
-.primary-btn:disabled { background: var(--panel-3); color: var(--dim); box-shadow: none; cursor: default; border: 1px solid var(--line); }
+.primary-btn:hover:not(:disabled) { transform: translateY(-2px); }
+.primary-btn:disabled { opacity: 0.4; cursor: default; transform: none; }
 .primary-btn.wide { width: 100%; margin-top: 1rem; }
 .hidden { display: none !important; }
 
 .toast {
   position: fixed; left: 50%; bottom: 1.5rem; transform: translateX(-50%) translateY(2rem); opacity: 0;
-  background: var(--gold-grad); color: #241704; font-weight: 700; font-size: 0.75rem;
-  padding: 0.65rem 1.1rem; border-radius: 999px; transition: all 220ms ease;
-  pointer-events: none; z-index: 50; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+  background: var(--accent); color: #221703; font-weight: 700; font-size: 0.75rem;
+  padding: 0.6rem 1rem; border-radius: 999px; transition: all 220ms ease;
+  pointer-events: none; z-index: 50;
 }
 .toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
 .toast.is-error { background: var(--danger); color: #fff; }
@@ -461,19 +347,13 @@ a { color: inherit; }
   display: flex; align-items: center; gap: 0.6rem;
   padding: 0.72rem 1rem; margin-bottom: 0.95rem;
   border: 1px solid var(--accent-line); border-radius: var(--r-md);
-  background: var(--accent-dim); color: var(--gold);
+  background: var(--accent-dim); color: var(--accent);
   font-size: 0.64rem; letter-spacing: 0.16em; text-transform: uppercase; font-weight: 700;
 }
-.pause-dot {
-  width: 0.5rem; height: 0.5rem; border-radius: 50%; background: var(--gold);
-  box-shadow: 0 0 10px var(--gold);
-  animation: pauseBlink 1.4s ease-in-out infinite;
-}
-@keyframes pauseBlink { 50% { opacity: 0.2; } }
+.pause-dot { width: 0.45rem; height: 0.45rem; border-radius: 50%; background: var(--accent); flex-shrink: 0; }
 
-.timer-ring.is-paused { --ring: var(--gold); --p: 100; box-shadow: none; animation: none; }
-.timer-ring.is-paused .timer-num { color: var(--gold); }
-@media (prefers-reduced-motion: reduce) { .pause-dot { animation: none; } }
+.timer-ring.is-paused { --ring: var(--accent); --p: 100; }
+.timer-ring.is-paused .timer-num { color: var(--accent); }
 
 /* ---------- hammer-fall announcement ---------- */
 /* `display: grid` below beats the browser default for [hidden] (display:none),
@@ -485,50 +365,34 @@ a { color: inherit; }
 .sale-pop {
   position: fixed; inset: 0; z-index: 80;
   display: grid; place-items: center;
-  background: radial-gradient(60% 50% at 50% 50%, rgba(255, 176, 32, 0.1), transparent 70%), rgba(0, 0, 0, 0.76);
-  animation: saleIn 180ms ease;
+  background: rgba(0, 0, 0, 0.78);
+  animation: saleIn 160ms ease;
   pointer-events: none;
 }
 .sale-card {
-  position: relative; overflow: hidden;
-  background: linear-gradient(165deg, var(--panel-3), var(--panel) 70%);
-  border: 2px solid var(--gold); border-radius: var(--r-lg);
-  padding: 2rem 2.6rem; text-align: center; max-width: min(90vw, 540px);
-  box-shadow: 0 0 60px rgba(255, 176, 32, 0.3), var(--shadow);
-  animation: salePop 300ms cubic-bezier(0.2, 1.3, 0.4, 1);
+  background: var(--panel); border: 1px solid var(--live); border-radius: var(--r-lg);
+  padding: 1.9rem 2.4rem; text-align: center; max-width: min(90vw, 520px);
+  animation: salePop 200ms ease;
 }
-/* Light sweeping across the card as the hammer falls. */
-.sale-card::after {
-  content: ""; position: absolute; inset: 0;
-  background: linear-gradient(105deg, transparent 38%, rgba(255, 255, 255, 0.16) 50%, transparent 62%);
-  transform: translateX(-100%);
-  animation: saleSheen 900ms 140ms ease-out;
-}
-.sale-card.is-unsold { border-color: var(--danger); box-shadow: 0 0 48px rgba(255, 84, 112, 0.24), var(--shadow); }
+.sale-card.is-unsold { border-color: var(--danger); }
 .sale-stamp {
-  font-family: "Anton", Impact, sans-serif; font-size: 1.1rem; letter-spacing: 0.3em;
-  text-transform: uppercase; color: var(--gold); margin-bottom: 0.55rem;
+  font-family: "Anton", Impact, sans-serif; font-size: 1.1rem; letter-spacing: 0.28em;
+  text-transform: uppercase; color: var(--live); margin-bottom: 0.55rem;
 }
 .sale-card.is-unsold .sale-stamp { color: var(--danger); }
 .sale-player {
-  font-family: "Anton", Impact, sans-serif; font-size: 2.5rem; line-height: 1.04;
+  font-family: "Anton", Impact, sans-serif; font-size: 2.4rem; line-height: 1.04;
   margin-bottom: 0.5rem; word-break: break-word;
 }
 .sale-to { font-size: 0.68rem; letter-spacing: 0.18em; text-transform: uppercase; color: var(--muted); }
-.sale-buyer { color: var(--gold); font-weight: 700; }
-.sale-price {
-  font-family: "Anton", Impact, sans-serif; font-size: 2.25rem; margin-top: 0.5rem;
-  background: var(--gold-grad); -webkit-background-clip: text; background-clip: text;
-  -webkit-text-fill-color: transparent; color: var(--gold);
-}
+.sale-buyer { color: var(--accent); font-weight: 700; }
+.sale-price { font-family: "Anton", Impact, sans-serif; font-size: 2.1rem; color: var(--accent); margin-top: 0.5rem; }
 @keyframes saleIn { from { opacity: 0; } to { opacity: 1; } }
-@keyframes salePop { from { transform: scale(0.82); opacity: 0; } to { transform: scale(1); opacity: 1; } }
-@keyframes saleSheen { to { transform: translateX(100%); } }
+@keyframes salePop { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
 
 @media (prefers-reduced-motion: reduce) {
-  .sale-pop, .sale-card, .sale-card::after, .lot-card.is-new, .sold-row.is-new,
-  .bid-btn:not(:disabled):not(.is-leading), .phase-pill::before,
-  .timer-ring.is-crit { animation: none; }
+  .sale-pop, .sale-card, .lot-card.is-new, .sold-row.is-new { animation: none; }
+  .timer-ring { transition: none; }
 }
 
 @media (max-width: 620px) {
@@ -537,7 +401,6 @@ a { color: inherit; }
   .sale-card { padding: 1.4rem 1.5rem; }
   .lot-name { font-size: 1.55rem; }
   .lot-ovr { font-size: 2.7rem; }
-  .lot-watermark { font-size: 7rem; bottom: -1.8rem; }
   .bid-price { font-size: 1.8rem; }
   .timer-ring { width: 64px; height: 64px; }
   .timer-num { font-size: 1.55rem; }

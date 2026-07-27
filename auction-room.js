@@ -254,8 +254,23 @@ function isHost() { return !!(S.room && S.room.host_id === PID); }
 // Banks the time LEFT on the current lot and clears the deadline. Without that
 // the absolute deadline would quietly expire during the pause and the lot would
 // hammer the instant play resumed.
+// DEADLOCK ESCAPE. Pausing is the host's call, but resuming cannot be, or a
+// host who closes their tab mid-pause freezes the room for everyone with no way
+// back. After PAUSE_GRACE_MS any manager can lift it, and after
+// PAUSE_AUTO_MS any client lifts it automatically.
+const PAUSE_GRACE_MS = 120000;  // 2 min — anyone may resume
+const PAUSE_AUTO_MS  = 300000;  // 5 min — resumes itself
+
+function pausedForMs() {
+  if (!isPaused() || !S.auction || !S.auction.updated_at) return 0;
+  const t = Date.parse(S.auction.updated_at);
+  return Number.isFinite(t) ? Math.max(0, Date.now() - t) : 0;
+}
+function canResume() { return isHost() || pausedForMs() > PAUSE_GRACE_MS; }
+
 async function togglePause() {
-  if (!isHost() || !S.auction) return;
+  if (!S.auction) return;
+  if (isPaused() ? !canResume() : !isHost()) return;
   const btn = $("pauseBtn");
   btn.disabled = true;
   try {
@@ -274,6 +289,7 @@ async function togglePause() {
         paused: true,
         remaining_ms: Number.isFinite(left) ? Math.max(0, left) : null,
         ends_at: null,
+        updated_at: new Date().toISOString(), // when the grace period starts
       }).eq("room_id", ROOM);
       if (error) throw error;
     }
@@ -287,7 +303,25 @@ async function togglePause() {
 
 async function tickOnce() {
   // Paused: no clock opens, nothing resolves, nothing auto-passes.
-  if (isPaused()) return;
+  if (isPaused()) {
+    // Final backstop against a pause nobody lifts. The button unlocks for every
+    // manager after PAUSE_GRACE_MS; this resumes the room even if nobody presses
+    // it, so a paused auction can never be permanently stuck.
+    if (pausedForMs() > PAUSE_AUTO_MS) {
+      const banked = Number(S.auction.remaining_ms);
+      const patch = { paused: false, remaining_ms: null };
+      if (Number.isFinite(banked) && banked > 0) {
+        patch.ends_at = new Date(Date.now() + banked).toISOString();
+      }
+      try {
+        await SUPA.from("auction_state").update(patch)
+          .eq("room_id", ROOM).eq("paused", true);
+      } catch (err) {
+        console.error("[auction] auto-resume failed:", err);
+      }
+    }
+    return;
+  }
 
   const lot = currentLot();
   if (!lot) { finishAuction(); return; }
@@ -598,10 +632,19 @@ async function proceed() {
       }
     } else {
       // Someone else won the claim — wait for them to finish before entering.
+      let ready = false;
       for (let i = 0; i < 80; i++) {
         const { data: r } = await SUPA.from("rooms").select("status").eq("id", ROOM).single();
-        if (r && r.status === "league") break;
+        if (r && r.status === "league") { ready = true; break; }
         await new Promise((res) => setTimeout(res, 250));
+      }
+      // Twenty seconds and still not set up: the claimer closed their tab
+      // mid-way and the room is stranded in league_setup, which nobody can ever
+      // claim again. Take over. setUpLeague derives bot ids and resets votes, so
+      // running it twice lands on exactly the same state.
+      if (!ready) {
+        console.warn("[auction] league setup stalled — taking over");
+        await setUpLeague();
       }
     }
   } catch (err) {
@@ -867,10 +910,14 @@ function renderPause() {
       : "Auction paused by the host";
   }
   const btn = $("pauseBtn");
-  btn.hidden = !isHost();
-  if (isHost()) {
+  const show = paused ? canResume() : isHost();
+  btn.hidden = !show;
+  if (show) {
     btn.textContent = paused ? "Resume Auction" : "Pause Auction";
     btn.classList.toggle("is-active", paused);
+  }
+  if (paused && !isHost() && canResume()) {
+    $("pauseText").textContent = "Host away — anyone can resume";
   }
 }
 
@@ -1111,7 +1158,7 @@ function wireSquadDrag() {
 
 function renderManagers() {
   const lot = currentLot();
-  $("mgrList").classList.toggle("has-kick", iAmHost());
+  $("mgrList").classList.toggle("has-kick", isHost());
   $("mgrList").innerHTML = S.managers.map((m) => {
     const sq = squadOf(m.id);
     const full = sq.length >= A.XI_SIZE;
@@ -1122,7 +1169,7 @@ function renderManagers() {
       <span class="m-name">${esc(m.username || "Manager")}${m.id === PID ? " (you)" : ""}</span>
       <span class="m-squad">${sq.length}/11</span>
       <span class="m-purse">${money(left)}</span>
-      ${!iAmHost() ? "" : m.id === PID
+      ${!isHost() ? "" : m.id === PID
         ? '<span class="m-kick-spacer"></span>'
         : `<button type="button" class="m-kick" data-kick="${esc(m.id)}" title="Remove ${esc(m.username || "manager")}">&times;</button>`}
       <span class="m-bar"><span style="width:${pct.toFixed(1)}%"></span></span>
@@ -1136,14 +1183,11 @@ function renderManagers() {
 // loop for no reason.
 let lastFeedTop = null;
 // ---------- host: remove a manager ----------
-// An auction is on a clock, so an absent manager cannot stall the bidding — but
-// they DO stall the "Move to Next Set" vote, and they carry a league seat they
-// will never field. Removing them frees both. What they have already bought
-// stays sold: those lots are long past and cannot be re-auctioned.
-function iAmHost() {
-  return !!(S.room && S.room.host_id && S.room.host_id === PID);
-}
-
+// An auction runs on a clock, so an absent manager cannot stall the bidding —
+// but they DO stall the "Move to Next Set" vote, and they carry a league seat.
+// Removing them frees both. What they already bought stays sold: those lots are
+// long past and cannot be re-auctioned. Their part-squad is still completed at
+// Proceed, so the players they did buy are not stranded outside the league.
 async function kickManager(id) {
   const name = nameOf(id);
   if (!window.confirm(

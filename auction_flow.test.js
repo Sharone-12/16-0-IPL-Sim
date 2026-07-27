@@ -581,6 +581,50 @@ vm.runInContext(lift(simSrc, ["mpLiveHumans", "mpTrimToLeague"]), kickBox);
   }
 }
 
+// ---------- 3f. the pause escape hatch ----------
+// Pausing is the host's call; RESUMING cannot be, or a host who closes their tab
+// mid-pause freezes the room for everyone with no way back.
+const pauseBox = {
+  console, Date,
+  S: { auction: null },
+  host: false,
+  isHost: () => pauseBox.host,
+  isPaused: () => !!(pauseBox.S.auction && pauseBox.S.auction.paused),
+};
+vm.createContext(pauseBox);
+vm.runInContext(
+  lift(roomSrc, ["pausedForMs", "canResume"]).replace(/const PAUSE_[A-Z_]+ = \d+;/g, ""),
+  pauseBox
+);
+// the constants live outside the lifted functions
+pauseBox.PAUSE_GRACE_MS = 120000;
+pauseBox.PAUSE_AUTO_MS = 300000;
+
+function pausedFor(seconds, host) {
+  pauseBox.host = host;
+  pauseBox.S.auction = {
+    paused: true,
+    updated_at: new Date(Date.now() - seconds * 1000).toISOString(),
+  };
+  return pauseBox.canResume();
+}
+
+ok("the host can always resume", pausedFor(1, true));
+ok("a non-host cannot resume immediately", !pausedFor(5, false));
+ok("a non-host still cannot resume at 1 minute", !pausedFor(60, false));
+ok("ANY manager can resume once the grace period passes", pausedFor(150, false));
+ok("a long-abandoned pause is resumable by anyone", pausedFor(3600, false));
+{
+  pauseBox.host = false;
+  pauseBox.S.auction = { paused: false, updated_at: new Date(0).toISOString() };
+  ok("an un-paused auction reports zero paused time", pauseBox.pausedForMs() === 0);
+  pauseBox.S.auction = { paused: true, updated_at: "not-a-date" };
+  ok("an unparseable timestamp does not unlock the button early",
+     pauseBox.pausedForMs() === 0 && !pauseBox.canResume());
+  pauseBox.S.auction = { paused: true };
+  ok("a missing timestamp is handled", pauseBox.pausedForMs() === 0);
+}
+
 // ---------- 4. full auction → league dry run ----------
 function rng(seed) {
   let a = seed >>> 0;

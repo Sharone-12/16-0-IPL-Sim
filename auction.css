@@ -309,6 +309,12 @@ a { color: inherit; }
 .ghost-btn:hover:not(:disabled) { border-color: var(--line-2); color: #fff; background: rgba(255, 255, 255, 0.06); }
 .ghost-btn:disabled { opacity: 0.4; cursor: default; }
 .ghost-btn.is-active { border-color: var(--accent-line); color: var(--gold); background: var(--accent-dim); }
+/* Restated for hover: `.ghost-btn:hover:not(:disabled)` outranks `.ghost-btn
+   .is-active`, so an active Pause button would otherwise drop its amber tint
+   the moment the pointer touched it. */
+.ghost-btn.is-active:hover:not(:disabled) {
+  border-color: var(--gold); color: var(--gold); background: rgba(255, 176, 32, 0.22);
+}
 
 /* ---------- sold feed ---------- */
 .sold-feed {

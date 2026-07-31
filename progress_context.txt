@@ -1,6 +1,6 @@
 ================================================================================
 16-0 — AUCTION MODE: CONTEXT FOR A NEW SESSION
-Last updated: 2026-07-27   ·   HEAD at time of writing: 813e3fa
+Last updated: 2026-07-31   ·   HEAD at time of writing: 813e3fa
 ================================================================================
 
 Read this before touching auction-room.js, auction_data.js or sim-mp.js. It is
@@ -155,7 +155,16 @@ The host-kick feature deliberately needs NO migration: it reuses players.status.
     `.thing[hidden] { display: none }`. Missing this once left the SOLD popup on
     screen from page load, dimming the whole room.
 
-(h) CSS: A GENERIC :hover OUTRANKS A VARIANT CLASS.
+(h) THE LOT RUNNING ORDER IS SEEDED, NOT SORTED.
+    buildCuratedPool takes opts.seed (auction-room passes `${ROOM}:${season}`)
+    and shuffles WITHIN each set. Without a seed it falls back to the old strict
+    descending-OVR order, which is why the harnesses that omit it are unchanged.
+    Two rules the shuffle must never break: sets stay CONTIGUOUS (nextSetIndex
+    walks forward while setId matches) and stay in SET_ORDER sequence. And the
+    seed must come from shared state only — anything client-local would give
+    each browser a different lot list and desync the whole room.
+
+(i) CSS: A GENERIC :hover OUTRANKS A VARIANT CLASS.
     `.btn:hover:not(:disabled)` (0,3,0) beats `.btn.accent` (0,2,0), so a hover
     rule that sets `background` silently strips a variant's fill. Bitten three
     times: the gold Create button, the active Pause button, the green "You hold

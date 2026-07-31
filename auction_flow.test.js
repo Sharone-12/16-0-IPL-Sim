@@ -625,6 +625,82 @@ ok("a long-abandoned pause is resumable by anyone", pausedFor(3600, false));
   ok("a missing timestamp is handled", pauseBox.pausedForMs() === 0);
 }
 
+// ---------- 3g. lot running order ----------
+// Sets stay in their canonical sequence (Marquee, then the A/B/C tiers — that
+// pacing is deliberate) but the order INSIDE a set is shuffled from a seed every
+// client shares. Unseeded it must stay exactly as it was.
+{
+  const seeded = (seed) => A.buildCuratedPool(auc, mas, { teams: 10, seed }).lots;
+  const plain = A.buildCuratedPool(auc, mas, { teams: 10 }).lots;
+  const a = seeded("ROOM1:0");
+  const b = seeded("ROOM1:0");
+  const c = seeded("ROOM2:0");
+  const d = seeded("ROOM1:1");
+  const names = (l) => l.map((x) => x.name).join("|");
+
+  ok("no seed keeps the old deterministic order", (() => {
+    for (let i = 1; i < plain.length; i++) {
+      if (plain[i].setId === plain[i - 1].setId && plain[i].ovr > plain[i - 1].ovr) return false;
+    }
+    return true;
+  })());
+
+  // The invariant the whole auction rests on.
+  ok("the same seed gives byte-identical order on every client", names(a) === names(b));
+  ok("a different room gets a different order", names(a) !== names(c));
+  ok("a replay in the same room gets a different order", names(a) !== names(d));
+
+  ok("shuffling loses no lots", a.length === plain.length && a.length === 322);
+  ok("shuffling duplicates no lots", new Set(a.map((x) => x.name)).size === a.length);
+  ok("the same players are present, just reordered",
+     names([...a].sort((x, y) => x.name.localeCompare(y.name))) ===
+     names([...plain].sort((x, y) => x.name.localeCompare(y.name))));
+
+  // Structural requirements the room UI depends on.
+  ok("sets stay contiguous", (() => {
+    const seenSets = [];
+    for (let i = 0; i < a.length; i++) {
+      if (!i || a[i].setId !== a[i - 1].setId) {
+        if (seenSets.includes(a[i].setId)) return false; // set reappears later
+        seenSets.push(a[i].setId);
+      }
+    }
+    return true;
+  })());
+  ok("sets keep their canonical sequence", (() => {
+    let last = -1;
+    for (const l of a) {
+      const i = A.SET_ORDER.indexOf(l.setId);
+      if (i < last) return false;
+      last = i;
+    }
+    return true;
+  })());
+  ok("Marquee still opens the auction", a[0].setId === "Marquee");
+  ok("nextSetIndex still finds set boundaries", (() => {
+    let i = 0, hops = 0;
+    while (i < a.length && hops < 50) { i = A.nextSetIndex(a, i); hops++; }
+    return i === a.length;
+  })());
+
+  // The actual complaint: a set should no longer be a strict rating slide.
+  const slide = (lots) => {
+    let runs = 0, total = 0;
+    for (let i = 1; i < lots.length; i++) {
+      if (lots[i].setId !== lots[i - 1].setId) continue;
+      total++;
+      if (lots[i].ovr <= lots[i - 1].ovr) runs++;
+    }
+    return runs / total;
+  };
+  const before = slide(plain), after = slide(a);
+  ok("a set is no longer a descending rating slide", after < 0.75,
+     `${(after * 100).toFixed(0)}% of adjacent pairs still descend`);
+  console.log(`      adjacent pairs descending within a set: ${(before * 100).toFixed(0)}% -> ${(after * 100).toFixed(0)}%`);
+  console.log(`      first 6 Marquee lots, ROOM1: ${a.filter((l) => l.setId === "Marquee").slice(0, 6).map((l) => l.ovr).join(", ")}`);
+  console.log(`      first 6 Marquee lots, ROOM2: ${c.filter((l) => l.setId === "Marquee").slice(0, 6).map((l) => l.ovr).join(", ")}`);
+}
+
 // ---------- 4. full auction → league dry run ----------
 function rng(seed) {
   let a = seed >>> 0;

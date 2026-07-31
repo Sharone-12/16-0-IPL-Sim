@@ -94,7 +94,13 @@ async function boot() {
     const { auc, mas } = await loadPool();
     S.rows = mas;                       // master rows, for deriving bot franchises
     const teams = Math.max(2, Number(st.teams) || 2);
-    const pool = A.buildCuratedPool(auc, mas, { teams });
+    // Seeded by room + season so every client derives the SAME running order,
+    // while two different rooms (and a Play Again in the same room) get
+    // different ones.
+    const pool = A.buildCuratedPool(auc, mas, {
+      teams,
+      seed: `${ROOM}:${room.season ?? 0}`,
+    });
     S.lots = pool.lots;
     // Squad completion draws on players OUTSIDE the auction catalogue, so a
     // manager who walks away is topped up with replacement level rather than

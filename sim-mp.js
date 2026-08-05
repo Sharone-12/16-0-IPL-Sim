@@ -1340,6 +1340,12 @@ function makeTeam(id, name, squad) {
 // the strongest team. Bottom 4 close ~45%, mid-table close ~25%. Scales with the
 // actual squad gap (no hardcoded floor) and never touches the user's XI.
 function applyCatchupBuff(teams) {
+  // Same reasoning: the catch-up buff exists to stop a lone solo user running
+  // away from nine AI teams. In a five-manager auction it does the opposite —
+  // it lifts every bot 25-45% of the way to the strongest human, landing them
+  // inside the human band and pushing real managers out of the top four before
+  // a ball is bowled.
+  if (mpMode === "auction") return;
   const sorted = [...teams].sort(
     (a, b) =>
       b.strength.total - a.strength.total ||
@@ -1474,7 +1480,12 @@ function teamStrength(players, isUser = false) {
   // user stack a stronger team than the balanced AI, so it needs a bigger penalty
   // than Career. Difficulty now bites the match sim too (it used to only affect
   // the draft), so Hard is genuinely harder and Easy genuinely easier.
-  if (isUser) {
+  // AUCTION ROOMS SKIP THE HANDICAP. It exists for the solo/draft game, where a
+  // user drafts an all-time XI and faces modern franchises they never paid for.
+  // In an auction every human bought their squad from one shared pool under one
+  // shared purse, so the table should be decided by who bought better — not by a
+  // 5% tax applied to humans and not to the AI sides.
+  if (isUser && mpMode !== "auction") {
     const prime = state.config && state.config.playerRatings === "prime";
     const d = (state.config && state.config.difficulty) || "normal";
     // Prime base is gentler than Career: with all players at peak, the AI's

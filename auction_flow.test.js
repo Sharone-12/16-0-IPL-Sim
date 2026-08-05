@@ -811,6 +811,85 @@ ok("a long-abandoned pause is resumable by anyone", pausedFor(3600, false));
   console.log(`      => on a bowling rating of 85 that is ${((allPace - 1) * 85).toFixed(2)} .. +${((ideal - 1) * 85).toFixed(2)}`);
 }
 
+// ---------- 3j. auction rooms drop the solo-balance mechanisms ----------
+// Two things borrowed from the solo game were compressing an auction league:
+//   * teamStrength's x0.95 "user" handicap, taxed on humans and not on the AI
+//   * applyCatchupBuff, which lifts every bot 25-45% of the way to the strongest
+//     team — enough to land 2026 franchise sides inside the human band
+// Together they put bots into the top four before a ball was bowled. Both are
+// now skipped when mpMode === "auction", and ONLY then.
+{
+  const mk = (mode) => {
+    const b = {
+      console, mpMode: mode, USER_ID: "__none__",
+      state: { config: { difficulty: "normal", playerRatings: "career" } },
+      weightedAverage: (v, w) => {
+        const t = w.slice(0, v.length).reduce((a, x) => a + x, 0);
+        return v.reduce((s, x, i) => s + x * w[i], 0) / t;
+      },
+      average: (a) => a.reduce((x, y) => x + y, 0) / a.length,
+    };
+    vm.createContext(b);
+    vm.runInContext(lift(simSrc, ["attackFactor", "handMixFactor", "chemistryScore",
+                                  "teamStrength", "applyCatchupBuff"]), b);
+    return b;
+  };
+  const draft = mk("draft"), auction = mk("auction");
+
+  const xi = Array.from({ length: 11 }, (_, i) => ({
+    ovr: 90 - i, bat: 90 - i, bowl: 72 + i,
+    primaryRole: i < 6 ? "Batsman" : "Bowler",
+    battingOrder: i < 2 ? "Opener" : i < 6 ? "Middle Order" : "Lower Order",
+    isCaptain: i === 0,
+  }));
+
+  const dUser = draft.teamStrength(xi, true), aUser = auction.teamStrength(xi, true);
+  ok("the draft still applies the user handicap", dUser.total < dUser.overall);
+  ok("an auction room does not", Math.abs(aUser.total - aUser.overall) < 1e-9,
+     `overall ${aUser.overall} vs total ${aUser.total}`);
+  ok("the handicap was worth about 5%", Math.abs(dUser.total / dUser.overall - 0.95) < 0.01);
+
+  // AI teams are unaffected by the handicap in either mode.
+  ok("bot strength is identical in both modes",
+     draft.teamStrength(xi, false).total === auction.teamStrength(xi, false).total);
+
+  // --- the catch-up buff ---
+  // The MEASURED shape of a real five-manager room: five handicapped human
+  // squads and the five strongest 2026 franchise XIs. A made-up fixture with
+  // humans spread further apart does not reproduce the bug at all.
+  const table = () => [
+    ...[86.5, 84.5, 83.6, 83.2, 82.7].map((t, i) =>
+      ({ id: "h" + i, isHuman: true, strength: { total: t, batting: t, bowling: t - 4 } })),
+    ...[80.9, 80.9, 79.8, 79.2, 78.9].map((t, i) =>
+      ({ id: "b" + i, isHuman: false, strength: { total: t, batting: t, bowling: t - 1 } })),
+  ];
+  const dT = table(); draft.applyCatchupBuff(dT);
+  const aT = table(); auction.applyCatchupBuff(aT);
+
+  const bots = (tbl) => tbl.filter((t) => !t.isHuman).map((t) => t.strength.total);
+  const weakestHuman = 82.7;
+  const worstBotDraft = Math.min(...bots(dT));
+  const worstBotAuction = Math.min(...bots(aT));
+  ok("the draft still buffs trailing bots", worstBotDraft > 78.9);
+  ok("an auction room leaves bot strength exactly as built", worstBotAuction === 78.9,
+     `got ${worstBotAuction}`);
+
+  // This is the reported bug, reproduced: in the draft's scheme a buffed 2026
+  // franchise ends up ABOVE a real manager's squad before a ball is bowled.
+  const gatecrashers = bots(dT).filter((t) => t > weakestHuman).length;
+  ok("the draft's buff pushes bots above a human (the reported bug)",
+     gatecrashers > 0, `${gatecrashers} bots above ${weakestHuman}`);
+  ok("in an auction no bot outranks any human",
+     bots(aT).every((t) => t < weakestHuman));
+  ok("human strengths are never touched by the buff in either mode",
+     dT.filter((t) => t.isHuman).every((t, i) => t.strength.total === table()[i].strength.total) &&
+     aT.filter((t) => t.isHuman).every((t, i) => t.strength.total === table()[i].strength.total));
+
+  console.log(`      user handicap: draft x${(dUser.total / dUser.overall).toFixed(3)} · auction x1.000`);
+  console.log(`      trailing bot after buff: draft ${worstBotDraft.toFixed(1)} · auction ${worstBotAuction.toFixed(1)}`);
+  console.log(`      bots finishing above the weakest human: draft ${gatecrashers}/5 · auction 0/5`);
+}
+
 // ---------- 4. full auction → league dry run ----------
 function rng(seed) {
   let a = seed >>> 0;

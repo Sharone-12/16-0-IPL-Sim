@@ -196,6 +196,22 @@ The host-kick feature deliberately needs NO migration: it reuses players.status.
     Ungated, 4-spin-1-pace scored BETTER than 4-pace-1-spin, which inverted the
     whole intent.
 
+(g3) AUCTION ROOMS SKIP THE TWO SOLO-BALANCE MECHANISMS.
+    Both live in sim-mp.js and are now gated on `mpMode !== "auction"`:
+      * teamStrength's x0.95 "user" handicap — written for the solo draft, where
+        one human fields an all-time XI against modern franchises. In an auction
+        every human bought their squad from one pool under one purse, so taxing
+        humans and not the AI just hands seats to bots.
+      * applyCatchupBuff — lifts trailing bots 25-45% of the way to the strongest
+        team. Written to stop a lone solo user running away from nine AI sides.
+    MEASURED, five-manager room (14 simulated auctions, 70 squads):
+      before: humans 82.4-86.5, bots buffed 76.7-80.9 -> 82.2-83.3
+              => 2 of 5 bots finished ABOVE a human before a ball was bowled
+      after:  humans 87.1-90.7, bots 78.9-80.9, humans take all 5 top seats
+    The user's diagnosis was the OVR scale; the actual mechanism was the buff.
+    Do not "restore" either for auction rooms. The MP draft and solo keep both —
+    verified by test, and simulation.js has its own copies which are untouched.
+
 (h) THE LOT RUNNING ORDER IS SEEDED, NOT SORTED.
     buildCuratedPool takes opts.seed (auction-room passes `${ROOM}:${season}`)
     and shuffles WITHIN each set. Without a seed it falls back to the old strict

@@ -753,6 +753,64 @@ ok("a long-abandoned pause is resumable by anyone", pausedFor(3600, false));
   console.log(`      ${withOverride.length} of ${rawAuc.length} lots carry a corrected role`);
 }
 
+// ---------- 3i. bowling style + attack composition ----------
+{
+  const rawAuc = parse("ipl_auction_career_final.csv").filter((r) => r.Player_Name);
+  ok("the auction CSV carries style columns", "Bowling_Type" in rawAuc[0] && "Batting_Hand" in rawAuc[0]);
+
+  const TYPES = new Set(["Pace", "Off Spin", "Leg Spin", "Left-arm Orthodox", "Left-arm Wrist", ""]);
+  ok("every bowling type is from the known vocabulary",
+     rawAuc.every((r) => TYPES.has(r.Bowling_Type)),
+     [...new Set(rawAuc.map((r) => r.Bowling_Type))].filter((t) => !TYPES.has(t)).join(", "));
+  ok("every batting hand is RHB, LHB or blank",
+     rawAuc.every((r) => ["RHB", "LHB", ""].includes(r.Batting_Hand)));
+
+  const lot = (n) => pool.lots.find((l) => l.name === n);
+  ok("styles reach the lot", lot("YS Chahal").bowlingType === "Leg Spin");
+  ok("a left-hand bat who bowls right-arm is kept distinct",
+     lot("SP Narine").battingHand === "LHB" && lot("SP Narine").bowlingArm === "Right");
+  ok("Kuldeep is left-arm wrist spin", lot("Kuldeep Yadav").bowlingType === "Left-arm Wrist");
+
+  // --- the composition modifier, lifted from the real engine ---
+  const box = { console };
+  vm.createContext(box);
+  vm.runInContext(lift(simSrc, ["attackFactor", "handMixFactor"]), box);
+  const attack = (types, arms) =>
+    box.attackFactor(types.map((t, i) => ({ bowl: 85 - i, bowlingType: t, bowlingArm: (arms || [])[i] || "Right" })));
+
+  const allPace  = attack(["Pace","Pace","Pace","Pace","Pace"]);
+  const fourSpin = attack(["Off Spin","Leg Spin","Left-arm Orthodox","Off Spin","Pace"]);
+  const typical  = attack(["Pace","Pace","Pace","Off Spin","Leg Spin"]);
+  const ideal    = attack(["Pace","Pace","Off Spin","Leg Spin","Left-arm Orthodox"], ["Right","Left"]);
+
+  ok("a monoculture attack is punished hardest", allPace < fourSpin);
+  ok("four spinners and a seamer is punished", fourSpin < 1, `x${fourSpin}`);
+  ok("a typical 3 pace / 2 spin attack is neutral", Math.abs(typical - 1) < 1e-9);
+  ok("a varied attack gets a small edge", ideal > 1);
+
+  // The whole point: bad must cost more than good gains, and neither may be big.
+  ok("punishment outweighs reward", (1 - allPace) > (ideal - 1) * 4);
+  ok("the effect stays small", (1 - allPace) < 0.06 && (ideal - 1) < 0.02,
+     `worst x${allPace}, best x${ideal}`);
+
+  // NO-OP without style data — this is what keeps the draft and bots untouched.
+  ok("no style data means no modifier at all",
+     box.attackFactor([{ bowl: 85 }, { bowl: 84 }, { bowl: 83 }, { bowl: 82 }, { bowl: 81 }]) === 1);
+  ok("too few known styles means no modifier",
+     box.attackFactor([{ bowl: 85, bowlingType: "Pace" }, { bowl: 84 }, { bowl: 83 }]) === 1);
+
+  const hands = (n) => box.handMixFactor(Array.from({ length: 7 }, (_, i) => ({ battingHand: i < n ? "LHB" : "RHB" })));
+  ok("an all-right-handed top order is nudged down", hands(0) < 1);
+  ok("an all-left-handed top order is nudged down too", hands(7) < 1);
+  ok("a mixed top order gets a small edge", hands(3) > 1);
+  ok("hand mix is a smaller effect than the attack term", (1 - hands(0)) < (1 - allPace));
+  ok("no hand data means no modifier",
+     box.handMixFactor(Array.from({ length: 7 }, () => ({}))) === 1);
+
+  console.log(`      attack factor: worst x${allPace.toFixed(4)} · 4-spin x${fourSpin.toFixed(4)} · ideal x${ideal.toFixed(4)}`);
+  console.log(`      => on a bowling rating of 85 that is ${((allPace - 1) * 85).toFixed(2)} .. +${((ideal - 1) * 85).toFixed(2)}`);
+}
+
 // ---------- 4. full auction → league dry run ----------
 function rng(seed) {
   let a = seed >>> 0;

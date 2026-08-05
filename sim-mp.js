@@ -260,6 +260,11 @@ function buildMpTeams(rows) {
         battingOrder: x.battingOrder,
         isWk: Boolean(x.isWk),
         isOverseas: Boolean(x.isOverseas),
+        // Auction squads carry these; drafted and bot XIs do not, which is what
+        // makes the composition modifier a no-op outside auction rooms.
+        battingHand: x.battingHand || "",
+        bowlingType: x.bowlingType || "",
+        bowlingArm: x.bowlingArm || "",
         // NOT capped — identical to solo's normalizeSavedPlayer. A drafted XI
         // plays at its true ratings, so a 95 is really a 95. The 92 cap belongs
         // to normalizeCsvPlayer, i.e. the real franchise squads the bots field.
@@ -1391,13 +1396,71 @@ function selectBalancedXI(squad) {
   return finalXI;
 }
 
+// ===================== attack / batting composition =====================
+// A small, deliberately asymmetric nudge on top of the existing engine: a badly
+// built XI (four spinners and one seamer, or five of the same type) is punished
+// noticeably more than a well balanced one is rewarded. Worst case costs ~1.1
+// OVR of team rating, best case gains ~0.2 — enough to matter across 14 games,
+// nowhere near enough to override actual player ratings.
+//
+// Returns exactly 1 when no style data is present, which is what keeps this
+// auction-only: drafted and bot XIs are built from the master CSV, which has no
+// Bowling_Type column, so their strength is completely unchanged.
+function attackFactor(players) {
+  const bowlers = [...players]
+    .sort((a, b) => (b.bowl || 0) - (a.bowl || 0))
+    .slice(0, 5)
+    .filter((p) => p.bowlingType);
+  if (bowlers.length < 3) return 1; // not enough known styles to judge
+
+  const pace = bowlers.filter((p) => p.bowlingType === "Pace").length;
+  const types = new Set(bowlers.map((p) => p.bowlingType)).size;
+  const leftArm = bowlers.some((p) => p.bowlingArm === "Left");
+
+  const spin = bowlers.length - pace;
+  const lopsided = pace === 0 || spin === 0;   // all one discipline
+  const skewed = pace === 1 || spin === 1;     // "four spinners and a seamer"
+
+  let net = 0;
+  if (lopsided) net -= 4;
+  else if (skewed) net -= 2;
+  if (types <= 1) net -= 2;
+  else if (types === 2) net -= 0.5;
+
+  // Bonuses are GATED on the split already being sane. Ungated, a 4-spin/1-pace
+  // attack earned enough variety and left-arm credit to cancel its own lopsided
+  // penalty — it scored better than 4 pace + 1 spin, which is the opposite of
+  // the intent.
+  if (!lopsided && !skewed) {
+    if (types >= 4) net += 0.5;
+    if (leftArm) net += 0.5;
+  }
+
+  return 1 + net * 0.008; // ~0.952 worst .. ~1.008 best
+}
+
+// A top order that is all one handedness is marginally easier to bowl at. Half
+// the weight of the attack term — this is a nudge, not a strategy.
+function handMixFactor(players) {
+  const known = players.slice(0, 7).map((p) => p.battingHand).filter(Boolean);
+  if (known.length < 5) return 1;
+  const left = known.filter((h) => h === "LHB").length;
+  const right = known.length - left;
+  if (left === 0 || right === 0) return 0.996;
+  return Math.min(left, right) >= 2 ? 1.004 : 1;
+}
+
 function teamStrength(players, isUser = false) {
   const topSix = players.slice(0, 6);
   const bowlers = [...players]
     .sort((a, b) => b.bowl - a.bowl)
     .slice(0, 5);
-  const batting = weightedAverage(topSix.map((p) => p.bat || p.ovr), [1.25, 1.18, 1.1, 1, 0.92, 0.85]);
-  const bowling = weightedAverage(bowlers.map((p) => p.bowl || p.ovr), [1.22, 1.12, 1.04, 0.96, 0.88]);
+  // Composition modifiers ride on the component they actually describe, so the
+  // BAT/BOWL shown in the UI reflects them too rather than diverging from OVR.
+  const batting = weightedAverage(topSix.map((p) => p.bat || p.ovr), [1.25, 1.18, 1.1, 1, 0.92, 0.85])
+    * handMixFactor(players);
+  const bowling = weightedAverage(bowlers.map((p) => p.bowl || p.ovr), [1.22, 1.12, 1.04, 0.96, 0.88])
+    * attackFactor(players);
   const depth = average(players.slice(6).map((p) => p.ovr));
   const chemistry = chemistryScore(players);
   // `overall` is the true team rating shown in the UI (no handicap). `total` is

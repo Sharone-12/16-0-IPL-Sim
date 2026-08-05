@@ -528,6 +528,8 @@ function buildXi(id) {
     fr: p.fr, frFull: p.frFull, season: p.season,
     isWk: p.isWk, isOverseas: p.isOverseas,
     primaryRole: p.primaryRole, battingOrder: p.battingOrder,
+    battingHand: p.battingHand || "", bowlingType: p.bowlingType || "",
+    bowlingArm: p.bowlingArm || "",
     slot: slots[i],
     isCaptain: false,
   })).sort((a, b) => a.slot - b.slot);
@@ -836,6 +838,8 @@ function renderLot() {
         <span class="badge ${badge.cls}">${badge.label}</span>
         ${lot.isWk ? '<span class="badge wk">Wicketkeeper</span>' : ""}
         ${lot.isOverseas ? '<span class="badge overseas">Overseas</span>' : ""}
+        ${lot.battingHand ? `<span class="badge hand">${esc(lot.battingHand)}</span>` : ""}
+        ${lot.bowlingType ? `<span class="badge style">${esc(lot.bowlingArm ? lot.bowlingArm + "-arm " : "")}${esc(lot.bowlingType)}</span>` : ""}
         <span class="badge stat">BAT ${lot.bat}</span>
         <span class="badge stat">BOWL ${lot.bowl}</span>
       </div>

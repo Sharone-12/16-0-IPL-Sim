@@ -138,6 +138,8 @@ a { color: inherit; }
 .badge.overseas      { color: var(--overseas); border-color: rgba(203, 176, 255, 0.4); }
 .badge.wk            { color: var(--accent); border-color: var(--accent-line); }
 .badge.stat          { color: var(--muted); }
+.badge.hand          { color: #d8b3ff; border-color: rgba(216, 179, 255, 0.4); }
+.badge.style         { color: #8fd6c8; border-color: rgba(143, 214, 200, 0.4); }
 
 .lot-ovr { font-family: "Anton", Impact, sans-serif; font-size: 3.4rem; line-height: 1; flex-shrink: 0; }
 .ovr-gold  { color: #f5c451; }

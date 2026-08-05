@@ -180,6 +180,22 @@ The host-kick feature deliberately needs NO migration: it reuses players.status.
     `.thing[hidden] { display: none }`. Missing this once left the SOLD popup on
     screen from page load, dimming the whole room.
 
+(g2) STYLE COLUMNS + THE COMPOSITION MODIFIER ARE AUCTION-ONLY BY CONSTRUCTION.
+    Batting_Hand / Bowling_Type / Bowling_Arm live in the AUCTION csv (312/322
+    and 286/322 filled; blanks are deliberate — a wrong player is worse than an
+    empty cell). They flow lot -> players.xi -> buildMpTeams.
+    attackFactor() and handMixFactor() in sim-mp.js return EXACTLY 1 when the
+    fields are absent, and drafted/bot XIs come from the master csv which has no
+    such columns — so the draft and solo strengths are bit-identical (verified,
+    not assumed). Do not "helpfully" default a blank style to Pace: that would
+    silently start modifying the draft.
+    Scale is deliberately asymmetric — worst attack -1.71 team OVR, best +0.29:
+      monoculture (5 of one discipline) x0.952   4 spin + 1 pace x0.984
+      typical 3 pace + 2 spin           x1.000   4 types + left-arm x1.008
+    Variety/left-arm bonuses are GATED on the pace-spin split already being sane.
+    Ungated, 4-spin-1-pace scored BETTER than 4-pace-1-spin, which inverted the
+    whole intent.
+
 (h) THE LOT RUNNING ORDER IS SEEDED, NOT SORTED.
     buildCuratedPool takes opts.seed (auction-room passes `${ROOM}:${season}`)
     and shuffles WITHIN each set. Without a seed it falls back to the old strict

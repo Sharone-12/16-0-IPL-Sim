@@ -246,6 +246,12 @@
       // labels for the auction ONLY, so the draft and solo modes are unaffected.
       roleOverride: r.Role_Override || "",
       battingOrderOverride: r.Batting_Order_Override || "",
+      // Sourced per lot; blank where it could not be verified. Everything
+      // downstream treats a blank as "unknown" and falls back to neutral, so a
+      // gap never fabricates a matchup.
+      battingHand: r.Batting_Hand || "",
+      bowlingType: r.Bowling_Type || "",
+      bowlingArm: r.Bowling_Arm || "",
       basePrice: Math.round(parseFloat(r.Base_Price_Cr || 0) * LAKH_PER_CRORE),
       isWk: r.Is_Wicketkeeper === "1",
       isOverseas: r.Nationality === "Overseas",
@@ -338,6 +344,9 @@
         bowl: m.bowl,
         primaryRole: r.roleOverride || m.primaryRole,
         battingOrder: r.battingOrderOverride || m.battingOrder,
+        battingHand: r.battingHand,
+        bowlingType: r.bowlingType,
+        bowlingArm: r.bowlingArm,
         isWk: r.isWk,
         isOverseas: r.isOverseas,
       });

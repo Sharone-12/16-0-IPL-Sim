@@ -54,6 +54,31 @@ Contention is always resolved by CONDITIONAL UPDATE, never by locking:
 ipl_auction_career_final.csv  322 hand-curated lots: Auction_Set, Tier,
                               calibrated OVR, Base_Price_Cr. THE user mapped
                               these by hand — do not recompute sets or prices.
+                              Plus Role_Override / Batting_Order_Override (44
+                              rows) — see below.
+
+EVERY LOT USES THE PLAYER'S SINGLE HIGHEST-OVR SEASON, which is frequently NOT
+the role they are known for. Rohit's peak is 2008, when he batted middle order;
+Jadeja's is a 2019 season classed as a pure bowler (31% of his 267 matches).
+Role_Override / Batting_Order_Override in the AUCTION csv correct the labels for
+the auction only — buildCuratedPool prefers them over the master row, so the
+draft and solo modes are untouched. Derivation rule:
+  Batting_Order = matches-weighted modal over the last 8 PLAYED seasons
+                  (career-wide modal keeps Rohit middle-order: he has 159
+                  middle-order matches vs 122 opening, purely from debuting in
+                  2008)
+  Primary_Role  = career-wide modal, but All-Rounder wins if >=33% of career
+                  matches were as one (a recency window demotes Pollard, Yuvraj
+                  and Morris for bowling less late on — a worse error)
+Overrides change eligibleSlots, so re-run the supply check for teams 2-10 after
+touching them. R Ashwin is deliberately NOT overridden: he is Bowler/Lower Order
+in every season bar a 2-match 2009, Bat_Rat mostly ~70. The all-rounder label is
+his Test reputation, not his IPL output.
+
+NOT MISSING, CONTRARY TO A REPORT: MA Starc is in the catalogue (Bowlers - B,
+OVR 79). The 486 players outside it peak at OVR 83 with mostly <35 matches — no
+prominent player is absent. Starc's curated 79 vs his master 2015 of 87 is what
+buries him in Tier B.
 ipl_master_calibrated.csv     3354 player-seasons, 808 distinct players. Source
                               of Bat_Rat / Bowl_Rat / Batting_Order / keeper /
                               nationality, and of the 486-player reserve.

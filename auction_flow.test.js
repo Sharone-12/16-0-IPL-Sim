@@ -701,6 +701,58 @@ ok("a long-abandoned pause is resumable by anyone", pausedFor(3600, false));
   console.log(`      first 6 Marquee lots, ROOM2: ${c.filter((l) => l.setId === "Marquee").slice(0, 6).map((l) => l.ovr).join(", ")}`);
 }
 
+// ---------- 3h. per-lot role overrides ----------
+// Every lot uses the player's single highest-OVR season, which is often not the
+// role they are known for — Rohit's peak is 2008 (middle order; he has opened
+// every year since 2019) and Jadeja's is a 2019 season classed as a pure bowler.
+// Role_Override / Batting_Order_Override in the auction CSV correct the labels
+// for the auction ONLY, leaving the master file — and therefore the draft and
+// solo modes — untouched.
+{
+  const rawAuc = parse("ipl_auction_career_final.csv").filter((r) => r.Player_Name);
+  const withOverride = rawAuc.filter((r) => r.Role_Override || r.Batting_Order_Override);
+  ok("the auction CSV carries override columns", "Role_Override" in rawAuc[0]);
+  ok("a meaningful number of lots are corrected",
+     withOverride.length > 20 && withOverride.length < 80, `${withOverride.length} lots`);
+
+  const lot = (n) => pool.lots.find((l) => l.name === n);
+  const seen = (n) => { const l = lot(n); return l ? `${l.primaryRole}/${l.battingOrder}` : "MISSING"; };
+
+  ok("Rohit opens", seen("RG Sharma") === "Batsman/Opener", seen("RG Sharma"));
+  ok("Jadeja is a middle-order all-rounder",
+     seen("RA Jadeja") === "All-Rounder/Middle Order", seen("RA Jadeja"));
+  ok("Axar is an all-rounder", lot("AR Patel").primaryRole === "All-Rounder");
+  ok("Maxwell is an all-rounder", lot("GJ Maxwell").primaryRole === "All-Rounder");
+  ok("Pollard keeps his all-rounder label", lot("KA Pollard").primaryRole === "All-Rounder");
+  ok("Cummins is no longer a Finisher", lot("PJ Cummins").battingOrder !== "Finisher");
+
+  // The override must actually reach slot eligibility, not just the badge.
+  ok("Rohit can be picked as an opener", A.eligibleSlots(lot("RG Sharma")).includes(0));
+  ok("Jadeja can bat in the middle order",
+     A.eligibleSlots(lot("RA Jadeja")).some((s) => s >= 2 && s <= 6));
+
+  // An un-overridden lot must still take its label from the master file.
+  ok("lots without an override are unchanged",
+     seen("R Ashwin") === "Bowler/Lower Order", seen("R Ashwin"));
+
+  // Every override has to name a value the slot rules understand, or a player
+  // silently becomes eligible for every slot via the default branch.
+  const ROLES = new Set(["Batsman", "Bowler", "All-Rounder", "Wicketkeeper"]);
+  const ORDERS = new Set(["Opener", "Middle Order", "Finisher", "Lower Order"]);
+  ok("every override uses a recognised role",
+     withOverride.every((r) => !r.Role_Override || ROLES.has(r.Role_Override)));
+  ok("every override uses a recognised batting order",
+     withOverride.every((r) => !r.Batting_Order_Override || ORDERS.has(r.Batting_Order_Override)));
+
+  // Overrides change eligibleSlots, so supply has to be re-proven at every size.
+  let safe = true;
+  for (let teams = 2; teams <= 10; teams++) {
+    if (A.buildCuratedPool(auc, mas, { teams }).shortfalls.length) safe = false;
+  }
+  ok("supply still guarantees a legal XI at every room size", safe);
+  console.log(`      ${withOverride.length} of ${rawAuc.length} lots carry a corrected role`);
+}
+
 // ---------- 4. full auction → league dry run ----------
 function rng(seed) {
   let a = seed >>> 0;

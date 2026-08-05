@@ -239,6 +239,13 @@
       status: r.Status,
       auctionSet: r.Auction_Set,
       auctionRole: r.Auction_Role,
+      // Optional per-lot corrections. Every lot uses the player's single
+      // highest-OVR season, which is often NOT the role they are known for —
+      // Rohit's peak is 2008, when he batted middle order, and Jadeja's is a
+      // 2019 season classed as a pure bowler. These override the master row's
+      // labels for the auction ONLY, so the draft and solo modes are unaffected.
+      roleOverride: r.Role_Override || "",
+      battingOrderOverride: r.Batting_Order_Override || "",
       basePrice: Math.round(parseFloat(r.Base_Price_Cr || 0) * LAKH_PER_CRORE),
       isWk: r.Is_Wicketkeeper === "1",
       isOverseas: r.Nationality === "Overseas",
@@ -329,8 +336,8 @@
         simOvr: m.ovr,
         bat: m.bat,
         bowl: m.bowl,
-        primaryRole: m.primaryRole,
-        battingOrder: m.battingOrder,
+        primaryRole: r.roleOverride || m.primaryRole,
+        battingOrder: r.battingOrderOverride || m.battingOrder,
         isWk: r.isWk,
         isOverseas: r.isOverseas,
       });
